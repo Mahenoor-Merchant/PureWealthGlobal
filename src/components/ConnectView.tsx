@@ -13,7 +13,7 @@ export default function ConnectView() {
   const [formError, setFormError] = useState('');
 
   const whatsappMsg = encodeURIComponent(`Hi! I would like to get a call from a certified consultant in 30 mins.\n\nName: ${callName}\nMobile: ${callMobile}`);
-  const whatsappLink = `https://wa.me/917021817296?text=${whatsappMsg}`;
+  const whatsappLink = `https://wa.me/917718860398?text=${whatsappMsg}`;
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen py-16 px-4 sm:px-6 lg:px-8 font-sans" id="connect-container">
@@ -85,6 +85,39 @@ export default function ConnectView() {
                   Yes, Call Me
                 </a>
               </div>
+            </div>
+
+            {/* Dedicated WhatsApp Card Option */}
+            <div className="bg-white border border-[#25D366]/20 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4.5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#25D366]/5 rounded-full blur-[32px] -mr-6 -mt-6"></div>
+              
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="bg-[#25D366]/10 p-2.5 rounded-xl shrink-0">
+                  <svg className="w-5 h-5 text-[#25D366] fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.472 14.382c-.022-.008-1.15-.567-1.321-.63-.171-.064-.296-.096-.42.096-.124.192-.482.607-.59.728-.108.12-.216.136-.437.026a8.11 8.11 0 0 1-2.732-1.684c-1.025-.914-1.717-2.043-1.918-2.388-.201-.345-.021-.531.15-.701.153-.153.342-.4.513-.6.171-.2.228-.34.341-.567.114-.228.057-.427-.028-.597-.085-.17-.791-2.13-1.082-2.83-.284-.683-.573-.591-.785-.601-.202-.009-.434-.01-.667-.01-.233 0-.612.087-.932.434-.32.348-1.22 1.192-1.22 2.91 0 1.717 1.25 3.376 1.427 3.614.178.238 2.457 3.752 5.952 5.26.83.359 1.48.574 1.986.734.835.265 1.595.228 2.196.138.67-.101 2.057-.84 2.348-1.652.29-.813.29-1.507.204-1.653-.086-.145-.316-.233-.531-.345zM12 2C6.477 2 2 6.477 2 12a9.96 9.96 0 0 0 2.622 6.779l-1.722 5.035 5.234-1.693A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.962 7.962 0 0 1-4.062-1.114l-.291-.173-3.024.978.995-2.916-.19-.303A7.957 7.957 0 0 1 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-[15.5px] text-slate-900 leading-tight">
+                    Connect on WhatsApp Directly
+                  </h3>
+                  <p className="text-[12.5px] text-slate-500 mt-1 leading-normal">
+                    Chat with us instantly for queries regarding investment options, NRI assistance, or advisory sessions.
+                  </p>
+                </div>
+              </div>
+
+              <a 
+                href="https://wa.me/917718860398?text=Hi!%20I%20would%20like%20to%20get%20in%20touch%20with%20Pure%20Wealth%20Global%20Investment%20Solutions%20for%20a%20portfolio%20consultation."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-xl text-[13.5px] font-bold cursor-pointer transition-colors shadow-sm shadow-[#25D366]/20 active:scale-[0.98]"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.472 14.382c-.022-.008-1.15-.567-1.321-.63-.171-.064-.296-.096-.42.096-.124.192-.482.607-.59.728-.108.12-.216.136-.437.026a8.11 8.11 0 0 1-2.732-1.684c-1.025-.914-1.717-2.043-1.918-2.388-.201-.345-.021-.531.15-.701.153-.153.342-.4.513-.6.171-.2.228-.34.341-.567.114-.228.057-.427-.028-.597-.085-.17-.791-2.13-1.082-2.83-.284-.683-.573-.591-.785-.601-.202-.009-.434-.01-.667-.01-.233 0-.612.087-.932.434-.32.348-1.22 1.192-1.22 2.91 0 1.717 1.25 3.376 1.427 3.614.178.238 2.457 3.752 5.952 5.26.83.359 1.48.574 1.986.734.835.265 1.595.228 2.196.138.67-.101 2.057-.84 2.348-1.652.29-.813.29-1.507.204-1.653-.086-.145-.316-.233-.531-.345zM12 2C6.477 2 2 6.477 2 12a9.96 9.96 0 0 0 2.622 6.779l-1.722 5.035 5.234-1.693A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.962 7.962 0 0 1-4.062-1.114l-.291-.173-3.024.978.995-2.916-.19-.303A7.957 7.957 0 0 1 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
+                </svg>
+                Connect on WhatsApp
+              </a>
             </div>
 
             <div className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 flex-1">

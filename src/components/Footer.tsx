@@ -35,7 +35,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               <Logo showText={true} />
             </div>
             <p className="text-[13px] leading-relaxed text-slate-400 font-sans">
-              Pure Wealth Global is a premier boutique Investment Consulting Firm. We empower HNIs and NRIs to protect and grow their capital through highly curated, high-conviction global wealth channels.
+              Pure Wealth Global is an AMFI Registered Mutual Fund Distributor. We help HNIs and NRIs simplify Mutual Fund investing through global fund options based on your goals, risk & time horizon.
             </p>
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-2.5 rounded-xl w-fit">
               <ShieldCheck className="w-5 h-5 text-blue-400 flex-shrink-0" />

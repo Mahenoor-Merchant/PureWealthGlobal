@@ -20,7 +20,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About Us' },
     { id: 'services', label: 'Services' },
-    { id: 'find-fund', label: 'Find Your Fund' },
+    { id: 'find-fund', label: 'FREE TOOL - Find Your Fund' },
     { id: 'calculators', label: 'Calculators' },
     { id: 'knowledge', label: 'Knowledge Hub' },
     { id: 'connect', label: 'Connect' },

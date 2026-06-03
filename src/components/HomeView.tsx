@@ -1783,7 +1783,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
             Ready to Purify and Multi-fold Your Portfolio Returns?
           </h2>
           <p className="text-slate-300 max-w-2xl mx-auto text-[14px] sm:text-[15.5px] leading-relaxed">
-            Consolidate and align your assets. Engage our senior wealth consultants under safe AMFI and global compliance frameworks.
+            Consolidate and align your assets. Engage our expert Investment Solutions under safe AMFI and global compliance frameworks.
           </p>
           <div className="pt-4">
             <button

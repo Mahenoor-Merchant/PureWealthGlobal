@@ -1,0 +1,6 @@
+{
+  "name": "Pure Wealth Global",
+  "description": "Premium personalized financial planning, diversified portfolio strategies, and elite wealth management in mutual funds, ETFs, REITs, and stocks in Indian and global markets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

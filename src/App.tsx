@@ -93,7 +93,7 @@ export default function App() {
           />
         );
       case 'about':
-        return <AboutView />;
+        return <AboutView setCurrentPage={changePage} />;
       case 'services':
         return (
           <ServicesView 
@@ -103,13 +103,13 @@ export default function App() {
           />
         );
       case 'calculators':
-        return <CalculatorsView />;
+        return <CalculatorsView setCurrentPage={changePage} />;
       case 'knowledge':
         return <KnowledgeHubView setCurrentPage={changePage} />;
       case 'connect':
-        return <ConnectView />;
+        return <ConnectView setCurrentPage={changePage} />;
       case 'privacy':
-        return <PrivacyView />;
+        return <PrivacyView setCurrentPage={changePage} />;
       case 'find-fund':
         return <FindYourFundView setCurrentPage={changePage} />;
       default:

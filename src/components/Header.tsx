@@ -46,24 +46,35 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-8" id="hdr-desktop-nav">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
-              className={`relative py-2 text-[14px] font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                currentPage === item.id 
-                  ? 'text-blue-600' 
-                  : 'text-slate-550 hover:text-slate-900'
-              }`}
-              id={`nav-btn-${item.id}`}
-            >
-              {item.label}
-              {currentPage === item.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-blue-600 rounded-full" />
-              )}
-            </button>
-          ))}
+        <nav className="hidden lg:flex items-center gap-6" id="hdr-desktop-nav">
+          {navigationItems.map((item) => {
+            const isFreeTool = item.id === 'find-fund';
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`relative transition-all duration-200 cursor-pointer ${
+                  isFreeTool
+                    ? `px-3.5 py-1.5 rounded-full border text-[13px] font-black tracking-wide ${
+                        currentPage === 'find-fund'
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/15'
+                          : 'bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 hover:text-amber-700 border-amber-500/30 animate-free-tool-pulse'
+                      }`
+                    : `py-2 text-[14px] font-semibold tracking-wide ${
+                        currentPage === item.id 
+                          ? 'text-blue-600' 
+                          : 'text-slate-550 hover:text-slate-900'
+                      }`
+                }`}
+                id={`nav-btn-${item.id}`}
+              >
+                {item.label}
+                {currentPage === item.id && !isFreeTool && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-blue-600 rounded-full" />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Call to Action Buttons at top Right */}
@@ -105,20 +116,27 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
       {mobileMenuOpen && (
         <div className="lg:hidden absolute top-[72px] left-0 w-full bg-white border-b border-slate-200 shadow-xl" id="hdr-mobile-drawer">
           <div className="px-4 pt-4 pb-6 space-y-2 flex flex-col">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`py-3 px-4 text-left text-[14px] font-bold rounded-lg transition-all ${
-                  currentPage === item.id 
-                    ? 'text-blue-700 bg-blue-50' 
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-                id={`mobile-nav-btn-${item.id}`}
-              >
-                {item.label}
-              </button>
-            ))}
+            {navigationItems.map((item) => {
+              const isFreeTool = item.id === 'find-fund';
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`py-3 px-4 text-left text-[14px] font-bold rounded-lg transition-all ${
+                    isFreeTool
+                      ? currentPage === 'find-fund'
+                        ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
+                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20 animate-free-tool-pulse'
+                      : currentPage === item.id 
+                        ? 'text-blue-700 bg-blue-50' 
+                        : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                  id={`mobile-nav-btn-${item.id}`}
+                >
+                  {isFreeTool ? `🔥 ${item.label}` : item.label}
+                </button>
+              );
+            })}
             
             <div className="pt-4 border-t border-slate-100 flex flex-col gap-4">
               <a

@@ -6,8 +6,13 @@
 import React from 'react';
 import { Target, ShieldCheck, Lightbulb, Heart, Eye, BookOpen, CheckCircle, Clock } from 'lucide-react';
 import { AMFI_ARN_DETAILS } from '../data';
+import FundFinderPromoBanner from './FundFinderPromoBanner';
 
-export default function AboutView() {
+interface AboutViewProps {
+  setCurrentPage: (page: any) => void;
+}
+
+export default function AboutView({ setCurrentPage }: AboutViewProps) {
   return (
     <div className="bg-[#F8FAFC] min-h-screen font-sans" id="about-us-container">
       
@@ -26,6 +31,8 @@ export default function AboutView() {
           </p>
         </div>
       </section>
+
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
 
       {/* 2. Core Corporate Mission Statement */}
       <section className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="corporate-purpose">
@@ -114,6 +121,8 @@ export default function AboutView() {
 
         </div>
       </section>
+
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
 
       {/* 3. The Regulatory Distributorship Status (AMFI) */}
       <section className="bg-white py-16 border-y border-slate-100" id="regulatory-distributorship">
@@ -227,6 +236,8 @@ export default function AboutView() {
 
         </div>
       </section>
+
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
 
     </div>
   );

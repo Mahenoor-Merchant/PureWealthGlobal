@@ -18,8 +18,13 @@ import {
   Cell 
 } from 'recharts';
 import { Calculator, Coins, ShieldPlus, TrendingUp, Info, ArrowUpRight } from 'lucide-react';
+import FundFinderPromoBanner from './FundFinderPromoBanner';
 
-export default function CalculatorsView() {
+interface CalculatorsViewProps {
+  setCurrentPage: (page: any) => void;
+}
+
+export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps) {
   const [activeTab, setActiveTab] = useState<'sip' | 'allocator'>('sip');
 
   // Calculator 1: SIP & Lump Sum State
@@ -164,6 +169,8 @@ export default function CalculatorsView() {
           </p>
         </div>
 
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
+
         {/* Tab Selection (Pristine minimalism sliders look) */}
         <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-md mx-auto mb-10 shadow-sm" id="calc-tab-headers">
           <button
@@ -189,6 +196,8 @@ export default function CalculatorsView() {
             NRI Risk Profiler
           </button>
         </div>
+
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
 
         {/* Tab 1: SIP Compounding */}
         {activeTab === 'sip' && (
@@ -546,6 +555,8 @@ export default function CalculatorsView() {
 
           </div>
         )}
+
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
 
       </div>
     </div>

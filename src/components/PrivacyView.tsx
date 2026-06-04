@@ -6,8 +6,13 @@
 import React from 'react';
 import { ShieldAlert, Fingerprint, RefreshCcw, Landmark, Scale, ShieldCheck } from 'lucide-react';
 import { AMFI_ARN_DETAILS } from '../data';
+import FundFinderPromoBanner from './FundFinderPromoBanner';
 
-export default function PrivacyView() {
+interface PrivacyViewProps {
+  setCurrentPage: (page: any) => void;
+}
+
+export default function PrivacyView({ setCurrentPage }: PrivacyViewProps) {
   return (
     <div className="bg-[#F8FAFC] min-h-screen font-sans" id="privacy-disclaimer-view">
       
@@ -26,6 +31,8 @@ export default function PrivacyView() {
           </p>
         </div>
       </section>
+
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
 
       {/* Main Core Disclosures Grid */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-left space-y-12" id="privacy-details">
@@ -61,6 +68,8 @@ export default function PrivacyView() {
                 Your shared information is processed in modern, firewalled systems and is never rented or marketed to third-party institutions for profiling. Data is exclusively utilized by our internal AMFI certified consultants to curate custom financial allocations and issue quarterly rebalancing reviews. For expatriate investors (NRIs), communications adhere to the data privacy laws of their regional settlements (such as DIFC guidelines in UAE, GDPR in European jurisdictions).
               </p>
             </div>
+
+            <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
 
             <div className="h-px bg-slate-100" />
 
@@ -123,6 +132,8 @@ export default function PrivacyView() {
         </div>
 
       </section>
+
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
 
     </div>
   );

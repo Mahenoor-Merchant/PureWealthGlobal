@@ -32,3 +32,36 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Call to action soft scale and glow pulse animation */
+@keyframes cta-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 10px 25px rgba(245, 158, 11, 0.5);
+  }
+}
+
+.animate-cta-pulse {
+  animation: cta-pulse 1.4s infinite ease-in-out;
+}
+
+/* Subtle pulse scale and border glow for Free Tool button */
+@keyframes free-tool-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  }
+}
+
+.animate-free-tool-pulse {
+  animation: free-tool-pulse 2s infinite ease-in-out;
+}
+

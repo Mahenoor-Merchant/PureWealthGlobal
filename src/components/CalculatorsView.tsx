@@ -197,8 +197,6 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
           </button>
         </div>
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
-
         {/* Tab 1: SIP Compounding */}
         {activeTab === 'sip' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" id="sip-calculator">
@@ -500,9 +498,9 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
               <div className="flex-1 space-y-6">
                 <div>
                   <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">Allocations Diagnosis</span>
-                  <h4 className="text-[20px] font-display font-bold text-slate-900 mt-1">Recommended Portfolios Mix</h4>
+                  <h4 className="text-[20px] font-display font-bold text-slate-900 mt-1">Analytical Asset Allocation Mix</h4>
                   <p className="text-slate-500 text-[13px] mt-1.5 leading-relaxed">
-                    Designed strictly within optimal asset allocation parameters matching your <strong>{timeHorizon === 'long' ? 'long cyclic growth' : timeHorizon === 'medium' ? 'medium-term' : 'defensive conservative'}</strong> timeline.
+                    Presented as educational analytical matrices matching your <strong>{timeHorizon === 'long' ? 'long cyclic growth' : timeHorizon === 'medium' ? 'medium-term' : 'defensive conservative'}</strong> timeline. Mutual fund regular schemes distributed will reflect these broad strategic patterns.
                   </p>
                 </div>
 

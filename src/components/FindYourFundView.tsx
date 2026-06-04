@@ -561,7 +561,7 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
       const inflowContext = `${inflowStability} inflows structured as a ${capitalType} pattern of ₹${capitalAmount.toLocaleString()}`;
 
       const nameCleanPart = f1.replace(/\s*\(Regular-Growth\)\s*/i, "").replace(/\s*ETF\s*/i, "").replace(/\s*Fund\s*/i, "");
-      const portfolioName = `${riskClass} Risk: Customized ${shariahOnly ? 'Shariah' : 'Standard'} Advisor Plan (${nameCleanPart} Core)`;
+      const portfolioName = `${riskClass} Risk: Curated ${shariahOnly ? 'Shariah' : 'Standard'} Regular Plan Model (${nameCleanPart} Core)`;
 
       const rationale = `Bespoke portfolio hand-crafted in real-time to prioritize your ${readableGoal} milestone using a target of ${readableObjective}. Calibrated precisely for your ${riskCapacity} risk capacity and backed by ${inflowContext}. By allocating ${w1}% into ${f1} (Core), we capture dominant trendlines, while the ${w2}% tactical holding in ${f2} scales up yields under a disciplined ${behaviorResponse} mindset. Finally, the ${w3}% satellite slice in ${f3} provides a dedicated asset buffer${withdrawalNeeds !== 'No' ? ' to satisfy intermediate emergency liquidity redemptions seamlessly' : ' to insulate capital from market cycling drawdown shocks'}.`;
 
@@ -3207,7 +3207,7 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
                   <span className="text-[10px] font-mono font-bold tracking-wider text-blue-400 uppercase bg-blue-500/10 border border-blue-500/25 px-2.5 py-1 rounded">
                     Planner Sandbox Diagnostics (Live updates)
                   </span>
-                  <h4 className="font-display font-medium text-[20px] text-white mt-2">Active Consulting Matrix Score</h4>
+                  <h4 className="font-display font-medium text-[20px] text-white mt-2">Active Suitability Matrix Score</h4>
                 </div>
                 <div className="bg-slate-850 border border-slate-800 px-4 py-2 rounded-2xl text-center">
                   <span className="text-[10px] font-mono text-slate-400 block uppercase leading-none">Profile Index</span>
@@ -3309,10 +3309,10 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
               <div className="bg-[#1E293B] text-white rounded-3xl p-6 sm:p-8 border border-slate-850 flex flex-col md:flex-row justify-between items-center gap-6 text-left mb-6 shadow-md" id="mid-page-cta">
                 <div className="space-y-2 max-w-2xl">
                   <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
-                    Regulatory Advisory Protocol
+                    AMFI Distributor Disclosure Notice
                   </span>
                   <h3 className="font-display font-bold text-xl sm:text-2xl tracking-tight text-white mt-2">
-                    Start Your Investments with AMFI Licensed Mutual Fund Distributor Now!
+                    Start Your Investments with an AMFI Registered Mutual Fund Distributor Now!
                   </h3>
                 </div>
 
@@ -3361,7 +3361,7 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
                   <span className="text-[11px] font-mono text-slate-400 block uppercase tracking-wider font-bold">First Phase Diagnosis</span>
                   <h3 className="font-display font-bold text-[22px] text-slate-900 tracking-tight mt-1">Calibrated Asset Allocation Blueprint</h3>
                   <p className="text-[13.5px] text-slate-500 mt-2">
-                    Before selecting specific funds, a professional planner balances risk using distinct asset classes. Based on your behavioral index score of <strong className="text-blue-600 font-bold">{advisorScore}/10</strong>, your capital achieves its best risk-adjusted yield using this structure:
+                  Before selecting specific schemes, standard asset allocation balances risk using distinct asset classes. Based on your behavioral index score of <strong className="text-blue-600 font-bold">{advisorScore}/10</strong>, your capital achieves its best risk-adjusted yield using this structure:
                   </p>
                 </div>
               </div>
@@ -3580,10 +3580,10 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
                   <div className="bg-[#1E293B] text-white rounded-3xl p-6 sm:p-8 border border-slate-850 flex flex-col md:flex-row justify-between items-center gap-6 text-left mb-2 shadow-md">
                     <div className="space-y-2 max-w-2xl">
                       <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
-                        Regulatory Advisory Protocol
+                        AMFI Distributor Disclosure Notice
                       </span>
                       <h3 className="font-display font-bold text-[19px] sm:text-[21px] tracking-tight text-white mt-2">
-                        Start Your Investments with AMFI Licensed Mutual Fund Distributor Now!
+                        Start Your Investments with an AMFI Registered Mutual Fund Distributor Now!
                       </h3>
                     </div>
 
@@ -3887,7 +3887,7 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
             <div className="bg-[#1E293B] text-white rounded-3xl p-6 sm:p-8 border border-slate-850 flex flex-col md:flex-row justify-between items-center gap-6 text-left" id="discovery-appointment-cta">
               <div className="space-y-2 max-w-2xl">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
-                  Regulatory Advisory Protocol
+                  AMFI Distributor Disclosure Notice
                 </span>
                 <h3 className="font-display font-bold text-xl sm:text-2xl tracking-tight text-white mt-2">
                   Ready to lock your selection compliant under Indian Tax & AMFI Laws?

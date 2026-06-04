@@ -224,8 +224,6 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
     <div className="bg-[#F8FAFC] min-h-screen py-16 px-4 sm:px-6 lg:px-8" id="knowledge-hub-container">
       <div className="max-w-7xl mx-auto animate-fade-in animate-duration-300">
         
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage?.('find-fund')} boxIndex={1} />
-
         {/* Dynamic Segmented Tab Headers */}
         <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-2xl mx-auto mb-16 shadow-xs" id="knowledge-tab-headers">
           <button

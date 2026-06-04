@@ -110,7 +110,7 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
                     Or Connect Directly
                   </h3>
                   <p className="text-[12.5px] text-slate-500 mt-1 leading-normal">
-                    Connect on WhatsApp directly with our certified wealth distribution advisers. Bypasses form inputs entirely.
+                    Connect on WhatsApp directly with our certified mutual fund distribution consultants. Bypasses form inputs entirely.
                   </p>
                 </div>
               </div>

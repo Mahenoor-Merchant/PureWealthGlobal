@@ -916,7 +916,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
                   </div>
                   
                   <div className="text-center">
-                    <span className="text-[10px] text-slate-400 italic">For illustrative purposes only. Past performance doesn't guarantee future yields.</span>
+                    <span className="text-[10px] text-slate-400 italic">For analytical purposes only. Past performance doesn't guarantee future yields.</span>
                   </div>
                 </div>
               )}
@@ -1295,7 +1295,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
                     </div>
 
                     <div className="text-center">
-                      <span className="text-[10px] text-slate-450 font-mono italic">For illustrative purposes only.</span>
+                      <span className="text-[10px] text-slate-450 font-mono italic">For analytical purposes only.</span>
                     </div>
                   </div>
 

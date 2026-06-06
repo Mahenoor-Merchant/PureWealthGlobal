@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Building, AlertCircle, PhoneCall, CheckCircle2 } from 'lucide-react';
+import { Building, AlertCircle, PhoneCall, CheckCircle2, Calendar, Clock, Shield } from 'lucide-react';
 import { AMFI_ARN_DETAILS } from '../data';
 import FundFinderPromoBanner from './FundFinderPromoBanner';
 
@@ -15,9 +15,21 @@ interface ConnectViewProps {
 export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
   const [callName, setCallName] = useState('');
   const [callMobile, setCallMobile] = useState('');
+  const [callDate, setCallDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [callTime, setCallTime] = useState('');
   const [formError, setFormError] = useState('');
 
-  const whatsappMsg = encodeURIComponent(`Hi! I would like to get a call from a certified consultant in 30 mins.\n\nName: ${callName}\nMobile: ${callMobile}`);
+  const whatsappMsg = encodeURIComponent(
+    `Hi! I would like to schedule a consultation call with a certified consultant.\n\n` +
+    `Name: ${callName}\n` +
+    `Mobile: ${callMobile}\n` +
+    `Preferred Date: ${callDate}\n` +
+    `Preferred Slot: ${callTime || 'Flexible Time / As soon as possible'}\n\n` +
+    `Please call me at my preferred time. Thanks!`
+  );
   const whatsappLink = `https://wa.me/917718860398?text=${whatsappMsg}`;
 
   const directWhatsappMsg = encodeURIComponent("Hi! I would like to get in touch with Pure Wealth Global for a portfolio consultation.");
@@ -32,50 +44,151 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
           <span className="text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider">
             Secure Consultations
           </span>
-          <h2 className="font-display font-bold text-3xl sm:text-4xl text-slate-900 mt-5 tracking-tight">
-            Schedule a Portfolio Consultation Session
+          <h2 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl text-slate-900 mt-5 tracking-tight leading-tight">
+            Analyze Your Portfolio for <span className="bg-blue-600 text-white font-extrabold text-[85%] px-3 py-0.5 rounded-lg shadow-sm mx-1.5 inline-block tracking-wider uppercase">FREE</span> with Certified Analyst. Book a Call Now
           </h2>
-          <p className="text-slate-650 mt-3 text-[14.5px] sm:text-[15.5px]">
-            Book a direct, live appointment below. No complex double-entry forms or redundant profiling surveys required.
+          <p className="text-slate-650 mt-3 text-[14.5px] sm:text-[15.5px] leading-relaxed">
+            Book a direct, live <span className="text-blue-600 font-extrabold bg-blue-100/50 px-2 py-0.5 rounded border border-blue-200/40">15-25 mins</span> appointment below. NO Form filling No profiling surveys required.
           </p>
+          
+          {/* Encouraging Trust Indicators */}
+          <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 mt-5 text-[12.5px] font-semibold text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
+              100% Confidential
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              Zero Spam Guarantee
+            </span>
+            <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50/80 px-2.5 py-0.5 rounded-full border border-blue-100/30">
+              ⚡ Complimentary Support
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
           {/* Left Column: Premium Instructions & Support info */}
-          <div className="lg:col-span-4 flex flex-col space-y-6">
+          <div className="lg:col-span-5 flex flex-col space-y-6">
             
-            {/* Quick Call Box */}
-            <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden group text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[64px] -mr-10 -mt-10 opacity-30 relative z-0 transition-opacity duration-700 group-hover:opacity-40"></div>
+            {/* Quick Call Box styled exactly like the provided screenshot */}
+            <div className="bg-[#0B1528] border border-slate-850 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden group text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[64px] -mr-10 -mt-10 opacity-15 relative z-0 pointer-events-none"></div>
               
-              <div className="flex items-start gap-4 relative z-10">
-                <div className="bg-blue-500/20 p-2.5 rounded-xl shrink-0">
-                  <PhoneCall className="w-5 h-5 text-blue-400" />
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="bg-[#1C2C4E] p-3.5 rounded-xl shrink-0 border border-slate-700/30">
+                  <PhoneCall className="w-5.5 h-5.5 text-blue-400" />
                 </div>
-                <h3 className="font-display font-bold text-[18px] text-white leading-tight">
-                  Would You Like to Get a Call from a Certified Consultant in 30 Mins?
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[10.5px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full uppercase leading-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Zero Spam Guarantee
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 relative z-10 mt-4.5">
+                <h3 className="font-display font-medium text-[20px] sm:text-[21px] text-white leading-tight font-sans tracking-tight">
+                  Request a Private Callback on your comfortable time
                 </h3>
+                <p className="text-[12.5px] text-slate-400 leading-relaxed">
+                  Connect on your comfortable schedule. Experience a secure, high-integrity advisory discussion with an AMFI-registered specialist.
+                </p>
               </div>
               
-              <div className="space-y-3.5 relative z-10 pt-1">
-                <input 
-                  type="text" 
-                  placeholder="Name" 
-                  value={callName}
-                  onChange={(e) => setCallName(e.target.value)}
-                  className="w-full text-[13.5px] px-4 py-3 rounded-xl border border-slate-700 bg-slate-800/80 text-white placeholder-slate-400 focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-                <input 
-                  type="tel" 
-                  placeholder="Mobile Number" 
-                  value={callMobile}
-                  onChange={(e) => setCallMobile(e.target.value)}
-                  className="w-full text-[13.5px] px-4 py-3 rounded-xl border border-slate-700 bg-slate-800/80 text-white placeholder-slate-400 focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
+              <div className="space-y-4 relative z-10 pt-5">
+                {/* 2-column Input Grid for Name & Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase block mb-1">
+                      Your Name
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Name" 
+                      value={callName}
+                      onChange={(e) => setCallName(e.target.value)}
+                      className="w-full text-[13.5px] px-4 py-3 rounded-xl border border-slate-800 bg-[#121927] text-white placeholder-slate-500 focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase block mb-1">
+                      Contact Number
+                    </label>
+                    <input 
+                      type="tel" 
+                      placeholder="Mobile Number" 
+                      value={callMobile}
+                      onChange={(e) => setCallMobile(e.target.value)}
+                      className="w-full text-[13.5px] px-4 py-3 rounded-xl border border-slate-800 bg-[#121927] text-white placeholder-slate-500 focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* 2-column Date & Slot Selector Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase block mb-1">
+                      Select Date
+                    </label>
+                    <input 
+                      type="date" 
+                      value={callDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setCallDate(e.target.value)}
+                      className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-800 bg-[#121927] text-white focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase block mb-1">
+                      Preferred Time Slot
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={callTime}
+                        onChange={(e) => setCallTime(e.target.value)}
+                        className="w-full text-[13px] px-4 py-3 pr-10 rounded-xl border border-slate-800 bg-[#121927] text-white appearance-none focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer"
+                      >
+                        <option value="">Choose preferred slot</option>
+                        <option value="09:00 AM - 11:00 AM">Morning (09:00 AM - 11:00 AM)</option>
+                        <option value="11:00 AM - 01:00 PM">Morning (11:00 AM - 01:00 PM)</option>
+                        <option value="01:00 PM - 03:00 PM">Afternoon (01:00 PM - 03:00 PM)</option>
+                        <option value="03:00 PM - 05:00 PM">Afternoon (03:00 PM - 05:00 PM)</option>
+                        <option value="05:00 PM - 07:00 PM">Evening (05:00 PM - 07:00 PM)</option>
+                        <option value="07:00 PM - 08:30 PM">Night (07:00 PM - 08:30 PM)</option>
+                        <option value="08:30 PM - 09:30 PM">Night (08:30 PM - 09:30 PM)</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-450">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {formError && (
                   <p className="text-red-400 text-[12px] font-medium">{formError}</p>
                 )}
+
+                {/* Secure Guarantee Box exact from layout */}
+                <div className="bg-[#050A14] border border-[#1E2E4A]/40 rounded-2xl p-4.5 space-y-3.5 mt-2">
+                  <div className="flex gap-3 items-start">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-450 text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-slate-300 leading-normal">
+                      <strong className="text-white font-bold">100% Secure Guarantee:</strong> Encrypted & visible strictly to your assigned wealth professional.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-450 text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-slate-300 leading-normal">
+                      <strong className="text-white font-bold">No Spam Protection:</strong> No cold sales or automated promos. We call strictly at your confirmed slot.
+                    </p>
+                  </div>
+                </div>
+
                 <a 
                   href={whatsappLink}
                   target="_blank"
@@ -88,9 +201,9 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
                       setFormError('');
                     }
                   }}
-                  className="w-full flex justify-center py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[13.5px] font-bold cursor-pointer transition-colors mt-2 shadow-sm shadow-blue-500/20 active:scale-[0.98]"
+                  className="w-full flex justify-center py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[14px] font-bold cursor-pointer transition-all duration-150 relative z-10 text-center shadow-lg active:scale-[0.98] mt-3"
                 >
-                  Yes, Call Me
+                  Confirm Slot & Connect on WhatsApp
                 </a>
               </div>
             </div>
@@ -200,7 +313,7 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
           </div>
 
           {/* Right Column: Embedded Google Calendar Scheduler (Premium Slate Card layout) */}
-          <div className="lg:col-span-8 bg-slate-950 text-white border border-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl text-left space-y-6 flex flex-col h-full min-h-[620px]">
+          <div className="lg:col-span-7 bg-slate-950 text-white border border-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl text-left space-y-6 flex flex-col h-full min-h-[620px]">
             
             <div className="space-y-1.5 border-b border-slate-900 pb-4">
               <span className="text-[10.5px] text-blue-400 font-mono font-bold uppercase tracking-wider">Live Scheduler Terminal</span>

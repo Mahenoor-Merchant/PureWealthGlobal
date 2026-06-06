@@ -3582,8 +3582,11 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
                       <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
                         AMFI Distributor Disclosure Notice
                       </span>
-                      <h3 className="font-display font-bold text-[19px] sm:text-[21px] tracking-tight text-white mt-2">
-                        Start Your Investments with an AMFI Registered Mutual Fund Distributor Now!
+                      <h3 className="font-display font-medium text-[18px] sm:text-[20px] tracking-tight text-white mt-2 leading-relaxed">
+                        <span className="font-extrabold text-[20px] sm:text-[22px] bg-blue-600 px-3 py-1 rounded text-white mr-2 inline-block shadow-sm">
+                          Next Step ?
+                        </span>
+                        Our Team Help you Start your Investment in the Funds.
                       </h3>
                     </div>
 

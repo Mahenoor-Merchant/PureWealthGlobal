@@ -34,6 +34,24 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
     return `${year}-${month}-${day}`;
   };
 
+  const getNext7Days = () => {
+    const list = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const nextDate = new Date();
+      nextDate.setDate(today.getDate() + i);
+      list.push(nextDate);
+    }
+    return list;
+  };
+
+  const formatDateValue = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [callDate, setCallDate] = useState(() => getLocalDateString());
   const [callTime, setCallTime] = useState('');
   const [formError, setFormError] = useState('');
@@ -286,119 +304,74 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
               </a>
             </div>
 
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 flex-1">
-              <div>
-                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                  Booking Guidelines
-                </span>
-                <h3 className="text-[18px] font-bold text-slate-900 mt-3 select-none">
-                  Instant Verification
-                </h3>
-                <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
-                  We value your time. We have eliminated intermediate questionnaire stages to make booking quick and frictionless:
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex gap-3 items-start">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px] font-bold shrink-0 mt-0.5">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="text-[13.5px] font-bold text-slate-800">Choose Your Slot</h4>
-                    <p className="text-[11.5px] text-slate-450 text-slate-500">Pick any available date and timezone direct on the calendar.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px] font-bold shrink-0 mt-0.5">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="text-[13.5px] font-bold text-slate-800">Identify Yourself Once</h4>
-                    <p className="text-[11.5px] text-slate-450 text-slate-500">Fill your contact coordinates solely inside the secure Google widget.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px] font-bold shrink-0 mt-0.5">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="text-[13.5px] font-bold text-slate-800">Receive Direct Coordinates</h4>
-                    <p className="text-[11.5px] text-slate-450 text-slate-500">A secure video coordination link is fired instantly to your address.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Regulatory Compliance</span>
-                <p className="text-[11.5px] text-slate-550 text-slate-500 leading-normal">
-                  All mutual fund distributions are strictly governed under official AMFI registration credentials <strong>(ARN-{AMFI_ARN_DETAILS.arnNumber})</strong>.
-                </p>
-              </div>
-            </div>
-
-            {/* Address & Direct Phone Card */}
-            <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-xs text-left space-y-3">
-              <div className="flex items-center gap-2">
-                <Building className="w-4.5 h-4.5 text-blue-600" />
-                <h4 className="font-display font-medium text-[14px] text-slate-900">Headquarters Secretariat</h4>
-              </div>
-              <p className="text-[12px] text-slate-500 leading-relaxed">
-                F-Wing, 18th Floor, Capital Towers,<br />
-                Bandra Kurla Complex (BKC), Mumbai, India
-              </p>
-              <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[11.5px] text-slate-550">
-                <span className="text-slate-400">Direct Helpline:</span>
-                <a href="tel:+917718860398" className="hover:text-blue-600 font-bold font-mono text-[12px] text-slate-800">+91 7718860398</a>
-              </div>
-            </div>
-
           </div>
 
           {/* Right Column: Embedded Google Calendar Scheduler (Premium Slate Card layout) */}
-          <div className="lg:col-span-7 bg-slate-950 text-white border border-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl text-left space-y-6 flex flex-col h-full min-h-[620px]">
+          <div className="lg:col-span-7 bg-slate-950 text-white border border-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl text-left space-y-6 flex flex-col h-full justify-between min-h-[580px]">
             
-            <div className="space-y-1.5 border-b border-slate-900 pb-4">
-              <span className="text-[10.5px] text-blue-400 font-mono font-bold uppercase tracking-wider">Live Scheduler Terminal</span>
-              <h3 className="font-display font-medium text-[19px] text-white">Direct Live Appointment Booking</h3>
-              <p className="text-[11.5px] text-slate-400 leading-relaxed">
-                We have integrated our live reservation system directly. Choose your preferred day and time below to immediately confirm your secure Zoom consultation.
+            <div className="space-y-2 border-b border-slate-900 pb-5">
+              <span className="text-[10.5px] text-blue-400 font-mono font-bold uppercase tracking-wider">SECURE LIVE PORTAL</span>
+              <h3 className="font-display font-bold text-[22px] text-white">Direct Live Appointment Booking</h3>
+              <p className="text-[12.5px] text-slate-400 leading-relaxed">
+                Connect seamlessly with specialized Google Calendar integration. Secure your slot dynamically in under 2 minutes.
               </p>
             </div>
 
-            {/* Embedded Live Google Calendar Iframe */}
-            <div className="flex-1 w-full bg-white rounded-2xl overflow-hidden shadow-inner relative group border border-slate-800 min-h-[480px]">
-              <iframe
-                src="https://calendar.app.google/PYXL2TddCCKk9cZ98"
-                className="w-full h-full min-h-[485px] border-0 select-none bg-white"
-                title="Pure Wealth Global Live Scheduler"
-                id="live-calendar-iframe"
-              />
+            {/* Premium Interactive Option Container */}
+            <div className="flex-1 flex flex-col justify-center py-6 space-y-6">
+              <div className="bg-[#0b101b] border border-slate-900 rounded-2xl p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-400 relative">
+                    <Calendar className="w-5.5 h-5.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-[14.5px] font-bold text-white">Google Calendar Scheduler Portal</h4>
+                    <p className="text-[11.5px] text-slate-400">Directly sync your call with an authorized Certified Analyst's planner</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5 pt-2 border-t border-slate-900/50 text-[12.5px] text-slate-300">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong>15-25 Minutes</strong> personalized micro-session slot.</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong>Instant link</strong> generated for Zoom or Google Meet securely.</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong>No registration needed:</strong> Synchronize with your actual calendar without friction.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <a
+                  href="https://calendar.app.google/PYXL2TddCCKk9cZ98"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2.5 w-full py-4 px-6 bg-blue-600 hover:bg-blue-500 text-white text-center rounded-xl text-[14px] font-bold transition-all cursor-pointer shadow-lg shadow-blue-500/15 duration-150 transform hover:-translate-y-0.5"
+                >
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-100 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-200"></span>
+                  </span>
+                  Schedule a Call on Google Calendar Portal
+                </a>
+                
+                <p className="text-center text-[10px] text-slate-500 font-mono tracking-widest uppercase">
+                  🔒 Secured via Authorized Google OAuth Authentication
+                </p>
+              </div>
             </div>
 
-            {/* Direct Link Action & Backup instructions */}
-            <div className="space-y-3 pt-2">
-              <a
-                href="https://calendar.app.google/PYXL2TddCCKk9cZ98"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-xl text-[12.5px] font-bold transition-all cursor-pointer shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] duration-150"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-100 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-200"></span>
-                </span>
-                📅 Open in Google Calendar (New Tab)
-              </a>
-
-              <div className="flex bg-slate-900/45 border border-slate-900 rounded-lg p-3 gap-2 text-[10.5px] text-slate-400 leading-relaxed">
-                <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>
-                  Some privacy-focused browsers might restrict Google widget sign-ins. If the calendar does not load or you want a full-screen experience, click the button above to book in a new tab.
-                </span>
-              </div>
+            {/* Explanatory security notification */}
+            <div className="bg-slate-900/30 border border-slate-900/60 rounded-2xl p-4.5 gap-3 text-[11px] text-slate-450 leading-normal flex items-start">
+              <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                Standard sandboxed browsers can occasionally restrict inline authentication widgets. For a premium, secure, and hassle-free scheduling experience, use the official portal button above to book in a safe new tab.
+              </span>
             </div>
 
           </div>

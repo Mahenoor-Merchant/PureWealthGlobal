@@ -127,8 +127,8 @@ export default function ServicesView({ setCurrentPage, activeServiceId, clearAct
                       )}
 
                       {service.id === 'srv-2' && (
-                        <div className="text-center space-y-3 z-10">
-                          <span className="text-sky-850 bg-sky-50 border border-sky-100 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide">Expats Liaison Matrix</span>
+                        <div className="text-center space-y-3 z-10 font-sans">
+                          <span className="text-sky-850 bg-sky-50 border border-sky-100 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide">NRI Liaison Matrix</span>
                           <div className="grid grid-cols-2 gap-1.5 max-w-[200px] mx-auto mt-2.5 text-[10px] font-mono">
                             <span className="bg-white border border-slate-100 px-2 py-1.5 text-center rounded shadow-xs font-medium">NRE Channel</span>
                             <span className="bg-white border border-slate-100 px-2 py-1.5 text-center rounded shadow-xs font-medium">NRO Ordinary</span>

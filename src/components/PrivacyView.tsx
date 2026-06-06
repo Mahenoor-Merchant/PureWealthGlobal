@@ -65,7 +65,7 @@ export default function PrivacyView({ setCurrentPage }: PrivacyViewProps) {
                 2. Data Integrity & Global Storage Practices
               </h3>
               <p className="text-[13.5px] text-slate-600 leading-relaxed">
-                Your shared information is processed in modern, firewalled systems and is never rented or marketed to third-party institutions for profiling. Data is exclusively utilized by our internal AMFI certified consultants to curate custom financial allocations and issue quarterly rebalancing reviews. For expatriate investors (NRIs), communications adhere to the data privacy laws of their regional settlements (such as DIFC guidelines in UAE, GDPR in European jurisdictions).
+                Your shared information is processed in modern, firewalled systems and is never rented or marketed to third-party institutions for profiling. Data is exclusively utilized by our internal AMFI certified consultants to curate custom financial allocations and issue quarterly rebalancing reviews. For NRI investors, communications adhere to the data privacy laws of their regional settlements (such as DIFC guidelines in UAE, GDPR in European jurisdictions).
               </p>
             </div>
 

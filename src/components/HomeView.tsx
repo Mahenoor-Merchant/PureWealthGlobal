@@ -208,7 +208,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
 
             {/* Explanatory Subtext */}
             <p className="font-sans text-[16.5px] sm:text-[17.5px] text-slate-600 leading-relaxed max-w-xl">
-              We design and actively manage personalized wealth portfolios for HNIs & Global NRIs. Built on a proven, data-driven framework to achieve higher, risk-adjusted returns with absolute transparency.
+              We design and actively manage personalized wealth portfolios for HNIs & NRIs. Built on a proven, data-driven framework to achieve higher, risk-adjusted returns with absolute transparency.
             </p>
 
             {/* Action CTAs */}
@@ -339,7 +339,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
               Who We Serve
             </span>
             <h2 className="font-display font-bold text-3xl sm:text-4xl text-slate-900 mt-5 tracking-tight">
-              Grow Your Wealth Like the Top 1% Global Expats
+              Grow Your Wealth Like the Top 1%
             </h2>
             <p className="text-slate-600 mt-3 font-sans text-[15px] sm:text-[16.5px]">
               Stop letting inflation eat your hard-earned savings. Learn how elite investors are quietly routing capital into India's highest-conviction strategies before the next major market run.
@@ -356,10 +356,10 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-[22px] text-slate-900">NRI Wealth Solutions</h3>
-                  <p className="text-slate-400 font-semibold text-[13px] uppercase mt-1 tracking-wider">GCC, Singapore, US & UK Expatriate Focus</p>
+                  <p className="text-slate-400 font-semibold text-[13px] uppercase mt-1 tracking-wider">GCC, Singapore, US & UK NRI Focus</p>
                 </div>
                 <p className="text-slate-600 text-[14px] leading-relaxed">
-                  We bridge geographic distances by handling comprehensive banking setups for Indian expats. Access clean Indian capital markets with 100% regulatory compliance.
+                  We bridge geographic distances by handling comprehensive banking setups for NRIs. Access clean Indian capital markets with 100% regulatory compliance.
                 </p>
                 <ul className="space-y-3 pt-2 text-[13.5px] text-slate-600">
                   <li className="flex items-start gap-2.5">
@@ -648,7 +648,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
           <div className="mt-16 bg-gradient-to-r from-blue-950/20 to-slate-900/40 border border-blue-900/30 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-left max-w-5xl mx-auto">
             <div>
               <h4 className="text-[16.5px] font-bold text-white">Interested in evaluating your current mutual funds or stock portfolios?</h4>
-              <p className="text-slate-400 text-[12.5px] mt-1">We provide an in-depth portfolio review of your risk-adjusted metrics, cost factors, and ethical alignment for portfolios above ₹25 Lakhs / $30k USD.</p>
+              <p className="text-slate-400 text-[12.5px] mt-1">We provide an in-depth portfolio review of your risk-adjusted metrics, cost factors, and ethical alignment for portfolios above ₹5 Lakhs / $6k USD.</p>
             </div>
             <button
               onClick={() => handlePageNavigation('connect')}

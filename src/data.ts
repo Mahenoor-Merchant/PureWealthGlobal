@@ -112,7 +112,7 @@ export const SERVICES_DATA = [
   {
     id: "srv-2",
     title: "NRI Wealth Management",
-    subtitle: "Tailored to Indian Expatriates Globally & HNIs",
+    subtitle: "Tailored to Indian NRIs Globally & HNIs",
     description: "End-to-end investment assistance for Non-Resident Indians (NRIs) in Gulf countries (UAE, KSA, Qatar, Kuwait, Oman), Singapore, US, and UK. Seamless bank setup advice (NRE/NRO accounts), KYC compilation, and tax-efficient portfolio mapping.",
     features: [
       "Frictionless overseas funds repatriation and compliance consulting",

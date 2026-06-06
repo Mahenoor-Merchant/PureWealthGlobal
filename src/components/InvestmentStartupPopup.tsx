@@ -59,11 +59,11 @@ export default function InvestmentStartupPopup({
                 </div>
                 
                 <h3 className="font-display font-extrabold text-[18px] text-slate-900 leading-tight">
-                  <span className="text-blue-650 bg-blue-50/80 px-1 py-0.5 rounded border border-blue-100/40">Start</span> Investing in Funds <span className="text-blue-650 bg-blue-50/80 px-1 py-0.5 rounded border border-blue-100/40">Matching</span> your <span className="text-blue-650 bg-blue-50/80 px-1 py-0.5 rounded border border-blue-100/40">Profile</span> Now.
+                  <span className="text-blue-650 bg-blue-50/80 px-1 py-0.5 rounded border border-blue-100/40">Start</span> Investing in Funds <span className="text-blue-650 bg-blue-50/80 px-1 py-0.5 rounded border border-blue-100/40">Matching</span> your Profile Now.
                 </h3>
                 
                 <p className="text-[12px] leading-relaxed text-slate-600 font-sans">
-                  The research is done. Now, securely transition these insights into a live, high-yielding wealth compounding engine.
+                  <span className="text-slate-900 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/40">The research is done.</span> Now, securely transition these insights into a live, high-yielding wealth compounding engine.
                 </p>
               </div>
 
@@ -79,7 +79,7 @@ export default function InvestmentStartupPopup({
                   </div>
                   <div>
                     <h4 className="text-[12px] font-bold text-slate-800 leading-tight">
-                      Allocation Call (5 Mins)
+                      Allocation Call (7 Mins)
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
                       Confirm tax-optimization benefits and finalize custom portfolio parameters.
@@ -107,7 +107,7 @@ export default function InvestmentStartupPopup({
                   </div>
                   <div>
                     <h4 className="text-[12px] font-bold text-slate-800 leading-tight">
-                      Deploy SIP or Lumpsum (5 Mins)
+                      Investment Amount Setup (SIP / Lumpsum) (3 Mins)
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
                       Start automated regular SIP investments or deploy lumpsum capital instantly.

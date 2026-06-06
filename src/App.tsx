@@ -14,6 +14,7 @@ import KnowledgeHubView from './components/KnowledgeHubView';
 import ConnectView from './components/ConnectView';
 import PrivacyView from './components/PrivacyView';
 import FindYourFundView from './components/FindYourFundView';
+import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import { NavPage } from './types';
 import { ArrowLeft } from 'lucide-react';
 
@@ -21,6 +22,12 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<NavPage['id']>('home');
   const [pageHistory, setPageHistory] = useState<NavPage['id'][]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+  // Popup states for after user fetches/calibrates funds
+  const [fundsFetched, setFundsFetched] = useState(false);
+  const [hasPopupBeenShown, setHasPopupBeenShown] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [pendingPage, setPendingPage] = useState<NavPage['id'] | null>(null);
 
   // Synchronize hash routing on mount and on hash changes
   useEffect(() => {
@@ -50,6 +57,31 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Exit intent & Webpage close prevention hook
+  useEffect(() => {
+    if (currentPage !== 'find-fund' || !fundsFetched || hasPopupBeenShown) return;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY < 30) {
+        setIsPopupOpen(true);
+        setHasPopupBeenShown(true);
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentPage, fundsFetched, hasPopupBeenShown]);
+
   // Auto-scrolling to top on route change to guarantee standard page loading behaviour
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as any });
@@ -57,6 +89,14 @@ export default function App() {
 
   const changePage = (newPage: NavPage['id']) => {
     if (newPage !== currentPage) {
+      // Intercept navigation if they have fetched funds and haven't seen popup yet (except going directly to connect)
+      if (currentPage === 'find-fund' && fundsFetched && !hasPopupBeenShown && newPage !== 'connect') {
+        setPendingPage(newPage);
+        setIsPopupOpen(true);
+        setHasPopupBeenShown(true);
+        return;
+      }
+
       setPageHistory((prev) => [...prev, currentPage]);
       setCurrentPage(newPage);
       
@@ -76,6 +116,15 @@ export default function App() {
   const handleBack = () => {
     if (pageHistory.length > 0) {
       const prev = pageHistory[pageHistory.length - 1];
+      
+      // Intercept back button if funds fetched
+      if (currentPage === 'find-fund' && fundsFetched && !hasPopupBeenShown && prev !== 'connect') {
+        setPendingPage(prev);
+        setIsPopupOpen(true);
+        setHasPopupBeenShown(true);
+        return;
+      }
+
       setPageHistory((prevStack) => prevStack.slice(0, -1));
       setCurrentPage(prev);
     } else {
@@ -111,7 +160,21 @@ export default function App() {
       case 'privacy':
         return <PrivacyView setCurrentPage={changePage} />;
       case 'find-fund':
-        return <FindYourFundView setCurrentPage={changePage} />;
+        return (
+          <FindYourFundView 
+            setCurrentPage={changePage} 
+            onFundsFetched={(fetched) => setFundsFetched(fetched)}
+            onNewFetch={() => {
+              setHasPopupBeenShown(false);
+            }}
+            triggerPopup={() => {
+              if (!hasPopupBeenShown) {
+                setIsPopupOpen(true);
+                setHasPopupBeenShown(true);
+              }
+            }}
+          />
+        );
       default:
         return (
           <HomeView 
@@ -146,6 +209,22 @@ export default function App() {
       <main className="flex-grow">
         {renderActiveView()}
       </main>
+
+      {/* Startup Investment Guidance Pop-up */}
+      <InvestmentStartupPopup
+        isOpen={isPopupOpen}
+        onClose={() => {
+          setIsPopupOpen(false);
+          // If they close, we do not let them transition away if they intentionally clicked navigation, 
+          // they stay on the page to actually review their funds as the secondary button text indicates.
+          // This is fantastic UX since it prompts them for starting investments, and closing it maintains their review focus.
+        }}
+        onConfirm={() => {
+          setIsPopupOpen(false);
+          setPendingPage(null);
+          changePage('connect');
+        }}
+      />
 
       {/* Corporate Compliance Footer */}
       <Footer setCurrentPage={changePage} />

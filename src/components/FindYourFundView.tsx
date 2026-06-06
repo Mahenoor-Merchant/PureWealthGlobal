@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
   Target, Shield, HelpCircle, ArrowRight, CheckCircle, 
   Sparkles, TrendingUp, Info, Briefcase, Calendar, 
@@ -150,7 +150,22 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
   );
 }
 
-export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (page: string) => void }) {
+interface FindYourFundViewProps {
+  setCurrentPage: (page: string) => void;
+  onFundsFetched?: (fetched: boolean) => void;
+  onNewFetch?: () => void;
+  triggerPopup?: () => void;
+}
+
+export default function FindYourFundView({ 
+  setCurrentPage,
+  onFundsFetched,
+  onNewFetch,
+  triggerPopup
+}: FindYourFundViewProps) {
+  // Section reference to detect scrolling past "Your 3 Calibrated Anchor Funds"
+  const anchorSectionRef = useRef<HTMLDivElement>(null);
+
   // Survey steps state: 1 to 4
   const [step, setStep] = useState(1);
   
@@ -178,6 +193,34 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
   // Submit and simulation states
   const [isSimulating, setIsSimulating] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Sync results fetched state back to parent
+  useEffect(() => {
+    if (onFundsFetched) {
+      onFundsFetched(showResults);
+    }
+  }, [showResults, onFundsFetched]);
+
+  // Scroll listener to detect scrolling past "Your 3 Calibrated Anchor Funds"
+  useEffect(() => {
+    if (!showResults || !triggerPopup) return;
+
+    const handleScroll = () => {
+      if (!anchorSectionRef.current) return;
+      const rect = anchorSectionRef.current.getBoundingClientRect();
+      
+      // If the bottom of the "3 calibrated anchor funds" container goes above 100px from the top of the viewport
+      // It means the user has scrolled significantly past/beyond this crucial section.
+      if (rect.bottom < 120) {
+        triggerPopup();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [showResults, triggerPopup]);
   const [activePortfolioTab, setActivePortfolioTab] = useState<'Low' | 'Moderate' | 'High'>('Moderate');
   const [selectedAnchorIndex, setSelectedAnchorIndex] = useState(0);
 
@@ -2620,6 +2663,9 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
         if (resElement) {
           resElement.scrollIntoView({ behavior: 'smooth' });
         }
+        if (onNewFetch) {
+          onNewFetch();
+        }
       }, 100);
     }, 1200);
   };
@@ -3433,7 +3479,7 @@ export default function FindYourFundView({ setCurrentPage }: { setCurrentPage: (
             </div>
 
             {/* INTERACTIVE THREE ANCHOR FUNDS SELECTION TAB-BAR */}
-            <div className="space-y-4 pt-4 pb-2" id="three-anchor-tabs-blueprint">
+            <div className="space-y-4 pt-4 pb-2" id="three-anchor-tabs-blueprint" ref={anchorSectionRef}>
               <EducationalPromoBox />
               
               <div className="text-left">

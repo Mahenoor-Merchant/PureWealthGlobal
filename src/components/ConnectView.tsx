@@ -12,15 +12,43 @@ interface ConnectViewProps {
   setCurrentPage: (page: any) => void;
 }
 
+const ALL_TIME_SLOTS = [
+  { value: "09:00 AM - 11:05 AM", label: "Morning (09:00 AM - 11:00 AM)", startHour: 9.0 },
+  { value: "11:00 AM - 01:00 PM", label: "Morning (11:00 AM - 01:00 PM)", startHour: 11.0 },
+  { value: "01:00 PM - 03:00 PM", label: "Afternoon (01:00 PM - 03:00 PM)", startHour: 13.0 },
+  { value: "03:00 PM - 05:00 PM", label: "Afternoon (03:00 PM - 05:00 PM)", startHour: 15.0 },
+  { value: "05:00 PM - 07:00 PM", label: "Evening (05:00 PM - 07:00 PM)", startHour: 17.0 },
+  { value: "07:00 PM - 08:30 PM", label: "Night (07:00 PM - 08:30 PM)", startHour: 19.0 },
+  { value: "08:30 PM - 09:30 PM", label: "Night (08:30 PM - 09:30 PM)", startHour: 20.5 },
+];
+
 export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
   const [callName, setCallName] = useState('');
   const [callMobile, setCallMobile] = useState('');
-  const [callDate, setCallDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
+
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [callDate, setCallDate] = useState(() => getLocalDateString());
   const [callTime, setCallTime] = useState('');
   const [formError, setFormError] = useState('');
+
+  const getFilteredTimeSlots = () => {
+    const isToday = callDate === getLocalDateString();
+    if (!isToday) {
+      return ALL_TIME_SLOTS;
+    }
+    const d = new Date();
+    const currentHourDecimal = d.getHours() + (d.getMinutes() / 60);
+    return ALL_TIME_SLOTS.filter(slot => slot.startHour > currentHourDecimal);
+  };
+
+  const filteredSlots = getFilteredTimeSlots();
 
   const whatsappMsg = encodeURIComponent(
     `Hi! I would like to schedule a consultation call with a certified consultant.\n\n` +
@@ -135,8 +163,11 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
                     <input 
                       type="date" 
                       value={callDate}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setCallDate(e.target.value)}
+                      min={getLocalDateString()}
+                      onChange={(e) => {
+                        setCallDate(e.target.value);
+                        setCallTime(''); // Reset selection on date change
+                      }}
                       className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-800 bg-[#121927] text-white focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer"
                     />
                   </div>
@@ -151,14 +182,19 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
                         onChange={(e) => setCallTime(e.target.value)}
                         className="w-full text-[13px] px-4 py-3 pr-10 rounded-xl border border-slate-800 bg-[#121927] text-white appearance-none focus:bg-[#121927] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer"
                       >
-                        <option value="">Choose preferred slot</option>
-                        <option value="09:00 AM - 11:00 AM">Morning (09:00 AM - 11:00 AM)</option>
-                        <option value="11:00 AM - 01:00 PM">Morning (11:00 AM - 01:00 PM)</option>
-                        <option value="01:00 PM - 03:00 PM">Afternoon (01:00 PM - 03:00 PM)</option>
-                        <option value="03:00 PM - 05:00 PM">Afternoon (03:00 PM - 05:00 PM)</option>
-                        <option value="05:00 PM - 07:00 PM">Evening (05:00 PM - 07:00 PM)</option>
-                        <option value="07:00 PM - 08:30 PM">Night (07:00 PM - 08:30 PM)</option>
-                        <option value="08:30 PM - 09:30 PM">Night (08:30 PM - 09:30 PM)</option>
+                        {filteredSlots.length === 0 ? (
+                          <option value="Flexible ASAP">Call me ASAP (Flexible Time)</option>
+                        ) : (
+                          <>
+                            <option value="">Choose preferred slot</option>
+                            <option value="Flexible ASAP">Flexible / Call as soon as possible</option>
+                            {filteredSlots.map(slot => (
+                              <option key={slot.value} value={slot.value}>
+                                {slot.label}
+                              </option>
+                            ))}
+                          </>
+                        )}
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-450">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,6 +203,15 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
                       </div>
                     </div>
                   </div>
+
+                  {callDate === getLocalDateString() && filteredSlots.length === 0 && (
+                    <div className="col-span-1 sm:col-span-2 text-[11.5px] text-amber-500 bg-amber-500/10 border border-amber-500/15 p-3 rounded-xl flex items-start gap-2.5 mt-1">
+                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <span className="text-slate-300 leading-normal">
+                        All specific slots for today have passed. Select tomorrow for active slots, or choose <span className="text-amber-400 font-semibold">"Call me ASAP"</span> and we'll reach out at the earliest moment!
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {formError && (

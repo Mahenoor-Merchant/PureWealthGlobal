@@ -154,7 +154,7 @@ interface FindYourFundViewProps {
   setCurrentPage: (page: string) => void;
   onFundsFetched?: (fetched: boolean) => void;
   onNewFetch?: () => void;
-  triggerPopup?: () => void;
+  triggerPopup?: (force?: boolean) => void;
 }
 
 export default function FindYourFundView({ 
@@ -165,6 +165,16 @@ export default function FindYourFundView({
 }: FindYourFundViewProps) {
   // Section reference to detect scrolling past "Your 3 Calibrated Anchor Funds"
   const anchorSectionRef = useRef<HTMLDivElement>(null);
+  const comprehensiveSectionRef = useRef<HTMLDivElement>(null);
+  const educationalSectionRef = useRef<HTMLDivElement>(null);
+
+  // Keep track of scroll states to allow triggering popup on scroll transitions
+  const isPastAnchorRef = useRef(false);
+  const isAboveEducationalRef = useRef(true);
+
+  // Timer and trigger refs for "Comprehensive Portfolio Compounding Comparison"
+  const comprehensiveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const comprehensivePopupTriggeredRef = useRef(false);
 
   // Survey steps state: 1 to 4
   const [step, setStep] = useState(1);
@@ -201,24 +211,82 @@ export default function FindYourFundView({
     }
   }, [showResults, onFundsFetched]);
 
-  // Scroll listener to detect scrolling past "Your 3 Calibrated Anchor Funds"
+  // Scroll listener to detect scrolling past "Your 3 Calibrated Anchor Funds" and "Educational Profile Category Mapping"
   useEffect(() => {
     if (!showResults || !triggerPopup) return;
 
     const handleScroll = () => {
-      if (!anchorSectionRef.current) return;
-      const rect = anchorSectionRef.current.getBoundingClientRect();
-      
-      // If the bottom of the "3 calibrated anchor funds" container goes above 100px from the top of the viewport
-      // It means the user has scrolled significantly past/beyond this crucial section.
-      if (rect.bottom < 120) {
-        triggerPopup();
+      // 1. Anchor Funds Section Triggers (Every time scrolled past)
+      if (anchorSectionRef.current) {
+        const rect = anchorSectionRef.current.getBoundingClientRect();
+        const isPastNow = rect.bottom < 120;
+        if (isPastNow && !isPastAnchorRef.current) {
+          isPastAnchorRef.current = true;
+          triggerPopup(true); // Force show popup when scrolled past
+        } else if (!isPastNow && isPastAnchorRef.current) {
+          // Reset when scrolled back up so it triggers again "every time" they scroll down past it
+          isPastAnchorRef.current = false;
+        }
+      }
+
+      // 2. Educational Profile Section Triggers (scrolling past from below/upwards)
+      if (educationalSectionRef.current) {
+        const rect = educationalSectionRef.current.getBoundingClientRect();
+        const isAboveNow = rect.top > 120; // Check if the viewport is above this section
+        
+        if (!isAboveNow && isAboveEducationalRef.current) {
+          // User scrolled down past of the top of the section
+          isAboveEducationalRef.current = false;
+        } else if (isAboveNow && !isAboveEducationalRef.current) {
+          // User scrolled up past the top of the section (from below to above)
+          isAboveEducationalRef.current = true;
+          triggerPopup(true); // Force show popup when scrolled past from below
+        }
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
+    };
+  }, [showResults, triggerPopup]);
+
+  // Section time observer for "Comprehensive Portfolio Compounding Comparison"
+  useEffect(() => {
+    if (!showResults || !triggerPopup) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // User is spending time looking at the section, start a 5.5s timer
+            if (!comprehensivePopupTriggeredRef.current) {
+              comprehensiveTimerRef.current = setTimeout(() => {
+                triggerPopup(true); // Force show popup
+                comprehensivePopupTriggeredRef.current = true;
+              }, 5500); // 5.5 seconds
+            }
+          } else {
+            // User scrolled away, clear the timer
+            if (comprehensiveTimerRef.current) {
+              clearTimeout(comprehensiveTimerRef.current);
+              comprehensiveTimerRef.current = null;
+            }
+          }
+        });
+      },
+      { threshold: 0.15 } // Trigger when at least 15% of the section is visible
+    );
+
+    if (comprehensiveSectionRef.current) {
+      observer.observe(comprehensiveSectionRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (comprehensiveTimerRef.current) {
+        clearTimeout(comprehensiveTimerRef.current);
+      }
     };
   }, [showResults, triggerPopup]);
   const [activePortfolioTab, setActivePortfolioTab] = useState<'Low' | 'Moderate' | 'High'>('Moderate');
@@ -3716,7 +3784,7 @@ export default function FindYourFundView({
             <div className="space-y-6 pt-6" id="diverse-fund-categories-section">
               <EducationalPromoBox />
               
-              <div className="text-left max-w-3xl">
+              <div className="text-left max-w-3xl" ref={educationalSectionRef}>
                 <span className="text-[11px] font-mono font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-3.5 py-1 rounded-full">
                   Educational Profile Category Mapping
                 </span>
@@ -3786,7 +3854,7 @@ export default function FindYourFundView({
             </div>
 
             {/* SECTION C: THREE POTENTIAL PORTFOLIOS TO CHOOSE AS PER RISK CAPACITY */}
-            <div className="space-y-6" id="three-risk-portfolios-section">
+            <div className="space-y-6" id="three-risk-portfolios-section" ref={comprehensiveSectionRef}>
               <div className="text-left max-w-2xl">
                 <span className="text-[11px] font-mono font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">
                   Comprehensive Portfolio Compounding Comparison

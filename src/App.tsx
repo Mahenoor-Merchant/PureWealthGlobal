@@ -167,8 +167,8 @@ export default function App() {
             onNewFetch={() => {
               setHasPopupBeenShown(false);
             }}
-            triggerPopup={() => {
-              if (!hasPopupBeenShown) {
+            triggerPopup={(force = false) => {
+              if (force || !hasPopupBeenShown) {
                 setIsPopupOpen(true);
                 setHasPopupBeenShown(true);
               }

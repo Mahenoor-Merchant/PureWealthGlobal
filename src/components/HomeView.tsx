@@ -34,7 +34,8 @@ import {
   Clock,
   RefreshCw,
   Unlock,
-  Sparkles
+  Sparkles,
+  Target
 } from 'lucide-react';
 import { TESTIMONIALS, AMFI_ARN_DETAILS } from '../data';
 import FundFinderPromoBanner from './FundFinderPromoBanner';
@@ -227,6 +228,14 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
               >
                 Find Your Fund Matcher
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              </button>
+
+              <button
+                onClick={() => handlePageNavigation('find-fund-type')}
+                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
+              >
+                Find Mutual Fund Type
+                <Target className="w-3.5 h-3.5 text-pink-100" />
               </button>
               
               <button

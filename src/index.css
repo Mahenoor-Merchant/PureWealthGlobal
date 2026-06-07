@@ -12,6 +12,36 @@
   --color-brand-red: #ef4444;
   --color-brand-dark: #0f172a;
   --color-brand-slate: #1e293b;
+
+  /* Custom Color Mapping to preserve custom-designed layers and avoid whiteouts */
+  --color-slate-150: #f1f5f9;
+  --color-slate-205: #cbd5e1;
+  --color-slate-650: #576071;
+  --color-slate-750: #293548;
+  --color-slate-805: #1e293b;
+  --color-slate-850: #1a2333;
+  --color-slate-905: #0f172a;
+  
+  --color-blue-105: #93c5fd;
+  --color-blue-905: #1e3a8a;
+  --color-blue-550: #3b82f6;
+
+  --color-indigo-150: #e0e7ff;
+  --color-indigo-650: #4f46e5;
+
+  --color-emerald-150: #a7f3d0;
+  --color-emerald-650: #059669;
+
+  --color-pink-105: #fbcfe8;
+  --color-pink-850: #9d174d;
+
+  --color-red-105: #fecaca;
+  --color-red-150: #fee2e2;
+  --color-red-650: #dc2626;
+  --color-red-750: #b91c1c;
+  --color-red-955: #7f1d1d;
+
+  --color-yellow-105: #fef08a;
 }
 
 /* Custom scrollbar to keep layout clean and professional */

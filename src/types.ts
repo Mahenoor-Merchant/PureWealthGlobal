@@ -4,7 +4,7 @@
  */
 
 export interface NavPage {
-  id: 'home' | 'about' | 'services' | 'calculators' | 'knowledge' | 'connect' | 'privacy' | 'find-fund';
+  id: 'home' | 'about' | 'services' | 'calculators' | 'knowledge' | 'connect' | 'privacy' | 'find-fund' | 'find-fund-type';
   label: string;
 }
 

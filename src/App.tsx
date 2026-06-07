@@ -14,6 +14,7 @@ import KnowledgeHubView from './components/KnowledgeHubView';
 import ConnectView from './components/ConnectView';
 import PrivacyView from './components/PrivacyView';
 import FindYourFundView from './components/FindYourFundView';
+import FindFundTypeView from './components/FindFundTypeView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import { NavPage } from './types';
 import { ArrowLeft } from 'lucide-react';
@@ -47,6 +48,8 @@ export default function App() {
         setCurrentPage('privacy');
       } else if (hash === '#find-fund') {
         setCurrentPage('find-fund');
+      } else if (hash === '#find-fund-type') {
+        setCurrentPage('find-fund-type');
       } else if (hash === '#home') {
         setCurrentPage('home');
       }
@@ -175,6 +178,18 @@ export default function App() {
             }}
           />
         );
+      case 'find-fund-type':
+        return (
+          <FindFundTypeView 
+            setCurrentPage={changePage} 
+            triggerPopup={(force = false) => {
+              if (force || !hasPopupBeenShown) {
+                setIsPopupOpen(true);
+                setHasPopupBeenShown(true);
+              }
+            }}
+          />
+        );
       default:
         return (
           <HomeView 
@@ -186,13 +201,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-emerald-600 selection:text-white" id="main-app-container">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-emerald-600 selection:text-white overflow-x-hidden w-full" id="main-app-container">
       {/* Sticky Navigation Header */}
       <Header currentPage={currentPage} setCurrentPage={changePage} />
 
       {/* Universal Dynamic Back Arrow Navigation bar */}
       {currentPage !== 'home' && (
-        <div className="bg-white border-b border-slate-100 py-3.5 px-4 sm:px-6 lg:px-8 shadow-3xs" id="universal-navigation-bar">
+        <div className="bg-white border-b border-slate-100 py-3.5 px-4 sm:px-6 lg:px-8 shadow-3xs w-full overflow-x-hidden" id="universal-navigation-bar">
           <div className="max-w-7xl mx-auto flex items-center">
             <button 
               onClick={handleBack}
@@ -206,7 +221,7 @@ export default function App() {
       )}
       
       {/* Main Corporate Divisions Panel */}
-      <main className="flex-grow">
+      <main className="flex-grow w-full overflow-x-hidden">
         {renderActiveView()}
       </main>
 

@@ -16,13 +16,31 @@ import PrivacyView from './components/PrivacyView';
 import FindYourFundView from './components/FindYourFundView';
 import FindFundTypeView from './components/FindFundTypeView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
-import { NavPage } from './types';
+import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<NavPage['id']>('home');
   const [pageHistory, setPageHistory] = useState<NavPage['id'][]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+  // Synchronized survey data for both tools
+  const [surveyData, setSurveyData] = useState<SharedSurveyData>({
+    capitalType: 'SIP',
+    capitalAmount: 15000,
+    inflowStability: 'Stable',
+    timeHorizon: '3-5',
+    goal: 'Wealth',
+    withdrawalNeeds: 'No',
+    riskCapacity: 'Moderate',
+    marketShock: 'DoNothing',
+    burdenLevel: 'Moderate',
+    objective: 'Growth',
+    dividendMode: 'Reinvest',
+    shariahOnly: false,
+  });
+
+  const [autoShowFundResults, setAutoShowFundResults] = useState(false);
 
   // Popup states for after user fetches/calibrates funds
   const [fundsFetched, setFundsFetched] = useState(false);
@@ -176,6 +194,10 @@ export default function App() {
                 setHasPopupBeenShown(true);
               }
             }}
+            surveyData={surveyData}
+            setSurveyData={setSurveyData}
+            autoShowFundResults={autoShowFundResults}
+            onResetAutoShow={() => setAutoShowFundResults(false)}
           />
         );
       case 'find-fund-type':
@@ -187,6 +209,12 @@ export default function App() {
                 setIsPopupOpen(true);
                 setHasPopupBeenShown(true);
               }
+            }}
+            surveyData={surveyData}
+            setSurveyData={setSurveyData}
+            onTransitionToFindFund={() => {
+              setAutoShowFundResults(true);
+              changePage('find-fund');
             }}
           />
         );

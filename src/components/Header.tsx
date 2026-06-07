@@ -23,7 +23,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About Us' },
     { id: 'services', label: 'Services' },
-    { id: 'find-fund', label: 'FREE TOOL - Find Your Fund' },
+    { id: 'find-fund-type', label: 'Find Fund Type' },
   ];
 
   const handleNavClick = (id: NavPage['id']) => {
@@ -32,7 +32,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund-type';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -50,7 +50,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6" id="hdr-desktop-nav">
           {primaryNavigationItems.map((item) => {
-            const isFreeTool = item.id === 'find-fund';
+            const isFreeTool = item.id === 'find-fund-type';
             return (
               <button
                 key={item.id}
@@ -58,7 +58,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 className={`relative transition-all duration-200 cursor-pointer ${
                   isFreeTool
                     ? `px-3.5 py-1.5 rounded-full border text-[13px] font-black tracking-wide ${
-                        currentPage === 'find-fund'
+                        currentPage === item.id
                           ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/15'
                           : 'bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 hover:text-amber-700 border-amber-500/30 animate-free-tool-pulse'
                       }`
@@ -95,22 +95,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
             </button>
 
             {/* Dropdown Box */}
-            <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-slate-100 rounded-2xl shadow-xl py-2.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top scale-95 group-hover:scale-100">
-              <button
-                onClick={() => handleNavClick('find-fund-type')}
-                className={`w-full text-left px-4 py-2 text-[13.5px] font-semibold transition-colors flex items-center justify-between ${
-                  currentPage === 'find-fund-type'
-                    ? 'text-blue-600 bg-blue-50/50 font-bold'
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="bg-pink-105 text-pink-700 text-[8.5px] tracking-wide font-black px-1.5 py-0.2 rounded uppercase">New</span>
-                  <span>Find Fund Type</span>
-                </div>
-                {currentPage === 'find-fund-type' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
-
+            <div className="absolute top-full left-0 mt-1.5 w-60 bg-white border border-slate-100 rounded-2xl shadow-xl py-2.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top scale-95 group-hover:scale-100">
               <button
                 onClick={() => handleNavClick('calculators')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
@@ -145,6 +130,23 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Schedule a Call</span>
                 {currentPage === 'connect' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </button>
+
+              <div className="my-1.5 border-t border-slate-100" />
+
+              <button
+                onClick={() => handleNavClick('find-fund')}
+                className={`w-full text-left px-4 py-2 text-[13px] font-bold transition-all flex items-center justify-between ${
+                  currentPage === 'find-fund'
+                    ? 'bg-amber-500 text-slate-950 font-black'
+                    : 'text-amber-700 bg-amber-400/5 hover:bg-amber-400/15'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-800 px-1.5 py-0.5 rounded-md">Free</span>
+                  <span>Find Your Fund</span>
+                </div>
+                {currentPage === 'find-fund' && <div className="w-1.5 h-1.5 rounded-full bg-amber-955" />}
               </button>
             </div>
           </div>
@@ -182,23 +184,23 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         <div className="lg:hidden absolute top-[72px] left-0 w-full bg-white border-b border-slate-200 shadow-xl max-h-[85vh] overflow-y-auto" id="hdr-mobile-drawer">
           <div className="px-4 pt-4 pb-6 space-y-2 flex flex-col">
             {primaryNavigationItems.map((item) => {
-              const isFreeTool = item.id === 'find-fund';
+              const isFreeTool = item.id === 'find-fund-type';
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`py-3 px-4 text-left text-[14px] font-bold rounded-lg transition-all ${
                     isFreeTool
-                      ? currentPage === 'find-fund'
+                      ? currentPage === 'find-fund-type'
                         ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
-                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20 animate-free-tool-pulse'
+                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20'
                       : currentPage === item.id 
                         ? 'text-blue-700 bg-blue-50' 
                         : 'text-slate-700 hover:bg-slate-50'
                   }`}
                   id={`mobile-nav-btn-${item.id}`}
                 >
-                  {isFreeTool ? `🔥 ${item.label}` : item.label}
+                  {isFreeTool ? `🔥 ${item.label} (Free)` : item.label}
                 </button>
               );
             })}
@@ -218,16 +220,6 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
               {mobileMoreOpen && (
                 <div className="pl-4 pr-2 py-1.5 space-y-1 border-t border-slate-100 bg-white">
-                  <button
-                    onClick={() => handleNavClick('find-fund-type')}
-                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
-                      currentPage === 'find-fund-type'
-                        ? 'text-blue-700 bg-blue-50/80'
-                        : 'text-slate-650 hover:bg-slate-50'
-                    }`}
-                  >
-                    🔥 Find Fund Type (New)
-                  </button>
                   <button
                     onClick={() => handleNavClick('calculators')}
                     className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
@@ -253,10 +245,23 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
                       currentPage === 'connect'
                         ? 'text-blue-700 bg-blue-50/80'
-                        : 'text-slate-650 hover:bg-slate-50'
+                        : 'text-slate-655 hover:bg-slate-50'
                     }`}
                   >
                     📅 Schedule a Call
+                  </button>
+
+                  <div className="my-1 border-t border-slate-100" />
+
+                  <button
+                    onClick={() => handleNavClick('find-fund')}
+                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-bold rounded-lg transition-all flex items-center justify-between mt-1.5 ${
+                      currentPage === 'find-fund'
+                        ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
+                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20'
+                    }`}
+                  >
+                    <span>🔥 Find Your Fund (Free)</span>
                   </button>
                 </div>
               )}

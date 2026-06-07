@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion } from 'motion/react';
+import { SharedSurveyData } from '../types';
+import PasswordDialog from './PasswordDialog';
 
 // Structuring Category Diagnosis Output
 interface FundCategoryDetails {
@@ -46,13 +48,23 @@ interface FundCategoryDetails {
 interface FindFundTypeViewProps {
   setCurrentPage: (page: any) => void;
   triggerPopup?: (force?: boolean) => void;
+  surveyData: SharedSurveyData;
+  setSurveyData: React.Dispatch<React.SetStateAction<SharedSurveyData>>;
+  onTransitionToFindFund: () => void;
 }
 
-export default function FindFundTypeView({ setCurrentPage, triggerPopup }: FindFundTypeViewProps) {
+export default function FindFundTypeView({ 
+  setCurrentPage, 
+  triggerPopup, 
+  surveyData, 
+  setSurveyData, 
+  onTransitionToFindFund 
+}: FindFundTypeViewProps) {
   // Wizard steps: 1 to 4
   const [step, setStep] = useState(1);
   const [showResults, setShowResults] = useState(false);
   const [activeTab, setActiveTab] = useState<number>(0);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   // Scroll triggering references & flags for Pop-up box trigger
   const exclusionsEngineRef = useRef<HTMLDivElement | null>(null);
@@ -148,26 +160,39 @@ export default function FindFundTypeView({ setCurrentPage, triggerPopup }: FindF
     };
   }, [showResults, triggerPopup]);
 
-  // Diagnostic Inputs
-  // Step 1: Capital Capacity
-  const [capitalType, setCapitalType] = useState<'SIP' | 'Lumpsum'>('SIP');
-  const [capitalAmount, setCapitalAmount] = useState<number>(15000);
-  const [inflowStability, setInflowStability] = useState<'Stable' | 'Variable' | 'Windfall'>('Stable');
+  // Diagnostic Inputs mapped directly to synced surveyData
+  const {
+    capitalType,
+    capitalAmount,
+    inflowStability,
+    timeHorizon,
+    goal,
+    withdrawalNeeds,
+    riskCapacity,
+    marketShock,
+    burdenLevel,
+    objective,
+    dividendMode,
+    shariahOnly
+  } = surveyData;
 
-  // Step 2: Horizon & Goals
-  const [timeHorizon, setTimeHorizon] = useState<'1-3' | '3-5' | '5+'>('3-5');
-  const [goal, setGoal] = useState<'Wealth' | 'Retirement' | 'Education' | 'TaxSaving' | 'RegularIncome'>('Wealth');
-  const [withdrawalNeeds, setWithdrawalNeeds] = useState<'No' | 'Emergency' | 'Planned'>('No');
-
-  // Step 3: Emotional & Psychological Risk Index
-  const [riskCapacity, setRiskCapacity] = useState<'Conservative' | 'Moderate' | 'Aggressive'>('Moderate');
-  const [marketShock, setMarketShock] = useState<'Panic' | 'DoNothing' | 'BuyMore'>('DoNothing');
-  const [burdenLevel, setBurdenLevel] = useState<'Low' | 'Moderate' | 'High'>('Moderate');
-
-  // Step 4: Strategic Objective, Dividend Mode, & Shariah
-  const [objective, setObjective] = useState<'Growth' | 'InflationHedge' | 'Stability' | 'Preservation'>('Growth');
-  const [dividendMode, setDividendMode] = useState<'Reinvest' | 'SWP'>('Reinvest');
-  const [shariahOnly, setShariahOnly] = useState<boolean>(false);
+  const setCapitalType = (val: 'SIP' | 'Lumpsum') => setSurveyData(prev => ({ ...prev, capitalType: val }));
+  const setCapitalAmount = (val: number) => setSurveyData(prev => ({ ...prev, capitalAmount: val }));
+  const setInflowStability = (val: 'Stable' | 'Variable' | 'Windfall') => setSurveyData(prev => ({ ...prev, inflowStability: val }));
+  const setTimeHorizon = (val: '1-3' | '3-5' | '5+') => setSurveyData(prev => ({ ...prev, timeHorizon: val }));
+  const setGoal = (val: 'Wealth' | 'Retirement' | 'Education' | 'TaxSaving' | 'RegularIncome') => setSurveyData(prev => ({ ...prev, goal: val }));
+  const setWithdrawalNeeds = (val: 'No' | 'Emergency' | 'Planned') => setSurveyData(prev => ({ ...prev, withdrawalNeeds: val }));
+  const setRiskCapacity = (val: 'Conservative' | 'Moderate' | 'Aggressive') => setSurveyData(prev => ({ ...prev, riskCapacity: val }));
+  const setMarketShock = (val: 'Panic' | 'DoNothing' | 'BuyMore') => setSurveyData(prev => ({ ...prev, marketShock: val }));
+  const setBurdenLevel = (val: 'Low' | 'Moderate' | 'High') => setSurveyData(prev => ({ ...prev, burdenLevel: val }));
+  const setObjective = (val: 'Growth' | 'InflationHedge' | 'Stability' | 'Preservation') => setSurveyData(prev => ({ ...prev, objective: val }));
+  const setDividendMode = (val: 'Reinvest' | 'SWP') => setSurveyData(prev => ({ ...prev, dividendMode: val }));
+  const setShariahOnly = (val: boolean | ((p: boolean) => boolean)) => {
+    setSurveyData(prev => ({ 
+      ...prev, 
+      shariahOnly: typeof val === 'function' ? (val as any)(prev.shariahOnly) : val 
+    }));
+  };
 
 
   // -------------------------------------------------------------
@@ -2672,6 +2697,34 @@ export default function FindFundTypeView({ setCurrentPage, triggerPopup }: FindF
               </div>
             </div>
 
+            {/* 1.5 Interactive Integration Bridge to FindYourFund */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-950 rounded-[24px] p-6 text-white text-left border border-indigo-505 shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-xl transition-all" id="find-funds-bridge-banner">
+              <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-[60px] pointer-events-none" />
+              <div className="flex-1 relative z-10 space-y-2">
+                <div className="inline-flex items-center gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase font-extrabold pb-1.5 pt-1">
+                  <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
+                  <span>Interactive Integration Active</span>
+                </div>
+                <h3 className="text-xl font-black tracking-tight font-sans">
+                  Generate Curated Standard & International Mutual Funds
+                </h3>
+                <p className="text-slate-200 text-xs font-sans font-light max-w-2xl leading-relaxed">
+                  Ready to invest? We can immediately use your calibrated <strong>{scoringDetails.anchorFundCategory}</strong> profile and all survey choices parameter inputs to suggest specific, real domestic and international funds suitable for your strategy.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPasswordDialogOpen(true);
+                }}
+                className="relative z-10 inline-flex items-center justify-center gap-2 py-3.5 px-6 bg-white hover:bg-slate-50 text-indigo-950 text-[13px] font-black rounded-2xl transition-all cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98] shrink-0 border-b-2 border-slate-250 font-sans"
+              >
+                <span>Find Corresponding Funds Now</span>
+                <ArrowRight className="w-4 h-4 text-indigo-705 shrink-0" />
+              </button>
+            </div>
+
             {/* 3. Macro Asset Allocation Split & Active Risk Firewalls */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 text-left hover:border-indigo-150 transition-all">
               <h3 className="text-md font-black text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-4 mb-5 font-sans">
@@ -3457,6 +3510,11 @@ export default function FindFundTypeView({ setCurrentPage, triggerPopup }: FindF
           </div>
         );
       })()}
+      <PasswordDialog
+        isOpen={isPasswordDialogOpen}
+        onClose={() => setIsPasswordDialogOpen(false)}
+        onSuccess={onTransitionToFindFund}
+      />
     </div>
   );
 }

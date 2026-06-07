@@ -35,6 +35,21 @@ export interface FAQItem {
   category: 'NRI Consulting' | 'Mutual Funds' | 'General';
 }
 
+export interface SharedSurveyData {
+  capitalType: 'SIP' | 'Lumpsum';
+  capitalAmount: number;
+  inflowStability: 'Stable' | 'Variable' | 'Windfall';
+  timeHorizon: '1-3' | '3-5' | '5+';
+  goal: 'Wealth' | 'Retirement' | 'Education' | 'TaxSaving' | 'RegularIncome';
+  withdrawalNeeds: 'No' | 'Emergency' | 'Planned';
+  riskCapacity: 'Conservative' | 'Moderate' | 'Aggressive';
+  marketShock: 'Panic' | 'DoNothing' | 'BuyMore';
+  burdenLevel: 'Low' | 'Moderate' | 'High';
+  objective: 'Growth' | 'InflationHedge' | 'Stability' | 'Preservation';
+  dividendMode: 'Reinvest' | 'SWP';
+  shariahOnly: boolean;
+}
+
 export interface CalculatorState {
   sipAmount: number;
   years: number;

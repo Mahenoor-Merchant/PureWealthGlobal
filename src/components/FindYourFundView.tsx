@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { AMFI_ARN_DETAILS } from '../data';
+import { SharedSurveyData } from '../types';
+import PasswordDialog from './PasswordDialog';
 
 // Real Mutual Funds Database matching various criteria under Regular Plans
 interface RealFund {
@@ -155,13 +157,21 @@ interface FindYourFundViewProps {
   onFundsFetched?: (fetched: boolean) => void;
   onNewFetch?: () => void;
   triggerPopup?: (force?: boolean) => void;
+  surveyData: SharedSurveyData;
+  setSurveyData: React.Dispatch<React.SetStateAction<SharedSurveyData>>;
+  autoShowFundResults?: boolean;
+  onResetAutoShow?: () => void;
 }
 
 export default function FindYourFundView({ 
   setCurrentPage,
   onFundsFetched,
   onNewFetch,
-  triggerPopup
+  triggerPopup,
+  surveyData,
+  setSurveyData,
+  autoShowFundResults,
+  onResetAutoShow
 }: FindYourFundViewProps) {
   // Section reference to detect scrolling past "Your 3 Calibrated Anchor Funds"
   const anchorSectionRef = useRef<HTMLDivElement>(null);
@@ -179,30 +189,51 @@ export default function FindYourFundView({
   // Survey steps state: 1 to 4
   const [step, setStep] = useState(1);
   
-  // Advanced Onboarding State variables
-  // Step 1: Capital Capacity & Liquidity Needs
-  const [capitalType, setCapitalType] = useState<'SIP' | 'Lumpsum'>('SIP');
-  const [capitalAmount, setCapitalAmount] = useState<number>(15000);
-  const [inflowStability, setInflowStability] = useState<'Stable' | 'Variable' | 'Windfall'>('Stable');
+  // Diagnostic Inputs mapped directly to synced surveyData
+  const {
+    capitalType,
+    capitalAmount,
+    inflowStability,
+    timeHorizon,
+    goal,
+    withdrawalNeeds,
+    riskCapacity,
+    marketShock,
+    burdenLevel,
+    objective,
+    dividendMode,
+    shariahOnly
+  } = surveyData;
 
-  // Step 2: Time Horizon & Milestone Timelines
-  const [timeHorizon, setTimeHorizon] = useState<'1-3' | '3-5' | '5+'>('3-5');
-  const [goal, setGoal] = useState<'Wealth' | 'Retirement' | 'Education' | 'TaxSaving' | 'RegularIncome'>('Wealth');
-  const [withdrawalNeeds, setWithdrawalNeeds] = useState<'No' | 'Emergency' | 'Planned'>('No');
-
-  // Step 3: Emotional & Psychological Risk Index
-  const [riskCapacity, setRiskCapacity] = useState<'Conservative' | 'Moderate' | 'Aggressive'>('Moderate');
-  const [marketShock, setMarketShock] = useState<'Panic' | 'DoNothing' | 'BuyMore'>('DoNothing');
-  const [burdenLevel, setBurdenLevel] = useState<'Low' | 'Moderate' | 'High'>('Moderate');
-
-  // Step 4: Strategic Objective & Dividend Mode
-  const [objective, setObjective] = useState<'Growth' | 'InflationHedge' | 'Stability' | 'Preservation'>('Growth');
-  const [dividendMode, setDividendMode] = useState<'Reinvest' | 'SWP'>('Reinvest');
-  const [shariahOnly, setShariahOnly] = useState<boolean>(false);
+  const setCapitalType = (val: 'SIP' | 'Lumpsum') => setSurveyData(prev => ({ ...prev, capitalType: val }));
+  const setCapitalAmount = (val: number) => setSurveyData(prev => ({ ...prev, capitalAmount: val }));
+  const setInflowStability = (val: 'Stable' | 'Variable' | 'Windfall') => setSurveyData(prev => ({ ...prev, inflowStability: val }));
+  const setTimeHorizon = (val: '1-3' | '3-5' | '5+') => setSurveyData(prev => ({ ...prev, timeHorizon: val }));
+  const setGoal = (val: 'Wealth' | 'Retirement' | 'Education' | 'TaxSaving' | 'RegularIncome') => setSurveyData(prev => ({ ...prev, goal: val }));
+  const setWithdrawalNeeds = (val: 'No' | 'Emergency' | 'Planned') => setSurveyData(prev => ({ ...prev, withdrawalNeeds: val }));
+  const setRiskCapacity = (val: 'Conservative' | 'Moderate' | 'Aggressive') => setSurveyData(prev => ({ ...prev, riskCapacity: val }));
+  const setMarketShock = (val: 'Panic' | 'DoNothing' | 'BuyMore') => setSurveyData(prev => ({ ...prev, marketShock: val }));
+  const setBurdenLevel = (val: 'Low' | 'Moderate' | 'High') => setSurveyData(prev => ({ ...prev, burdenLevel: val }));
+  const setObjective = (val: 'Growth' | 'InflationHedge' | 'Stability' | 'Preservation') => setSurveyData(prev => ({ ...prev, objective: val }));
+  const setDividendMode = (val: 'Reinvest' | 'SWP') => setSurveyData(prev => ({ ...prev, dividendMode: val }));
+  const setShariahOnly = (val: boolean | ((p: boolean) => boolean)) => {
+    setSurveyData(prev => ({ 
+      ...prev, 
+      shariahOnly: typeof val === 'function' ? (val as any)(prev.shariahOnly) : val 
+    }));
+  };
 
   // Submit and simulation states
   const [isSimulating, setIsSimulating] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(autoShowFundResults || false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoShowFundResults) {
+      setShowResults(true);
+      setStep(4);
+    }
+  }, [autoShowFundResults]);
 
   // Sync results fetched state back to parent
   useEffect(() => {
@@ -2742,6 +2773,73 @@ export default function FindYourFundView({
     setStep(1);
     setShowResults(false);
     setShariahOnly(false);
+    if (onResetAutoShow) {
+      onResetAutoShow();
+    }
+  };
+
+  // International core matching algorithm mapping corresponding foreign funds to active domestic structures
+  const getIntlEquivalentFund = (domesticFundName: string) => {
+    const normalized = domesticFundName.toLowerCase();
+    
+    // Check if the current context is Shariah-Locked
+    if (shariahOnly || normalized.includes('ethical') || normalized.includes('islamic') || normalized.includes('tata')) {
+      if (normalized.includes('liquid') || normalized.includes('sukuk') || normalized.includes('gilt') || normalized.includes('short term')) {
+        return {
+          name: "Sovereign Short-Term Sukuk Liquidity ETF (Global ESG)",
+          threeYrCAGR: 6.45,
+          category: "Global Sukuk - Shariah Compliant Gilt Alternative",
+          aum: "US $1.2 Billion",
+          whySuited: "Allocates money in physical asset leaseback certificates backed by AAA G7 sovereign nations. Avoids typical bank interest systems while maintaining high liquidity and safety."
+        };
+      }
+      return {
+        name: "iShares MSCI World Islamic UCITS ETF (Dist)",
+        threeYrCAGR: 12.85,
+        category: "Global Equity - Shariah Compliant Large Growth Index",
+        aum: "US $2.8 Billion",
+        whySuited: "Offers immediate interest-free screened exposure to the world's most stable technology, defensive pharmaceutical, and clean industrial giants. Avoids conventional banks, highly-leveraged corporations, and prohibited operations."
+      };
+    }
+
+    if (normalized.includes('tax') || normalized.includes('elss')) {
+      return {
+        name: "Aventis Global Tax-Advantaged Portfolio (Class A US)",
+        threeYrCAGR: 14.10,
+        category: "Global Equity - Capital Gains Optimized",
+        aum: "US $1.6 Billion",
+        whySuited: "While international funds do not offer structural Indian Section 80C exemptions, this global vehicle utilizes capital-gain-optimized structures to lower tax drags internationally, making it a stellar long-term wealth partner."
+      };
+    }
+
+    if (normalized.includes('hybrid') || normalized.includes('asset') || normalized.includes('balanced') || normalized.includes('advantage')) {
+      return {
+        name: "BlackRock Global Allocation Fund (Regular-Growth USD)",
+        threeYrCAGR: 11.45,
+        category: "Global Asset Allocation - Multi-Factor Balanced Mix",
+        aum: "US $15.4 Billion",
+        whySuited: "Dynamically manages allocations across premium international equities, G7 bonds, and physical assets. Perfect for dampening localized currency shocks and stock standard deviations."
+      };
+    }
+
+    if (normalized.includes('debt') || normalized.includes('bond') || normalized.includes('short') || normalized.includes('liquid') || normalized.includes('gilt') || normalized.includes('securities')) {
+      return {
+        name: "Franklin U.S. Government Securities Fund (Direct-Growth USD)",
+        threeYrCAGR: 5.60,
+        category: "Global Gilt - AAA Sovereign USD Treasures",
+        aum: "US $5.1 Billion",
+        whySuited: "Focuses entirely on investing in sovereign debt securities fully issued or backed by the US Government. Guarantees top-tier capital preservation alongside a powerful USD appreciation hedge."
+      };
+    }
+
+    // Default Large / Mid / Flexi-Cap Equities growth representation
+    return {
+      name: "Vanguard Total World Stock Index Fund (VT ETF)",
+      threeYrCAGR: 13.40,
+      category: "Global Equity - All-Cap Developed & Emerging Index",
+      aum: "US $34.8 Billion",
+      whySuited: "Gives complete geographic and market cap diversification tracking over 9,000 top companies globally. Ideal companion to hedge standard emerging-market currency drawdowns."
+    };
   };
 
   // Recharts colors
@@ -3288,7 +3386,7 @@ export default function FindYourFundView({
               ) : (
                 <button
                   type="button"
-                  onClick={handleStartSimulation}
+                  onClick={() => setIsPasswordDialogOpen(true)}
                   disabled={isSimulating}
                   className="flex-grow flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-[13px] font-bold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
@@ -3755,16 +3853,55 @@ export default function FindYourFundView({
 
                   {/* Top holdings of the suggested fund */}
                   <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
-                    <h5 className="font-display font-bold text-[13.5px] text-slate-900 mb-3 block">
+                    <h5 className="font-display font-bold text-[13.5px] text-slate-905 mb-3 block">
                       Target Underlying Top Allocation Holdings:
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {suggestedFund.topHoldings.map((hold, idx) => (
                         <div key={idx} className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-150">
-                          <CheckCircle className="w-4 h-4 text-blue-600 shrink-0" />
+                          <CheckCircle className="w-4 h-4 text-blue-650 shrink-0" />
                           <span className="text-[11.5px] text-slate-700 font-mono font-medium truncate">{hold}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* International Equivalent alternative */}
+                  <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 border border-slate-800 flex flex-col md:flex-row items-start justify-between gap-5 shadow-lg relative overflow-hidden" id="intl-equivalent-card">
+                    <div className="absolute -right-4 -bottom-4 w-40 h-40 bg-blue-500/10 rounded-full blur-[65px] pointer-events-none" />
+                    
+                    <div className="space-y-2 relative z-10 text-left flex-1">
+                      <div className="inline-flex items-center gap-1.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-black uppercase tracking-widest px-2.5 py-1 rounded-md">
+                        <Globe className="w-3 h-3 text-blue-300 animate-pulse" />
+                        <span>Recommended International Alternative / Companion Scheme</span>
+                      </div>
+                      <h4 className="font-black text-base sm:text-lg text-amber-300 tracking-tight">
+                        {(() => {
+                          const intl = getIntlEquivalentFund(suggestedFund.name);
+                          return intl.name;
+                        })()}
+                      </h4>
+                      <p className="text-[12px] leading-relaxed text-slate-300 font-sans font-light max-w-2xl">
+                        {(() => {
+                          const intl = getIntlEquivalentFund(suggestedFund.name);
+                          return intl.whySuited;
+                        })()}
+                      </p>
+                      
+                      <div className="grid grid-cols-3 gap-2.5 pt-3 border-t border-white/10 text-left max-w-lg">
+                        <div className="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-[11px] font-mono text-slate-400">
+                          <span className="text-[9px] block text-slate-500 uppercase font-black">Past 3Y CAGR</span>
+                          <span className="text-emerald-400 font-black text-sm">~{(() => { const intl = getIntlEquivalentFund(suggestedFund.name); return intl.threeYrCAGR; })()}% p.a.</span>
+                        </div>
+                        <div className="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-[11px] font-mono text-slate-400">
+                          <span className="text-[9px] block text-slate-500 uppercase font-black">Segment</span>
+                          <span className="text-slate-100 font-semibold block truncate leading-none mt-1">{(() => { const intl = getIntlEquivalentFund(suggestedFund.name); return intl.category.split(' - ')[0]; })()}</span>
+                        </div>
+                        <div className="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-[11px] font-mono text-slate-400">
+                          <span className="text-[9px] block text-slate-500 uppercase font-black">Fund Assets Size</span>
+                          <span className="text-slate-100 font-semibold block truncate leading-none mt-1">{(() => { const intl = getIntlEquivalentFund(suggestedFund.name); return intl.aum; })()}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4034,6 +4171,11 @@ export default function FindYourFundView({
 
       </div>
 
+      <PasswordDialog
+        isOpen={isPasswordDialogOpen}
+        onClose={() => setIsPasswordDialogOpen(false)}
+        onSuccess={handleStartSimulation}
+      />
     </div>
   );
 }

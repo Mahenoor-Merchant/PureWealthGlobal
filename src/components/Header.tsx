@@ -32,7 +32,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -135,11 +135,28 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               <div className="my-1.5 border-t border-slate-100" />
 
               <button
+                onClick={() => handleNavClick('overlap-finder')}
+                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
+                  currentPage === 'overlap-finder'
+                    ? 'text-blue-600 bg-blue-50/50 font-bold'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-550/20 text-amber-800 px-1.5 py-0.5 rounded-md">New</span>
+                  <span>Fund Overlap Finder</span>
+                </div>
+                {currentPage === 'overlap-finder' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </button>
+
+              <div className="my-1.5 border-t border-slate-100" />
+
+              <button
                 onClick={() => handleNavClick('find-fund')}
                 className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-all flex items-center justify-between ${
                   currentPage === 'find-fund'
                     ? 'bg-slate-100 text-slate-900 border-l-2 border-slate-500'
-                    : 'text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-700'
+                    : 'text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-750'
                 }`}
               >
                 <div className="flex flex-col gap-0.5 max-w-[90%]">
@@ -249,6 +266,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     }`}
                   >
                     📅 Schedule a Call
+                  </button>
+
+                  <button
+                    onClick={() => handleNavClick('overlap-finder')}
+                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all flex items-center justify-between ${
+                      currentPage === 'overlap-finder'
+                        ? 'text-blue-700 bg-blue-50/80 font-bold'
+                        : 'text-slate-650 hover:bg-slate-55'
+                    }`}
+                  >
+                    <span>🔍 Fund Overlap Finder</span>
+                    <span className="text-[9px] font-extrabold uppercase bg-amber-500/15 text-amber-800 px-1.5 py-0.5 rounded">New</span>
                   </button>
 
                   <div className="my-1 border-t border-slate-100" />

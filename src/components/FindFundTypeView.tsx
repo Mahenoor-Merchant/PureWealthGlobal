@@ -2636,7 +2636,7 @@ export default function FindFundTypeView({
                   <span>Interactive Integration Active</span>
                 </div>
                 <h3 className="text-xl font-black tracking-tight font-sans">
-                  Generate Curated Standard & International Mutual Funds
+                  Exactly Which Funds to Invest in as per your Profile
                 </h3>
                 <p className="text-slate-200 text-xs font-sans font-light max-w-2xl leading-relaxed">
                   Ready to invest? We can immediately use your calibrated <strong>{scoringDetails.anchorFundCategory}</strong> profile and all survey choices parameter inputs to suggest specific, real domestic and international funds suitable for your strategy.

@@ -1874,7 +1874,7 @@ export default function FindFundTypeView({
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-black" />
-            <span>SEBI & Groww Taxonomy Aligned</span>
+            <span>SEBI & AMFI Taxonomy Aligned</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-black" />
@@ -3126,17 +3126,17 @@ export default function FindFundTypeView({
             </div>
 
             {/* 6. Tabs Factsheets Educational Center */}
-            <div className="pt-8 border-t border-slate-150/90" id="reference-classifications-groww">
+            <div className="pt-8 border-t border-slate-150/90" id="reference-classifications-external">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between text-left mb-6 gap-3">
                 <div className="space-y-1.5 flex-1 pr-4">
                   <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-150 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider pb-1">
                     <span>🎯 Brokerage-Compatible Standards</span>
                   </div>
                   <h4 className="text-[17.5px] font-black text-slate-900 uppercase tracking-tight">
-                    Reference Classifications Mapped on Groww
+                    Reference Classifications Mapped on Direct Platforms
                   </h4>
                   <p className="text-[12px] text-slate-500 leading-relaxed font-medium">
-                    100% compliant and mapped with major platforms like **Groww**, **Zerodha Coin**, and **Kuvera** to enable frictionless lookup. Tap any match to explore the core factsheets.
+                    100% compliant and mapped with major direct mutual fund platforms like **Zerodha Coin**, **Kuvera**, and leading direct portals to enable frictionless lookup. Tap any match to explore the core factsheets.
                   </p>
                 </div>
                 
@@ -3273,7 +3273,7 @@ export default function FindFundTypeView({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-[11.5px] font-mono font-black text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-blue-50/50 hover:bg-blue-105 border border-blue-100 px-3 py-1.5 rounded-full transition-all"
                     >
-                      <span>Locate Real-Time Category on Groww</span>
+                      <span>Locate Real-Time Category Facts</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>

@@ -275,15 +275,23 @@ export default function PortfolioAuditor() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errText = await response.text();
+        let errMsg = "Audit processing failed.";
+        try {
+          const parsed = JSON.parse(errText);
+          errMsg = parsed.error || errMsg;
+        } catch {
+          errMsg = errText || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
       const auditData = await response.json();
       setResult(auditData);
 
     } catch (err: any) {
-      console.warn("Backend API not reachable/complete yet. Launching local AMFI-authorized fallback analytics...", err);
-      runLocalAuditFallback();
+      console.error("[Portfolio Audit] Deep audit diagnostic error:", err);
+      setErrorStatus(err.message || "An exception occurred while processing the portfolio report.");
     } finally {
       setLoading(false);
     }

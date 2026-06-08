@@ -224,17 +224,17 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
 
               <button
                 onClick={() => handlePageNavigation('find-fund')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
+                className="bg-slate-100 hover:bg-slate-200 border border-slate-300/60 text-slate-700 font-semibold text-[12px] px-6 py-3.5 rounded-full transition-all duration-200 cursor-pointer text-center flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] lg:min-w-[220px]"
               >
-                Find Your Fund Matcher
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">for Internal Team Use Only</span>
+                <span>Free Tool - Exactly Which Funds To Invest</span>
               </button>
 
               <button
                 onClick={() => handlePageNavigation('find-fund-type')}
-                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
+                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap animate-pulse-slow"
               >
-                Find Mutual Fund Type
+                Free Tool - Find Your Fund Type
                 <Target className="w-3.5 h-3.5 text-pink-100" />
               </button>
               

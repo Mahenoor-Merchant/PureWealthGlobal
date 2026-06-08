@@ -2862,8 +2862,8 @@ export default function FindYourFundView({
           <span className="text-blue-400 bg-blue-500/10 border border-blue-400/20 px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">
             Consultant Discovery Terminal
           </span>
-          <h1 className="font-display font-bold text-3xl sm:text-[42px] leading-tight mt-4 tracking-tight text-white">
-            Find Your Optimal Regular Fund Match
+          <h1 className="font-display font-bold text-2xl sm:text-3xl lg:text-[38px] leading-tight mt-4 tracking-tight text-white">
+            Free Tool - Exactly Which Funds To Invest (for Internal Team Use Only)
           </h1>
           <p className="text-slate-300 mt-3 text-[13px] sm:text-[15px] max-w-2xl mx-auto leading-relaxed font-sans">
             Complete our rigorous multi-point financial discovery matrix. Our quantitative scoring matches your profile with high-performing, certified regular plans from leading AMFI asset managers.

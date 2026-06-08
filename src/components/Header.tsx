@@ -23,7 +23,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About Us' },
     { id: 'services', label: 'Services' },
-    { id: 'find-fund-type', label: 'Find Fund Type' },
+    { id: 'find-fund-type', label: 'Free Tool - Find Your Fund Type' },
   ];
 
   const handleNavClick = (id: NavPage['id']) => {
@@ -57,10 +57,10 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 onClick={() => handleNavClick(item.id)}
                 className={`relative transition-all duration-200 cursor-pointer ${
                   isFreeTool
-                    ? `px-3.5 py-1.5 rounded-full border text-[13px] font-black tracking-wide ${
+                    ? `px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
                         currentPage === item.id
-                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/15'
-                          : 'bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 hover:text-amber-700 border-amber-500/30 animate-free-tool-pulse'
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-lg shadow-amber-500/25'
+                          : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-550 text-slate-950 border-amber-400 hover:border-amber-500 shadow-md shadow-amber-400/20 animate-free-tool-pulse'
                       }`
                     : `py-2 text-[14px] font-semibold tracking-wide ${
                         currentPage === item.id 
@@ -136,17 +136,17 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
               <button
                 onClick={() => handleNavClick('find-fund')}
-                className={`w-full text-left px-4 py-2 text-[13px] font-bold transition-all flex items-center justify-between ${
+                className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-all flex items-center justify-between ${
                   currentPage === 'find-fund'
-                    ? 'bg-amber-500 text-slate-950 font-black'
-                    : 'text-amber-700 bg-amber-400/5 hover:bg-amber-400/15'
+                    ? 'bg-slate-100 text-slate-900 border-l-2 border-slate-500'
+                    : 'text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-700'
                 }`}
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-800 px-1.5 py-0.5 rounded-md">Free</span>
-                  <span>Find Your Fund</span>
+                <div className="flex flex-col gap-0.5 max-w-[90%]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">for Internal Team Use Only</span>
+                  <span className="leading-tight break-words font-medium text-slate-650">Free Tool - Exactly Which Funds To Invest</span>
                 </div>
-                {currentPage === 'find-fund' && <div className="w-1.5 h-1.5 rounded-full bg-amber-955" />}
+                {currentPage === 'find-fund' && <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />}
               </button>
             </div>
           </div>
@@ -189,18 +189,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`py-3 px-4 text-left text-[14px] font-bold rounded-lg transition-all ${
+                  className={`py-3 px-4 text-left text-[14px] font-extrabold rounded-lg transition-all ${
                     isFreeTool
                       ? currentPage === 'find-fund-type'
                         ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
-                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20'
+                        : 'text-amber-955 bg-amber-400/20 border border-amber-400/45'
                       : currentPage === item.id 
                         ? 'text-blue-700 bg-blue-50' 
                         : 'text-slate-700 hover:bg-slate-50'
                   }`}
                   id={`mobile-nav-btn-${item.id}`}
                 >
-                  {isFreeTool ? `🔥 ${item.label} (Free)` : item.label}
+                  {isFreeTool ? `🔥 ${item.label}` : item.label}
                 </button>
               );
             })}
@@ -255,13 +255,16 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
                   <button
                     onClick={() => handleNavClick('find-fund')}
-                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-bold rounded-lg transition-all flex items-center justify-between mt-1.5 ${
+                    className={`w-full py-2.5 px-4 text-left text-[12.5px] font-medium rounded-lg transition-all mt-1.5 border ${
                       currentPage === 'find-fund'
-                        ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
-                        : 'text-amber-700 bg-amber-500/10 border border-amber-500/20'
+                        ? 'text-slate-800 bg-slate-100 border-slate-300 shadow-sm'
+                        : 'text-slate-500 bg-slate-50 border-slate-200'
                     }`}
                   >
-                    <span>🔥 Find Your Fund (Free)</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">for Internal Team Use Only</span>
+                      <span>Free Tool - Exactly Which Funds To Invest</span>
+                    </div>
                   </button>
                 </div>
               )}

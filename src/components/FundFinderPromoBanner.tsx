@@ -91,11 +91,14 @@ export default function FundFinderPromoBanner({ onActionClick, variant = 'gradie
           <div className="shrink-0 w-full lg:w-auto">
             <button
               onClick={onActionClick}
-              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-500 hover:bg-amber-600 font-extrabold text-[14px] text-slate-950 rounded-full transition-all cursor-pointer active:scale-95 text-center shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 animate-cta-pulse"
+              className="w-full lg:w-auto inline-flex flex-col items-center justify-center gap-0.5 px-6 py-3 bg-slate-750 hover:bg-slate-850 font-bold text-white rounded-full transition-all cursor-pointer active:scale-95 text-center shadow-md"
               id={`cta-promo-find-fund-${boxIndex}`}
             >
-              <span>Free Tool - Find Your Fund</span>
-              <ArrowRight className="w-4 h-4 text-slate-950" />
+              <span className="text-[8.5px] font-bold text-slate-350 uppercase tracking-wider">for Internal Team Use Only</span>
+              <span className="text-[12px] flex items-center gap-1">
+                <span>Free Tool - Exactly Which Funds To Invest</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+              </span>
             </button>
           </div>
         </div>

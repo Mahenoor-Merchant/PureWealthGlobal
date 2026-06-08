@@ -54,7 +54,9 @@ CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH
 
 1. ABSOLUTE EXTRACTION CONSISTENCY & DETAILED AUDITING:
    - Carefully scan the provided text or raw document line-by-line. Identify and extract ALL mutual fund holdings listed.
-   - For every single scheme found, you MUST create a distinct item in the 'fundWiseAudit' array.
+   - CRITICAL REQUIREMENT: You MUST include and audit ALL schemes found in the statement, regardless of whether they are active, inactive, zero-balance, fully redeemed (0 units or 0 valuation), or marked as closed/historical. DO NOT skip any scheme simply because its balance is currently zero or it is historical!
+   - For every single scheme found (both active and inactive/historical), you MUST create a distinct item in the 'fundWiseAudit' array.
+   - If an inactive or zero-balance scheme is found, assign it a nominal/estimated allocation or its last known balance/size from the transactions (e.g., at least index-relative or historic balance representation like 10% or ₹15,000) inside 'allocation' so it is represented and analyzed in the portfolio report, rather than being excluded or ignored.
    - Do NOT omit any holdings. Do NOT group separate schemes of different categories or AMCs under a single entry (unless they are exactly the same scheme). If there are 15 schemes, 'totalFunds' must be exactly 15, and the 'fundWiseAudit' array must contain exactly 15 elements with zero random skips or omissions between runs.
    - For each fund, maintain exact names (as listed in CAS PDF) and match its scheme category cleanly (e.g., Large Cap, Mid Cap, Small Cap, Flexi Cap, Sectoral/Thematic, Multi Asset, etc.).
 

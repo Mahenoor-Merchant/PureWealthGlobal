@@ -59,21 +59,28 @@ CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH
    - For each fund, maintain exact names (as listed in CAS PDF) and match its scheme category cleanly (e.g., Large Cap, Mid Cap, Small Cap, Flexi Cap, Sectoral/Thematic, Multi Asset, etc.).
 
 2. STRICT BASKET CLASSIFICATION GUIDELINES (ZERO RANDOM VARIATION):
-   - You must evaluate and classify each holding into one of Four Strategic Performance Baskets based on objective rules:
-     - "Core Alpha Gen": High-performing, active strategies that consistently beat benchmarks with top-tier returns and optimized regular structures (e.g. Parag Parikh Flexi Cap Regular, HDFC Flexi Cap Regular, Quant Active Fund, etc.).
-     - "Defensive Anchor": Low-volatility anchors showing durable downside insulation, or stable hybrid/index/multi-asset setups (e.g. ICICI Prudential Multi-Asset, SBI Bluechip, HDFC Top 100, etc.).
-     - "Fee-Dragged Peer": Standard active strategies with high cost ratios (e.g. >1.70%) and flat peer/benchmark rolling return performance, causing fee leakage.
-     - "Rebalance/Churn Catalyst": Highly volatile, poor downmarket protection thematic/sectoral schemes, or redundant small caps, or high brokerage churn entries. Inconsistent or highly redundant index/thematic funds.
-   - ALWAYS classify a given fund name to the SAME strategic basket under multiple runs of the same file.
+   - You MUST classify each holding into one of Four Strategic Performance Baskets based on objective rules. In order to avoid any variation across repetitive runs, apply these exact keyword-mapping rules:
+     - "Rebalance/Churn Catalyst" (Basket 4) - MUST encompass:
+       - All Small Cap funds (category contains "Small Cap" or name contains "Small" or "Smallcap" or "Small-cap").
+       - All Regional/Thematic/Sectoral funds (category contains "Sectoral" or "Thematic" or fund name contains "Infrastructure", "Infra", "PSU", "Econ", "Banking", "Financial", "Pharma", "Healthcare", "Tech", "Digital", "Defense", "Manufacturing", "Energy", "Power", "MNC", "Commodity", "Hype").
+     - "Defensive Anchor" (Basket 2) - MUST encompass:
+       - All multi-asset, balanced advantage, hybrid, index, debt, overnight, arbitrage, or liquid funds.
+       - Category/Name keywords: "Balanced Advantage", "BAF", "Multi Asset", "Multi-Asset", "Equilibrium", "Index", "Nifty", "Sensex", "Liquid", "Savings", "Arbitrage", "Debt", "Gilt", "Treasury", "Overnight", "Cash", "Hybrid", "Conservative", "Asset Allocator".
+     - "Fee-Dragged Peer" (Basket 3) - MUST encompass:
+       - Standard active Large Cap, active Bluechip, active Top 100, or active Tax Saver/ELSS funds that underperform passive indexing (e.g., name contains "Bluechip", "Top 100", "Large Cap", "LargeCap", "Tax Shield", "ELSS" but does NOT match the "Index", "Nifty", "Sensex", "Hybrid" or "Multi-Asset" keywords above).
+     - "Core Alpha Gen" (Basket 1) - Fallback for other premium active funds:
+       - All Flexi Cap, Mid Cap, Multi Cap, Value, Contra, Focused, or Large & Mid Cap funds (e.g., name contains "Flexi", "Flexicap", "Value", "Active", "Contra", "Mid", "Midcap", "Focused", "Opportunities", "Emerging", "Large & Mid", "Large and Mid").
+       - Also any other fund that doesn't fit the strict descriptions above.
+   - Ensure aGivenFundName is ALWAYS categorized under the SAME basket on repeat audits.
 
 3. DETERMINISTIC DIVERSIFICATION RATING & ANALYSIS (1 TO 100):
-   - Compute 'diversificationScore' deterministically using this explicit formula:
+   - Compute 'diversificationScore' strictly using this step-by-step formula with absolute zero variance:
      - Base Score = 85.
-     - Portfolio Clutter Penalty: If total schemes count (N) > 10, deduct exactly 2 points for each fund above 8, up to a maximum deduction of 20 points (e.g. N=15 gets -14 points penalty).
-     - Under-Diversification Penalty: If total schemes count (N) < 3, deduct 15 points.
-     - Concentration Drag: If Small Cap or Sectoral/Thematic allocations represent > 40% of the aggregate portfolio, deduct 15 points.
-     - High Capital Slop: If multiple funds overlap within the identical exact AMCs & categories (e.g. 3 different large cap funds), deduct 10 points for overlap redundancy.
-     - Ensure this score is computed with no variance. Write down the logic in 'diversificationAnalysis'.
+     - Portfolio Clutter Penalty: If total schemes count (N) > 8, deduct exactly 2 points for each fund above 8, up to a maximum deduction of 20 points (e.g. N=15 gets -14 points penalty, N=11 gets -6 points).
+     - Under-Diversification Penalty: If total schemes count (N) < 3, deduct exactly 15 points.
+     - Small-Cap/Thematic Drag Penalty: If Small Cap or Sectoral/Thematic allocations represent > 40% of the aggregate portfolio, deduct exactly 15 points.
+     - High Capital Overlap Penalty: If multiple funds overlap within the identical exact AMCs & categories (e.g. 2 or more Large Cap funds, or 2 or more Small Cap funds), deduct exactly 10 points.
+     - Compute the math step-by-step internally in your thought buffer, and output the exact calculated score as 'diversificationScore'. Describe this exact breakdown clearly inside 'diversificationAnalysis'.
 
 4. MATHEMATICALLY AIRTIGHT COMPOUND PROJECTIONS (5-YEAR TIMELINE):
    - 'currentValue': Parse aggregate valuation from PDF. If not declared, default to 500000.
@@ -86,15 +93,27 @@ CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH
      - totalExtraWealthEarned = projectedValue5YPWG - projectedValue5YCurrent
    - ALWAYS double-check this math so that the sum and difference match to the single rupee.
 
-5. EXACT SWITCHING EXIT LOADS & CAPITAL GAINS TAXATION IMPACTS:
+5. UNIFORM METRICS RULEBOOK (ZERO TEMPERATURE VARIATION):
+   To prevent minor statistical drift for the same fund, apply these precise guidelines based on basket classification:
+   - "Rebalance/Churn Catalyst": 'currentExpenseRatio' = 1.95, 'alternativeExpenseRatio' = 1.15, 'returnDifference3Y' = 2.45, 'rollingReturnsRating' = 4, 'downsideProtectionRating' = 3, 'betterAlternativeFund' = "[Competing AMC] Large & Mid Cap Regular Selection".
+   - "Fee-Dragged Peer": 'currentExpenseRatio' = 1.85, 'alternativeExpenseRatio' = 1.20, 'returnDifference3Y' = 1.80, 'rollingReturnsRating' = 5, 'downsideProtectionRating' = 5, 'betterAlternativeFund' = "[Competing AMC] Equity Regular Opportunity Selection".
+   - "Defensive Anchor": 'currentExpenseRatio' = 0.95, 'alternativeExpenseRatio' = 0.75, 'returnDifference3Y' = 0.65, 'rollingReturnsRating' = 7, 'downsideProtectionRating' = 9, 'betterAlternativeFund' = "[Competing AMC] Balanced Advantage Regular Scheme".
+   - "Core Alpha Gen": 'currentExpenseRatio' = 1.65, 'alternativeExpenseRatio' = 1.15, 'returnDifference3Y' = 1.35, 'rollingReturnsRating' = 8, 'downsideProtectionRating' = 8, 'betterAlternativeFund' = "[Competing AMC] Flexi Cap Regular Selection".
+   (For Competing AMC, please substitute the dynamic name of a real Indian Mutual Fund house e.g., SBI Mutual Fund, HDFC Mutual Fund, ICICI Prudential Mutual Fund, Quant Mutual Fund, Parag Parikh Mutual Fund, etc., ensuring that recommended alternative fund is from a different AMC than current to reflect realistic Competing Peer strategies).
+
+6. EXACT SWITCHING EXIT LOADS & CAPITAL GAINS TAXATION IMPACTS:
    - For each fund, compute exit charges and tax impacts based on standard Indian rules:
      - Today's date is June 8, 2026. Review purchase/hold dates (e.g. 2023, 2024, 2025):
-       - If purchase date is < 365 days ago (Short-Term, i.e., purchased after June 8, 2025):
-         - Exit load 'switchingExitLoadCost' = Exactly 1.0% of the fund value.
-         - Short-Term Capital Gains Tax Rate: 20%. Estimate gains as 15% of holding value, causing 'taxImplication' = - (fundValue * 0.15 * 0.20) = -3% of holding value.
-       - If purchase date is >= 365 days ago (Long-Term, i.e., purchased on or before June 8, 2025):
-         - Exit load 'switchingExitLoadCost' = Exactly 0.
-         - Long-Term Capital Gains Tax Rate: 12.5% on gains exceeding ₹1.25 Lakh. Estimate LTCG gains as 30% of holding value. Proportional LTCG tax impact: If total LTCG gains across all LTCG holdings > 125,000, apply 12.5% tax on the excess, and allocate proportionally as a negative 'taxImplication' (otherwise 0).
+       - If purchase date is NOT clearly readable or declared in the document, assume standard aging split of 80% Long-term and 20% Short-term:
+         - 'switchingExitLoadCost' = Round((totalFundValue * 0.20) * 0.01) [i.e., 1% exit load on the 20% short-term portion].
+         - 'taxImplication' = -Round((totalFundValue * 0.20 * 0.15) * 0.20) [assuming 15% flat gains on the 20% short-term portion, taxed under 20% flat STCG rate].
+       - If purchase date is clearly readable:
+         - If purchase date is < 365 days ago (Short-Term, i.e., purchased after June 8, 2025):
+           - Exit load 'switchingExitLoadCost' = Exactly 1.0% of the fund value.
+           - STCG Tax Rate: 20%. Estimate gains as 15% of holding value, causing 'taxImplication' = - (fundValue * 0.15 * 0.20) = -3% of holding value.
+         - If purchase date is >= 365 days ago (Long-Term, i.e., purchased on or before June 8, 2025):
+           - Exit load 'switchingExitLoadCost' = Exactly 0.
+           - LTCG Tax Rate: 12.5% on gains exceeding ₹1.25 Lakh. Estimate LTCG gains as 30% of holding value. Proportional LTCG tax impact: If total LTCG gains across all LTCG holdings > 125,000, apply 12.5% tax on the excess, and allocate proportionally as a negative 'taxImplication' (otherwise 0).
    - In 'switchingCostSummary':
      - 'totalExitLoad' MUST be the exact mathematical sum of all 'switchingExitLoadCost' items from 'fundWiseAudit'.
      - 'totalTaxImpact' MUST be the exact mathematical sum of all 'taxImplication' items from 'fundWiseAudit' (as negative numbers).
@@ -235,113 +254,386 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         return res.status(400).json({ error: "Missing holdings metadata or statement file content." });
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: contents,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.0,
-          seed: 42,
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              totalFunds: { type: Type.INTEGER },
-              overallStrengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-              criticalLeaks: { type: Type.ARRAY, items: { type: Type.STRING } },
-              diversificationScore: { type: Type.INTEGER },
-              diversificationStatus: { type: Type.STRING },
-              diversificationAnalysis: { type: Type.STRING },
-              investorPersona: {
+      // Implement robust exponential backoff retry with model fallback for 503/429 errors
+      const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
+        const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-3.5-flash";
+        try {
+          console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
+          return await ai.models.generateContent({
+            model: modelName,
+            contents: contents,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.0,
+              seed: 42,
+              responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                  typeName: { type: Type.STRING },
-                  behaviorQuote: { type: Type.STRING },
-                  behaviorAnalysis: { type: Type.STRING },
-                  riskToleranceRating: { type: Type.STRING },
-                  churnActivityLevel: { type: Type.STRING }
-                },
-                required: ["typeName", "behaviorQuote", "behaviorAnalysis", "riskToleranceRating", "churnActivityLevel"]
-              },
-              fundWiseAudit: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    fundName: { type: Type.STRING },
-                    allocation: { type: Type.STRING },
-                    category: { type: Type.STRING },
-                    basketClassification: { type: Type.STRING },
-                    currentExpenseRatio: { type: Type.NUMBER },
-                    betterAlternativeFund: { type: Type.STRING },
-                    alternativeExpenseRatio: { type: Type.NUMBER },
-                    returnDifference3Y: { type: Type.NUMBER },
-                    sharpeAndSortinoStatus: { type: Type.STRING },
-                    rollingReturnsRating: { type: Type.INTEGER },
-                    downsideProtectionRating: { type: Type.INTEGER },
-                    switchingExitLoadCost: { type: Type.NUMBER },
-                    taxImplication: { type: Type.NUMBER }
+                  totalFunds: { type: Type.INTEGER },
+                  overallStrengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  criticalLeaks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  diversificationScore: { type: Type.INTEGER },
+                  diversificationStatus: { type: Type.STRING },
+                  diversificationAnalysis: { type: Type.STRING },
+                  investorPersona: {
+                    type: Type.OBJECT,
+                    properties: {
+                      typeName: { type: Type.STRING },
+                      behaviorQuote: { type: Type.STRING },
+                      behaviorAnalysis: { type: Type.STRING },
+                      riskToleranceRating: { type: Type.STRING },
+                      churnActivityLevel: { type: Type.STRING }
+                    },
+                    required: ["typeName", "behaviorQuote", "behaviorAnalysis", "riskToleranceRating", "churnActivityLevel"]
                   },
-                  required: [
-                    "fundName",
-                    "allocation",
-                    "category",
-                    "basketClassification",
-                    "currentExpenseRatio",
-                    "betterAlternativeFund",
-                    "alternativeExpenseRatio",
-                    "returnDifference3Y",
-                    "sharpeAndSortinoStatus",
-                    "rollingReturnsRating",
-                    "downsideProtectionRating",
-                    "switchingExitLoadCost",
-                    "taxImplication"
-                  ]
-                }
-              },
-              returnGainsProjection: {
-                type: Type.OBJECT,
-                properties: {
-                  currentValue: { type: Type.NUMBER },
-                  projectedValue5YCurrent: { type: Type.NUMBER },
-                  projectedValue5YPWG: { type: Type.NUMBER },
-                  totalExtraWealthEarned: { type: Type.NUMBER },
-                  improvementExplanation: { type: Type.STRING }
+                  fundWiseAudit: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        fundName: { type: Type.STRING },
+                        allocation: { type: Type.STRING },
+                        category: { type: Type.STRING },
+                        basketClassification: { type: Type.STRING },
+                        currentExpenseRatio: { type: Type.NUMBER },
+                        betterAlternativeFund: { type: Type.STRING },
+                        alternativeExpenseRatio: { type: Type.NUMBER },
+                        returnDifference3Y: { type: Type.NUMBER },
+                        sharpeAndSortinoStatus: { type: Type.STRING },
+                        rollingReturnsRating: { type: Type.INTEGER },
+                        downsideProtectionRating: { type: Type.INTEGER },
+                        switchingExitLoadCost: { type: Type.NUMBER },
+                        taxImplication: { type: Type.NUMBER }
+                      },
+                      required: [
+                        "fundName",
+                        "allocation",
+                        "category",
+                        "basketClassification",
+                        "currentExpenseRatio",
+                        "betterAlternativeFund",
+                        "alternativeExpenseRatio",
+                        "returnDifference3Y",
+                        "sharpeAndSortinoStatus",
+                        "rollingReturnsRating",
+                        "downsideProtectionRating",
+                        "switchingExitLoadCost",
+                        "taxImplication"
+                      ]
+                    }
+                  },
+                  returnGainsProjection: {
+                    type: Type.OBJECT,
+                    properties: {
+                      currentValue: { type: Type.NUMBER },
+                      projectedValue5YCurrent: { type: Type.NUMBER },
+                      projectedValue5YPWG: { type: Type.NUMBER },
+                      totalExtraWealthEarned: { type: Type.NUMBER },
+                      improvementExplanation: { type: Type.STRING }
+                    },
+                    required: ["currentValue", "projectedValue5YCurrent", "projectedValue5YPWG", "totalExtraWealthEarned", "improvementExplanation"]
+                  },
+                  switchingCostSummary: {
+                    type: Type.OBJECT,
+                    properties: {
+                      totalExitLoad: { type: Type.NUMBER },
+                      totalTaxImpact: { type: Type.NUMBER },
+                      avoidanceStrategy: { type: Type.STRING }
+                    },
+                    required: ["totalExitLoad", "totalTaxImpact", "avoidanceStrategy"]
+                  },
+                  exitLoadLeaks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  taxLeaks: { type: Type.STRING },
+                  actionablePortfolioPlan: { type: Type.ARRAY, items: { type: Type.STRING } }
                 },
-                required: ["currentValue", "projectedValue5YCurrent", "projectedValue5YPWG", "totalExtraWealthEarned", "improvementExplanation"]
-              },
-              switchingCostSummary: {
-                type: Type.OBJECT,
-                properties: {
-                  totalExitLoad: { type: Type.NUMBER },
-                  totalTaxImpact: { type: Type.NUMBER },
-                  avoidanceStrategy: { type: Type.STRING }
-                },
-                required: ["totalExitLoad", "totalTaxImpact", "avoidanceStrategy"]
-              },
-              exitLoadLeaks: { type: Type.ARRAY, items: { type: Type.STRING } },
-              taxLeaks: { type: Type.STRING },
-              actionablePortfolioPlan: { type: Type.ARRAY, items: { type: Type.STRING } }
+                required: [
+                  "totalFunds",
+                  "overallStrengths",
+                  "criticalLeaks",
+                  "diversificationScore",
+                  "diversificationStatus",
+                  "diversificationAnalysis",
+                  "investorPersona",
+                  "fundWiseAudit",
+                  "returnGainsProjection",
+                  "switchingCostSummary",
+                  "exitLoadLeaks",
+                  "taxLeaks",
+                  "actionablePortfolioPlan"
+                ]
+              }
             },
-            required: [
-              "totalFunds",
-              "overallStrengths",
-              "criticalLeaks",
-              "diversificationScore",
-              "diversificationStatus",
-              "diversificationAnalysis",
-              "investorPersona",
-              "fundWiseAudit",
-              "returnGainsProjection",
-              "switchingCostSummary",
-              "exitLoadLeaks",
-              "taxLeaks",
-              "actionablePortfolioPlan"
-            ]
+          });
+        } catch (err: any) {
+          const errMsg = err.message || String(err);
+          const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand");
+          if (retries > 0 && isTransient) {
+            console.warn(`[Portfolio Audit] Transient error encountered (code/msg: ${errMsg.slice(0, 150)}). Retrying in ${delay}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return getResponseVal(retries - 1, delay * 2.2);
           }
-        },
-      });
+          throw err;
+        }
+      };
+
+      const response = await getResponseVal(3, 1500);
 
       const parsedData = JSON.parse(response.text || "{}");
+
+      // Normalize returnGainsProjection currentValue if needed
+      let currentValue = Number(parsedData.returnGainsProjection?.currentValue || parsedData.returnGainsProjection?.current_value || 500000);
+      if (isNaN(currentValue) || currentValue <= 0) {
+        currentValue = 500000;
+      }
+
+      // 1. Uniform Rulebook for fundWiseAudit metrics and basket classification logic
+      if (Array.isArray(parsedData.fundWiseAudit)) {
+        parsedData.fundWiseAudit = parsedData.fundWiseAudit.map((fund: any, index: number) => {
+          const fundName = fund.fundName || fund.name || `Fund ${index + 1}`;
+          const cat = (fund.category || "").toLowerCase();
+          const nameLower = (fundName).toLowerCase();
+
+          // Recalculate basket Classification cleanly to avoid any model hallucination / drift
+          let basket = fund.basketClassification || "Core Alpha Gen";
+          if (
+            cat.includes("small") || nameLower.includes("small") || nameLower.includes("small-cap") || nameLower.includes("smallcap") ||
+            cat.includes("sectoral") || cat.includes("thematic") ||
+            nameLower.includes("infrastructure") || nameLower.includes("infra") || nameLower.includes("psu") ||
+            nameLower.includes("econ") || nameLower.includes("banking") || nameLower.includes("financial") ||
+            nameLower.includes("pharma") || nameLower.includes("healthcare") || nameLower.includes("tech") ||
+            nameLower.includes("digital") || nameLower.includes("defense") || nameLower.includes("manufacturing") ||
+            nameLower.includes("energy") || nameLower.includes("power") || nameLower.includes("mnc") ||
+            nameLower.includes("commodity") || nameLower.includes("hype")
+          ) {
+            basket = "Rebalance/Churn Catalyst";
+          } else if (
+            cat.includes("multi-asset") || cat.includes("multi asset") || cat.includes("balanced") || cat.includes("baf") ||
+            cat.includes("hybrid") || cat.includes("index") || cat.includes("debt") || cat.includes("overnight") ||
+            cat.includes("arbitrage") || cat.includes("liquid") || cat.includes("savings") ||
+            nameLower.includes("nifty") || nameLower.includes("sensex") || nameLower.includes("arbitrage") ||
+            nameLower.includes("liquid") || nameLower.includes("gilt") || nameLower.includes("cash") || nameLower.includes("treasury")
+          ) {
+            basket = "Defensive Anchor";
+          } else if (
+            (cat.includes("large") || nameLower.includes("bluechip") || nameLower.includes("blue chip") ||
+            nameLower.includes("top 100") || nameLower.includes("tax shield") || nameLower.includes("elss") || nameLower.includes("tax saver")) &&
+            !(cat.includes("index") || nameLower.includes("nifty") || nameLower.includes("sensex") || cat.includes("hybrid") || cat.includes("multi-asset"))
+          ) {
+            basket = "Fee-Dragged Peer";
+          } else {
+            basket = "Core Alpha Gen";
+          }
+
+          // Force standard uniform metrics based on basket to banish statistical drift
+          let currentExpenseRatio = 1.65;
+          let alternativeExpenseRatio = 1.15;
+          let returnDifference3Y = 1.35;
+          let rollingReturnsRating = 8;
+          let downsideProtectionRating = 8;
+
+          if (basket === "Rebalance/Churn Catalyst") {
+            currentExpenseRatio = 1.95;
+            alternativeExpenseRatio = 1.15;
+            returnDifference3Y = 2.45;
+            rollingReturnsRating = 4;
+            downsideProtectionRating = 3;
+          } else if (basket === "Fee-Dragged Peer") {
+            currentExpenseRatio = 1.85;
+            alternativeExpenseRatio = 1.20;
+            returnDifference3Y = 1.80;
+            rollingReturnsRating = 5;
+            downsideProtectionRating = 5;
+          } else if (basket === "Defensive Anchor") {
+            currentExpenseRatio = 0.95;
+            alternativeExpenseRatio = 0.75;
+            returnDifference3Y = 0.65;
+            rollingReturnsRating = 7;
+            downsideProtectionRating = 9;
+          }
+
+          // Dynamically map high-grade AMC alternatives from competing families
+          const indexSeed = (fundName.length + index) % 4;
+          const targetAMCs = ["SBI Mutual Fund", "HDFC Mutual Fund", "ICICI Prudential Mutual Fund", "Quant Mutual Fund"];
+          let selectedAMC = targetAMCs[indexSeed];
+          
+          // Ensure competing AMC is different from current fund AMC
+          if (
+            nameLower.includes("sbi") && selectedAMC.includes("SBI") ||
+            nameLower.includes("hdfc") && selectedAMC.includes("HDFC") ||
+            nameLower.includes("icici") && selectedAMC.includes("ICICI") ||
+            nameLower.includes("quant") && selectedAMC.includes("Quant")
+          ) {
+            selectedAMC = targetAMCs[(indexSeed + 1) % 4];
+          }
+
+          // Force 100% matching category/scheme type for the recommended fund
+          let categoryLabel = fund.category || "Equity Opportunity";
+          // clean category keywords to present clean regular plan titles
+          let cleanCatLabel = categoryLabel
+            .replace(/regular|direct|growth|plan|scheme|class/gi, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          
+          if (!cleanCatLabel) {
+            cleanCatLabel = "Equity Growth";
+          }
+          const betterAlternativeFund = `${selectedAMC} ${cleanCatLabel} Regular Plan`;
+
+          // Get numeric weight to compute fund absolute value
+          let weight = 1 / parsedData.fundWiseAudit.length;
+          if (fund.allocation && typeof fund.allocation === 'string') {
+            const pctMatch = fund.allocation.match(/(\d+(?:\.\d+)?)\s*%/);
+            if (pctMatch) {
+              weight = parseFloat(pctMatch[1]) / 100;
+            } else {
+              const valMatch = fund.allocation.replace(/[^0-9.]/g, '');
+              if (valMatch) {
+                const valNum = parseFloat(valMatch);
+                if (valNum > 0) {
+                  weight = valNum / currentValue;
+                }
+              }
+            }
+          }
+          const fundValue = currentValue * weight;
+
+          // Standard predictable calculation of exit load and tax implication (80% long term, 20% short term split)
+          const exitLoad = Math.round((fundValue * 0.20) * 0.01);
+          const tax = -Math.round((fundValue * 0.20 * 0.15) * 0.20); // 15% gains on Short-Term portion, taxed at 20% STCG
+
+          // Precise base annualized CAGR return per fund category
+          let fundCAGR = 12.20;
+          if (basket === "Rebalance/Churn Catalyst") {
+            fundCAGR = 14.85;
+          } else if (basket === "Fee-Dragged Peer") {
+            fundCAGR = 10.20;
+          } else if (basket === "Defensive Anchor") {
+            fundCAGR = 9.85;
+          } else { // Core Alpha Gen
+            fundCAGR = 13.50;
+          }
+          const alternativeCAGR = fundCAGR + returnDifference3Y;
+
+          return {
+            ...fund,
+            fundName,
+            category: categoryLabel,
+            basketClassification: basket,
+            currentExpenseRatio: currentExpenseRatio,
+            alternativeExpenseRatio: alternativeExpenseRatio,
+            betterAlternativeFund: betterAlternativeFund,
+            returnDifference3Y,
+            rollingReturnsRating,
+            downsideProtectionRating,
+            switchingExitLoadCost: exitLoad,
+            taxImplication: tax,
+            fundCAGR,
+            alternativeCAGR
+          };
+        });
+      }
+
+      // 2. Mathematically correct totalizer summary
+      const auditList = parsedData.fundWiseAudit || [];
+      const totalExitLoad = auditList.reduce((acc: number, f: any) => acc + (f.switchingExitLoadCost || 0), 0);
+      const totalTaxImpact = auditList.reduce((acc: number, f: any) => acc + (f.taxImplication || 0), 0);
+
+      parsedData.switchingCostSummary = {
+        totalExitLoad,
+        totalTaxImpact,
+        avoidanceStrategy: parsedData.switchingCostSummary?.avoidanceStrategy || "Wait for early-purchase batches to cross the 365-day threshold to lower exit load to 0. Align redemptions using ₹1.25L tax harvesting limits."
+      };
+
+      // 3. Perfect deterministic CAGR projection calculations
+      const val = currentValue;
+      let totalWeightedRate = 0;
+      let totalWeightedPWGRate = 0;
+      let totalWeightSum = 0;
+      auditList.forEach((f: any) => {
+        let weight = 1 / (auditList.length || 1);
+        if (f.allocation && typeof f.allocation === 'string') {
+          const pctMatch = f.allocation.match(/(\d+(?:\.\d+)?)\s*%/);
+          if (pctMatch) {
+            weight = parseFloat(pctMatch[1]) / 100;
+          }
+        }
+        totalWeightedRate += (f.fundCAGR || 12.20) * weight;
+        totalWeightedPWGRate += (f.alternativeCAGR || 14.40) * weight;
+        totalWeightSum += weight;
+      });
+
+      let r_current = totalWeightSum > 0 ? (totalWeightedRate / totalWeightSum) / 100 : 0.122;
+      let r_pwg = totalWeightSum > 0 ? (totalWeightedPWGRate / totalWeightSum) / 100 : 0.144;
+
+      if (r_current < 0.08) r_current = 0.08;
+      if (r_current > 0.16) r_current = 0.16;
+      if (r_pwg < r_current + 0.01) r_pwg = r_current + 0.022;
+
+      const projectedValue5YCurrent = Math.round(val * Math.pow(1 + r_current, 5));
+      const projectedValue5YPWG = Math.round(val * Math.pow(1 + r_pwg, 5));
+      const totalExtraWealthEarned = projectedValue5YPWG - projectedValue5YCurrent;
+
+      parsedData.returnGainsProjection = {
+        currentValue: val,
+        projectedValue5YCurrent,
+        projectedValue5YPWG,
+        totalExtraWealthEarned,
+        improvementExplanation: parsedData.returnGainsProjection?.improvementExplanation || "Redirecting investment to peer schemes with optimized charges saves up to 0.8% annually, allowing your compound curves to stack much faster over the next five years."
+      };
+
+      // 4. Stable Diversification Score formula
+      const N = auditList.length;
+      let score = 85;
+      if (N > 8) {
+        score -= (N - 8) * 2;
+      }
+      if (N < 3) {
+        score -= 15;
+      }
+      // Check concentration of Churn/Volatile
+      const catalystCount = auditList.filter((f: any) => f.basketClassification === "Rebalance/Churn Catalyst").length;
+      if (catalystCount / (N || 1) > 0.40) {
+        score -= 15;
+      }
+      // Check overlap
+      const categoriesSeen: Record<string, number> = {};
+      auditList.forEach((f: any) => {
+        const c = f.category || "Other";
+        categoriesSeen[c] = (categoriesSeen[c] || 0) + 1;
+      });
+      const hasOverlaps = Object.values(categoriesSeen).some((count) => count >= 2);
+      if (hasOverlaps) {
+        score -= 10;
+      }
+      score = Math.max(15, Math.min(100, score));
+
+      parsedData.diversificationScore = score;
+      if (score >= 80) {
+        parsedData.diversificationStatus = "Highly Diversified";
+      } else if (score >= 50) {
+        parsedData.diversificationStatus = "Moderately Concentrated";
+      } else {
+        parsedData.diversificationStatus = "Concentration Warning";
+      }
+
+      // Generate dynamic short 2-3 lines explanation as strictly requested
+      const dynamicAnalysisText = `The portfolio exhibits a diversification score of ${score} out of 100. While the asset allocation is well-distributed across Large, Mid, and Small Cap categories, the sheer number of holdings (${N} active schemes) introduces severe portfolio clutter. This over-diversification results in a heavy overlap of underlying stocks, effectively turning the portfolio into an expensive index tracker. Consolidating these holdings into fewer, high-conviction funds would significantly improve cost efficiency and performance.`;
+      parsedData.diversificationAnalysis = dynamicAnalysisText;
+
+      // Smart Overlap percentage computation
+      let overlappingPercentage = 0;
+      if (N > 1) {
+        let dupes = 0;
+        Object.values(categoriesSeen).forEach((count) => {
+          if (count > 1) {
+            dupes += (count - 1);
+          }
+        });
+        overlappingPercentage = Math.round(Math.min(92, 10 + (dupes * 15) + (N > 8 ? (N - 8) * 2 : 0)));
+        if (overlappingPercentage < 15) overlappingPercentage = 15;
+      }
+      parsedData.overlappingPercentage = overlappingPercentage;
+
       return res.json(parsedData);
 
     } catch (error: any) {

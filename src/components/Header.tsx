@@ -32,7 +32,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'portfolio-audit';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -147,6 +147,21 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   <span>Fund Overlap Finder</span>
                 </div>
                 {currentPage === 'overlap-finder' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </button>
+
+              <button
+                onClick={() => handleNavClick('portfolio-audit')}
+                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
+                  currentPage === 'portfolio-audit'
+                    ? 'text-blue-600 bg-blue-50/50 font-bold'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md">AI</span>
+                  <span>AI Portfolio Auditor</span>
+                </div>
+                {currentPage === 'portfolio-audit' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
               </button>
 
               <div className="my-1.5 border-t border-slate-100" />
@@ -278,6 +293,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   >
                     <span>🔍 Fund Overlap Finder</span>
                     <span className="text-[9px] font-extrabold uppercase bg-amber-500/15 text-amber-800 px-1.5 py-0.5 rounded">New</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleNavClick('portfolio-audit')}
+                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all flex items-center justify-between ${
+                      currentPage === 'portfolio-audit'
+                        ? 'text-blue-700 bg-blue-50/80 font-bold'
+                        : 'text-slate-650 hover:bg-slate-55'
+                    }`}
+                  >
+                    <span>✨ AI Portfolio Auditor</span>
+                    <span className="text-[9px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-1.5 py-0.5 rounded">New</span>
                   </button>
 
                   <div className="my-1 border-t border-slate-100" />

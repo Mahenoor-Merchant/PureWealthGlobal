@@ -16,6 +16,7 @@ import PrivacyView from './components/PrivacyView';
 import FindYourFundView from './components/FindYourFundView';
 import FindFundTypeView from './components/FindFundTypeView';
 import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
+import PortfolioAuditor from './components/PortfolioAuditor';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
@@ -71,6 +72,8 @@ export default function App() {
         setCurrentPage('find-fund-type');
       } else if (hash === '#overlap-finder') {
         setCurrentPage('overlap-finder');
+      } else if (hash === '#portfolio-audit') {
+        setCurrentPage('portfolio-audit');
       } else if (hash === '#home') {
         setCurrentPage('home');
       }
@@ -223,6 +226,8 @@ export default function App() {
         );
       case 'overlap-finder':
         return <PortfolioOverlapFinder />;
+      case 'portfolio-audit':
+        return <PortfolioAuditor />;
       default:
         return (
           <HomeView 

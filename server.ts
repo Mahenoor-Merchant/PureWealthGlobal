@@ -48,13 +48,57 @@ Perform calculations based on rolling returns (3-5 years), expense ratios, risk 
 
 CRITICAL INSTRUCTION: Since we are a registered Mutual Fund Distributor (ARN: 306022), we help our customers invest in REGULAR plans. You MUST NOT mention, refer to, or compare "Regular Plans vs Direct Plans". NEVER use the word "Direct" in the context of plan comparisons, cost-reduction, or switch recommendations. Instead, evaluate and compare funds purely on the basis of COMPETING Funds/Schemes within the same peer group (e.g., comparing a high cost small-cap fund with 1.95% expense score to a highly efficient peer small-cap fund with 1.15% expense score that provides better or equivalent 3-5 Year rolling returns, Sharpe, and Sortino ratios). Both current and recommended alternatives should be evaluated as peer-to-peer regular strategies mapped for maximum wealth client efficiency.
 
-Evaluate and classify each holding into one of Four Strategic Performance Baskets:
-1. "Core Alpha Gen" (Top-tier rolling returns, outstanding Sharpe/Sortino risk-adjusted ratios, resilient downmarket insulation, highly optimized expense structure)
-2. "Defensive Anchor" (Strong downside protection, reliable strategy alignment, stable performance, reasonable cost)
-3. "Fee-Dragged Peer" (Average rolling returns with an unreasonably high expense ratio relative to peer efficiency; high potential for fee leakage optimization)
-4. "Rebalance/Churn Catalyst" (Poor downside protection, inconsistent fund strategy, highly volatile with high capital churn or exit penalty risks)
+=========================================
+CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH ABSOLUTE CONSISTENCY:
+=========================================
 
-Perform an Investor Behavioral Persona analysis directly from their holding timeline, funds count, active SIP markers, and how quickly they churned/switched assets.
+1. ABSOLUTE EXTRACTION CONSISTENCY & DETAILED AUDITING:
+   - Carefully scan the provided text or raw document line-by-line. Identify and extract ALL mutual fund holdings listed.
+   - For every single scheme found, you MUST create a distinct item in the 'fundWiseAudit' array.
+   - Do NOT omit any holdings. Do NOT group separate schemes of different categories or AMCs under a single entry (unless they are exactly the same scheme). If there are 15 schemes, 'totalFunds' must be exactly 15, and the 'fundWiseAudit' array must contain exactly 15 elements with zero random skips or omissions between runs.
+   - For each fund, maintain exact names (as listed in CAS PDF) and match its scheme category cleanly (e.g., Large Cap, Mid Cap, Small Cap, Flexi Cap, Sectoral/Thematic, Multi Asset, etc.).
+
+2. STRICT BASKET CLASSIFICATION GUIDELINES (ZERO RANDOM VARIATION):
+   - You must evaluate and classify each holding into one of Four Strategic Performance Baskets based on objective rules:
+     - "Core Alpha Gen": High-performing, active strategies that consistently beat benchmarks with top-tier returns and optimized regular structures (e.g. Parag Parikh Flexi Cap Regular, HDFC Flexi Cap Regular, Quant Active Fund, etc.).
+     - "Defensive Anchor": Low-volatility anchors showing durable downside insulation, or stable hybrid/index/multi-asset setups (e.g. ICICI Prudential Multi-Asset, SBI Bluechip, HDFC Top 100, etc.).
+     - "Fee-Dragged Peer": Standard active strategies with high cost ratios (e.g. >1.70%) and flat peer/benchmark rolling return performance, causing fee leakage.
+     - "Rebalance/Churn Catalyst": Highly volatile, poor downmarket protection thematic/sectoral schemes, or redundant small caps, or high brokerage churn entries. Inconsistent or highly redundant index/thematic funds.
+   - ALWAYS classify a given fund name to the SAME strategic basket under multiple runs of the same file.
+
+3. DETERMINISTIC DIVERSIFICATION RATING & ANALYSIS (1 TO 100):
+   - Compute 'diversificationScore' deterministically using this explicit formula:
+     - Base Score = 85.
+     - Portfolio Clutter Penalty: If total schemes count (N) > 10, deduct exactly 2 points for each fund above 8, up to a maximum deduction of 20 points (e.g. N=15 gets -14 points penalty).
+     - Under-Diversification Penalty: If total schemes count (N) < 3, deduct 15 points.
+     - Concentration Drag: If Small Cap or Sectoral/Thematic allocations represent > 40% of the aggregate portfolio, deduct 15 points.
+     - High Capital Slop: If multiple funds overlap within the identical exact AMCs & categories (e.g. 3 different large cap funds), deduct 10 points for overlap redundancy.
+     - Ensure this score is computed with no variance. Write down the logic in 'diversificationAnalysis'.
+
+4. MATHEMATICALLY AIRTIGHT COMPOUND PROJECTIONS (5-YEAR TIMELINE):
+   - 'currentValue': Parse aggregate valuation from PDF. If not declared, default to 500000.
+   - Calculate standard weighted-average compound rates:
+     - Current Portfolio CAGR (r_current): Base on asset mix using: Large Cap/Debt = 11.5% (0.115), Mid/Flexi/Multi = 13% (0.13), Small/Thematic = 14.5% (0.145). Limit r_current strictly to a range of 11% to 13.5%.
+     - Pure Wealth Optimized CAGR (r_pwg): Formulate as exactly r_current + 2.2% (reflecting 0.8% CAGR expense ratio recovery and 1.4% strategic risk-adjusted peer selection outperformance).
+   - Compute five-year compounding values precisely (rounded to nearest rupee):
+     - projectedValue5YCurrent = Round(currentValue * (1 + r_current)^5)
+     - projectedValue5YPWG = Round(currentValue * (1 + r_pwg)^5)
+     - totalExtraWealthEarned = projectedValue5YPWG - projectedValue5YCurrent
+   - ALWAYS double-check this math so that the sum and difference match to the single rupee.
+
+5. EXACT SWITCHING EXIT LOADS & CAPITAL GAINS TAXATION IMPACTS:
+   - For each fund, compute exit charges and tax impacts based on standard Indian rules:
+     - Today's date is June 8, 2026. Review purchase/hold dates (e.g. 2023, 2024, 2025):
+       - If purchase date is < 365 days ago (Short-Term, i.e., purchased after June 8, 2025):
+         - Exit load 'switchingExitLoadCost' = Exactly 1.0% of the fund value.
+         - Short-Term Capital Gains Tax Rate: 20%. Estimate gains as 15% of holding value, causing 'taxImplication' = - (fundValue * 0.15 * 0.20) = -3% of holding value.
+       - If purchase date is >= 365 days ago (Long-Term, i.e., purchased on or before June 8, 2025):
+         - Exit load 'switchingExitLoadCost' = Exactly 0.
+         - Long-Term Capital Gains Tax Rate: 12.5% on gains exceeding ₹1.25 Lakh. Estimate LTCG gains as 30% of holding value. Proportional LTCG tax impact: If total LTCG gains across all LTCG holdings > 125,000, apply 12.5% tax on the excess, and allocate proportionally as a negative 'taxImplication' (otherwise 0).
+   - In 'switchingCostSummary':
+     - 'totalExitLoad' MUST be the exact mathematical sum of all 'switchingExitLoadCost' items from 'fundWiseAudit'.
+     - 'totalTaxImpact' MUST be the exact mathematical sum of all 'taxImplication' items from 'fundWiseAudit' (as negative numbers).
+     - Triple-check that these values are perfectly aligned across runs.
 
 Return your analysis as a single JSON response conforming ONLY to this schema:
 {
@@ -81,7 +125,7 @@ Return your analysis as a single JSON response conforming ONLY to this schema:
       "betterAlternativeFund": string, (similar or parity competing fund with superior/equivalent rolling metrics and better expense cost)
       "alternativeExpenseRatio": number, (improved lower peer percentage, e.g., 1.25)
       "returnDifference3Y": number, (estimated rolling annual outperformance from alternative, e.g., 1.15)
-      "sharpeAndSortinoStatus": string, (brief risk comparison, e.g. "Competing fund Sortino of 1.85 outpaces current 1.40")
+      "sharpeAndSortinoStatus": string, (brief risk comparison, e.g. "Competing fund Sortino of 1.40 or higher outpaces current")
       "rollingReturnsRating": number, (1 to 10 score)
       "downsideProtectionRating": number, (1 to 10 score)
       "switchingExitLoadCost": number, (estimated exit penalty fee if they exited now, e.g., 450)
@@ -196,6 +240,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         contents: contents,
         config: {
           responseMimeType: "application/json",
+          temperature: 0.0,
+          seed: 42,
           responseSchema: {
             type: Type.OBJECT,
             properties: {

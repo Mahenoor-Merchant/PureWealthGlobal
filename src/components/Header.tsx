@@ -23,6 +23,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About Us' },
     { id: 'services', label: 'Services' },
+    { id: 'portfolio-audit', label: 'Free AI Portfolio Auditor' },
     { id: 'find-fund-type', label: 'Free Tool - Find Your Fund Type' },
   ];
 
@@ -32,7 +33,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'portfolio-audit';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -48,30 +49,61 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-6" id="hdr-desktop-nav">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-6" id="hdr-desktop-nav">
           {primaryNavigationItems.map((item) => {
-            const isFreeTool = item.id === 'find-fund-type';
+            const isFundTypeTool = item.id === 'find-fund-type';
+            const isAuditTool = item.id === 'portfolio-audit';
+            
+            if (isAuditTool) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`relative transition-all duration-200 cursor-pointer px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
+                    currentPage === item.id
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-emerald-500 shadow-md shadow-emerald-500/20 hover:scale-[1.03]'
+                  }`}
+                  id={`nav-btn-${item.id}`}
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                    ✨ AI Auditor
+                  </span>
+                </button>
+              );
+            }
+
+            if (isFundTypeTool) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`relative transition-all duration-200 cursor-pointer px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
+                    currentPage === item.id
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-lg shadow-amber-500/25'
+                      : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-550 text-slate-950 border-amber-400 hover:border-amber-500 shadow-md shadow-amber-400/20'
+                  }`}
+                  id={`nav-btn-${item.id}`}
+                >
+                  {item.label}
+                </button>
+              );
+            }
+
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`relative transition-all duration-200 cursor-pointer ${
-                  isFreeTool
-                    ? `px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
-                        currentPage === item.id
-                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-lg shadow-amber-500/25'
-                          : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-550 text-slate-950 border-amber-400 hover:border-amber-500 shadow-md shadow-amber-400/20 animate-free-tool-pulse'
-                      }`
-                    : `py-2 text-[14px] font-semibold tracking-wide ${
-                        currentPage === item.id 
-                          ? 'text-blue-600' 
-                          : 'text-slate-550 hover:text-slate-900'
-                      }`
+                className={`relative py-2 text-[14px] font-semibold tracking-wide transition-colors ${
+                  currentPage === item.id 
+                    ? 'text-blue-600' 
+                    : 'text-slate-550 hover:text-slate-900'
                 }`}
                 id={`nav-btn-${item.id}`}
               >
                 {item.label}
-                {currentPage === item.id && !isFreeTool && (
+                {currentPage === item.id && (
                   <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-blue-600 rounded-full" />
                 )}
               </button>
@@ -149,21 +181,6 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 {currentPage === 'overlap-finder' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
               </button>
 
-              <button
-                onClick={() => handleNavClick('portfolio-audit')}
-                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
-                  currentPage === 'portfolio-audit'
-                    ? 'text-blue-600 bg-blue-50/50 font-bold'
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md">AI</span>
-                  <span>AI Portfolio Auditor</span>
-                </div>
-                {currentPage === 'portfolio-audit' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
-
               <div className="my-1.5 border-t border-slate-100" />
 
               <button
@@ -209,30 +226,50 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
           </button>
         </div>
 
-      </div>
-
-      {/* Mobile Drawer Overlay */}
+      </div>      {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
         <div className="lg:hidden absolute top-[72px] left-0 w-full bg-white border-b border-slate-200 shadow-xl max-h-[85vh] overflow-y-auto" id="hdr-mobile-drawer">
           <div className="px-4 pt-4 pb-6 space-y-2 flex flex-col">
             {primaryNavigationItems.map((item) => {
-              const isFreeTool = item.id === 'find-fund-type';
+              const isFundTypeTool = item.id === 'find-fund-type';
+              const isAuditTool = item.id === 'portfolio-audit';
+              
+              if (isAuditTool) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={`py-3 px-4 text-left text-[14px] font-extrabold rounded-lg transition-all ${
+                      currentPage === 'portfolio-audit'
+                        ? 'text-white bg-emerald-600 border border-emerald-600/50 shadow-md'
+                        : 'text-white bg-gradient-to-r from-emerald-500 to-teal-600 border border-emerald-400 font-black'
+                    }`}
+                    id={`mobile-nav-btn-${item.id}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping"></span>
+                      🔥 {item.label}
+                    </span>
+                  </button>
+                );
+              }
+
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`py-3 px-4 text-left text-[14px] font-extrabold rounded-lg transition-all ${
-                    isFreeTool
+                    isFundTypeTool
                       ? currentPage === 'find-fund-type'
                         ? 'text-slate-950 bg-amber-500 border border-amber-500/50 shadow-md'
-                        : 'text-amber-955 bg-amber-400/20 border border-amber-400/45'
+                        : 'text-amber-955 bg-amber-400/20 border border-amber-400/45 text-amber-900 font-black'
                       : currentPage === item.id 
                         ? 'text-blue-700 bg-blue-50' 
                         : 'text-slate-700 hover:bg-slate-50'
                   }`}
                   id={`mobile-nav-btn-${item.id}`}
                 >
-                  {isFreeTool ? `🔥 ${item.label}` : item.label}
+                  {isFundTypeTool ? `🔥 ${item.label}` : item.label}
                 </button>
               );
             })}
@@ -257,7 +294,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
                       currentPage === 'calculators'
                         ? 'text-blue-700 bg-blue-50/80'
-                        : 'text-slate-650 hover:bg-slate-50'
+                        : 'text-slate-655 hover:bg-slate-50'
                     }`}
                   >
                     📈 Financial Calculators
@@ -267,7 +304,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
                       currentPage === 'knowledge'
                         ? 'text-blue-700 bg-blue-50/80'
-                        : 'text-slate-650 hover:bg-slate-50'
+                        : 'text-slate-655 hover:bg-slate-50'
                     }`}
                   >
                     📚 Knowledge Hub
@@ -293,18 +330,6 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   >
                     <span>🔍 Fund Overlap Finder</span>
                     <span className="text-[9px] font-extrabold uppercase bg-amber-500/15 text-amber-800 px-1.5 py-0.5 rounded">New</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleNavClick('portfolio-audit')}
-                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all flex items-center justify-between ${
-                      currentPage === 'portfolio-audit'
-                        ? 'text-blue-700 bg-blue-50/80 font-bold'
-                        : 'text-slate-650 hover:bg-slate-55'
-                    }`}
-                  >
-                    <span>✨ AI Portfolio Auditor</span>
-                    <span className="text-[9px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-1.5 py-0.5 rounded">New</span>
                   </button>
 
                   <div className="my-1 border-t border-slate-100" />

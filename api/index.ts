@@ -22,7 +22,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
   // API Route for Portfolio Audit API
-  app.post("/api/portfolio-audit", async (req, res) => {
+  app.post(["/api/portfolio-audit", "/api", "/"], async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {

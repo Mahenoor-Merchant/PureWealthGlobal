@@ -244,13 +244,6 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
                 <Target className="w-3.5 h-3.5 text-pink-100" />
               </button>
               
-              <button
-                onClick={() => handlePageNavigation('calculators')}
-                className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[13.5px] px-6 py-3 rounded-full transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
-              >
-                Launch Wealth Planners
-                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-              </button>
             </div>
 
             {/* Quick stats panel */}

@@ -1665,100 +1665,9 @@ export default function PortfolioAuditor() {
 
           </div>
 
-          {/* Highlighted WhatsApp Direct Delivery Card */}
-          <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400/80 rounded-3xl shadow-xl p-5 sm:p-6 space-y-4" id="whatsapp-direct-diagnostic-card">
-            
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/60 pb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>100% Confidential & Secure</span>
-              </div>
-              <span className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                SEBI Compliant Guide
-              </span>
-            </div>
-
-            <div className="space-y-1 text-left">
-              <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-snug">
-                OR Directly Get Your <span className="text-emerald-700 underline decoration-emerald-300">FREE Portfolio Audit Report PDF</span> on WhatsApp & Email 🚀
-              </h3>
-              <p className="text-[11.5px] font-semibold text-slate-500 leading-relaxed">
-                Just share your investment-linked Email ID through WhatsApp and <strong className="text-slate-700">Pure Wealth Global</strong> will handle the entire complex extraction for you!
-              </p>
-            </div>
-
-            {/* Input & Sender button */}
-            <div className="space-y-3 pt-1">
-              <div className="space-y-1 text-left">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block tracking-wider">
-                  Investment-Linked Email Address
-                </label>
-                <input
-                  type="email"
-                  value={whatsappEmail}
-                  onChange={(e) => setWhatsappEmail(e.target.value)}
-                  placeholder="Enter Email which is Linked to Your Investments"
-                  className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
-                />
-              </div>
-
-              {/* Dynamic Anchor Tag to redirect cleanly to WhatsApp */}
-              {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(whatsappEmail.trim()) ? (
-                <a
-                  href={`https://wa.me/917718860398?text=${encodeURIComponent(
-                    `Hi Pure Wealth Global! ✅ I would like to receive my FREE Portfolio Audit Report PDF. My investment-linked Email ID is: ${whatsappEmail.trim()}. Please guide with 1:1 Analysis of the Report 📈.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center animate-pulse"
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  <span>Send to our WhatsApp Now</span>
-                  <ArrowUpRight className="w-4 h-4 shrink-0" />
-                </a>
-              ) : (
-                <button
-                  disabled
-                  className="w-full bg-slate-200 text-slate-400 font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
-                >
-                  <span>Enter Valid Email to Send on WhatsApp</span>
-                </button>
-              )}
-            </div>
-
-            {/* Confidence & Encouragement points */}
-            <div className="bg-white/80 border border-emerald-100/50 rounded-2xl p-3 sm:p-4 text-xs space-y-2.5 text-left shadow-sm">
-              <div className="flex gap-2 items-start">
-                <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                </div>
-                <div className="space-y-0.5">
-                  <span className="font-extrabold text-slate-800 block text-[11px]">Zero Shared Passwords Required</span>
-                  <span className="text-[10.5px] text-slate-500 leading-normal block">
-                    We securely generate detailed audits using authorized statutory distribution rails. Your raw login credentials or state passwords are <strong className="text-emerald-700">never</strong> required.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 items-start">
-                <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
-                  <Award className="w-3.5 h-3.5" />
-                </div>
-                <div className="space-y-0.5">
-                  <span className="font-extrabold text-slate-800 block text-[11px]">Handled by AMFI Certified Advisors</span>
-                  <span className="text-[10.5px] text-slate-500 leading-normal block">
-                    Your portfolios are mapped dynamically by professional distribution planners, providing instant clarity on exit loads, high fees, and index overlap.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[10px] font-medium text-slate-400 text-center leading-relaxed">
-              🔒 Pure Wealth Global practices military-grade data protection policies. Your personal details are protected under legal compliance mandates.
-            </p>
-
-          </div>
+          <p className="text-[10px] font-medium text-slate-400 text-center leading-relaxed mt-4 block">
+            🔒 Pure Wealth Global practices military-grade data protection policies. Your personal details are protected under legal compliance mandates.
+          </p>
 
         </div>
 
@@ -1769,7 +1678,7 @@ export default function PortfolioAuditor() {
           className={
             result 
               ? "w-full bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6 animate-in fade-in duration-300" 
-              : "lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6"
+              : "lg:col-span-7 space-y-6"
           } 
           id="dashboard-results-container"
         >
@@ -2757,7 +2666,108 @@ export default function PortfolioAuditor() {
 
               </motion.div>
             ) : (
-              <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-5 sm:p-7 space-y-6" id="placeholder-audit-card">
+              <motion.div
+                key="placeholder-view"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {/* Highlighted WhatsApp Direct Delivery Card (Moved to Top for First Sight Visibility) */}
+                <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400/80 rounded-3xl shadow-xl p-5 sm:p-6 space-y-4" id="whatsapp-direct-diagnostic-card">
+                  
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/60 pb-3">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>100% Confidential & Secure</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      SEBI Compliant Guide
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-left">
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-snug">
+                      OR Directly Get Your <span className="text-emerald-700 underline decoration-emerald-300">FREE Portfolio Audit Report PDF</span> on WhatsApp & Email 🚀
+                    </h3>
+                    <p className="text-[11.5px] font-semibold text-slate-500 leading-relaxed">
+                      Just share your investment-linked Email ID through WhatsApp and <strong className="text-slate-700">Pure Wealth Global</strong> will handle the entire complex extraction for you!
+                    </p>
+                  </div>
+
+                  {/* Input & Sender button */}
+                  <div className="space-y-3 pt-1">
+                    <div className="space-y-1 text-left">
+                      <label className="text-[9.5px] font-black text-slate-400 uppercase block tracking-wider">
+                        Investment-Linked Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={whatsappEmail}
+                        onChange={(e) => setWhatsappEmail(e.target.value)}
+                        placeholder="Enter Email which is Linked to Your Investments"
+                        className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
+                      />
+                    </div>
+
+                    {/* Dynamic Anchor Tag to redirect cleanly to WhatsApp */}
+                    {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(whatsappEmail.trim()) ? (
+                      <a
+                        href={`https://wa.me/917718860398?text=${encodeURIComponent(
+                          `Hi Pure Wealth Global! ✅ I would like to receive my FREE Portfolio Audit Report PDF. My investment-linked Email ID is: ${whatsappEmail.trim()}. Please guide with 1:1 Analysis of the Report 📈.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center animate-pulse"
+                      >
+                        <Sparkles className="w-4 h-4 shrink-0" />
+                        <span>Send to our WhatsApp Now</span>
+                        <ArrowUpRight className="w-4 h-4 shrink-0" />
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full bg-slate-200 text-slate-400 font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
+                      >
+                        <span>Enter Valid Email to Send on WhatsApp</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Confidence & Encouragement points */}
+                  <div className="bg-white/80 border border-emerald-100/50 rounded-2xl p-3 sm:p-4 text-xs space-y-2.5 text-left shadow-sm">
+                    <div className="flex gap-2 items-start">
+                      <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="font-extrabold text-slate-800 block text-[11px]">Zero Shared Passwords Required</span>
+                        <span className="text-[10.5px] text-slate-500 leading-normal block">
+                          We securely generate detailed audits using authorized statutory distribution rails. Your raw login credentials or state passwords are <strong className="text-emerald-700">never</strong> required.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 items-start">
+                      <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
+                        <Award className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="font-extrabold text-slate-800 block text-[11px]">Handled by AMFI Certified Advisors</span>
+                        <span className="text-[10.5px] text-slate-50s leading-normal block">
+                          Your portfolios are mapped dynamically by professional distribution planners, providing instant clarity on exit loads, high fees, and index overlap.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Outer White Card Packaging for CAMS CAS visual steps */}
+                <div className="bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6" id="placeholder-audit-card-wrapper">
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-5 sm:p-7 space-y-6" id="placeholder-audit-card">
                 
                 {/* Header */}
                 <div className="text-center space-y-1.5 pb-4 border-b border-slate-100">
@@ -3078,7 +3088,9 @@ export default function PortfolioAuditor() {
                 </div>
 
               </div>
-            )}
+            </div>
+          </motion.div>
+        )}
           </AnimatePresence>
 
         </div>

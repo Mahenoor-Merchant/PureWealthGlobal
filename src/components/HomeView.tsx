@@ -213,34 +213,40 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
             </p>
 
             {/* Action CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-x-4 gap-y-6 pt-5 flex-wrap">
               <button
                 onClick={() => handlePageNavigation('connect')}
-                className="bg-[#0F172A] hover:bg-slate-800 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
+                className="bg-[#0F172A] hover:bg-slate-800 text-white font-semibold text-[13.5px] px-7 py-3 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
               >
                 Schedule Executive Call
                 <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
               </button>
 
               <button
-                onClick={() => handlePageNavigation('find-fund')}
-                className="bg-slate-100 hover:bg-slate-200 border border-slate-300/60 text-slate-700 font-semibold text-[12px] px-6 py-3.5 rounded-full transition-all duration-200 cursor-pointer text-center flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] lg:min-w-[220px]"
+                onClick={() => handlePageNavigation('portfolio-audit')}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[13.5px] px-7 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all duration-250 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap animate-pulse-slow relative group border border-emerald-400/30"
               >
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">for Internal Team Use Only</span>
-                <span>Free Tool - Exactly Which Funds To Invest</span>
+                <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-amber-400 text-slate-900 font-extrabold text-[8px] px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow-md border border-white whitespace-nowrap animate-bounce-slow">
+                  Already Investing? Test Now
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-100" />
+                <span>Free Tool - AI Portfolio Auditor</span>
               </button>
 
               <button
                 onClick={() => handlePageNavigation('find-fund-type')}
-                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold text-[13.5px] px-7 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap animate-pulse-slow"
+                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-[13.5px] px-7 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all duration-250 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap animate-pulse-slow relative group border border-pink-400/30"
               >
-                Free Tool - Find Your Fund Type
+                <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-300 text-rose-950 font-extrabold text-[8px] px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow-md border border-white whitespace-nowrap animate-bounce-slow">
+                  ⚡ 98% Match Rate
+                </span>
+                <span>Free Tool - Find Your Fund Type</span>
                 <Target className="w-3.5 h-3.5 text-pink-100" />
               </button>
               
               <button
                 onClick={() => handlePageNavigation('calculators')}
-                className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[13.5px] px-6 py-3.5 rounded-full transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
+                className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[13.5px] px-6 py-3 rounded-full transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
               >
                 Launch Wealth Planners
                 <TrendingUp className="w-3.5 h-3.5 text-blue-600" />

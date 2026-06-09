@@ -8,7 +8,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import * as pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 
 dotenv.config();
 
@@ -194,15 +194,14 @@ ${JSON.stringify(holdings, null, 2)}`
         try {
           // pdf-parse options:
           // The optional password parameter can be sent to PDFJS via options.password
-          const options: any = {};
+          const options: any = {
+            data: pdfBuffer,
+          };
           if (password) {
             options.password = password;
           }
-          let pdfParser: any = pdf;
-          if (typeof pdfParser !== "function" && typeof (pdfParser as any).default === "function") {
-            pdfParser = (pdfParser as any).default;
-          }
-          const parsedPdf = await pdfParser(pdfBuffer, options);
+          const parser = new PDFParse(options);
+          const parsedPdf = await parser.getText();
           pdfText = parsedPdf.text;
           pdfParseSuccess = true;
           console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
@@ -674,14 +673,5 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     console.log(`Portfolio Auditor Backend successfully booted on port ${PORT}`);
   });
 }
-
-// Global defensive process handlers to prevent the container from crashing unexpectedly on 3rd-party edge cases
-process.on("uncaughtException", (error) => {
-  console.error("[Fatal] Uncaught Exception occurred in Node process:", error);
-});
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("[Fatal] Unhandled Promise Rejection at:", promise, "reason:", reason);
-});
 
 startServer();

@@ -21,6 +21,7 @@ import {
   Trash2,
   Plus,
   Compass,
+  ArrowLeft,
   ArrowRight,
   RefreshCw,
   Info,
@@ -1485,11 +1486,12 @@ export default function PortfolioAuditor() {
         </p>
       </div>
 
-      {/* Main Container Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Container Grid - dynamically adjusted wide/centered layout */}
+      <div className={result ? "max-w-4xl mx-auto w-full" : "grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"}>
         
         {/* Left Side: Inputs & Secondary Delivery Stack */}
-        <div className="lg:col-span-5 space-y-6">
+        {!result && (
+          <div className="lg:col-span-5 space-y-6 animate-in fade-in duration-200">
           
           <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-5 sm:p-6" id="input-methods-panel">
             
@@ -1696,7 +1698,7 @@ export default function PortfolioAuditor() {
                   type="email"
                   value={whatsappEmail}
                   onChange={(e) => setWhatsappEmail(e.target.value)}
-                  placeholder="e.g. yourname@gmail.com"
+                  placeholder="Enter Email which is Linked to Your Investments"
                   className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
                 />
               </div>
@@ -1760,8 +1762,17 @@ export default function PortfolioAuditor() {
 
         </div>
 
+        )}
+
         {/* Right Side: Audit Results Dashboard */}
-        <div className="lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6" id="dashboard-results-container">
+        <div 
+          className={
+            result 
+              ? "w-full bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6 animate-in fade-in duration-300" 
+              : "lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6"
+          } 
+          id="dashboard-results-container"
+        >
           
           <AnimatePresence mode="wait">
             {result ? (
@@ -1776,13 +1787,27 @@ export default function PortfolioAuditor() {
                 
                 {/* Result Top Action Bar */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 border border-slate-150 p-4 rounded-2xl select-none">
-                  <div>
-                    <span className="text-[9px] font-black tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full uppercase leading-none inline-block">
-                      DIAGNOSTIC COMPLETE ✓
-                    </span>
-                    <h4 className="text-sm font-black text-slate-850 mt-1.5">
-                      Full Portfolio Audit Report
-                    </h4>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setResult(null);
+                        setFile(null);
+                        setPassword("");
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-extrabold text-[11px] px-3.5 py-2 rounded-xl border border-slate-200 shadow-3xs transition duration-150 active:scale-95 cursor-pointer hover:text-blue-705 hover:border-blue-200"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Reset / Upload New</span>
+                    </button>
+                    <div className="h-6 w-[1px] bg-slate-200 hidden sm:block" />
+                    <div>
+                      <span className="text-[9px] font-black tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full uppercase leading-none inline-block">
+                        DIAGNOSTIC COMPLETE ✓
+                      </span>
+                      <h4 className="text-sm font-black text-slate-850 mt-1.5">
+                        Full Portfolio Audit Report
+                      </h4>
+                    </div>
                   </div>
                   <button
                     onClick={downloadPdfReport}

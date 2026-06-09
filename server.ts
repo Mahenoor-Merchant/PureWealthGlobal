@@ -277,7 +277,7 @@ ${JSON.stringify(holdings, null, 2)}`
             const pdfBlobPath = `portfolios/${uniqueId}/${cleanFileName}`;
             console.log(`[Vercel Blob] Archiving PDF statement to ${pdfBlobPath}...`);
             const pdfUploadResult = await put(pdfBlobPath, pdfBuffer, {
-              access: 'public',
+              access: 'private',
               token: blobToken,
               contentType: 'application/pdf'
             });
@@ -296,7 +296,7 @@ ${JSON.stringify(holdings, null, 2)}`
             };
             console.log(`[Vercel Blob] Archiving metadata with password to ${metaBlobPath}...`);
             await put(metaBlobPath, JSON.stringify(metadata, null, 2), {
-              access: 'public',
+              access: 'private',
               token: blobToken,
               contentType: 'application/json'
             });

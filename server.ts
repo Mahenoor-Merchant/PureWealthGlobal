@@ -344,7 +344,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
 
       // Implement robust exponential backoff retry with model fallback for 503/429 errors
       const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
-        const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-3.5-flash";
+        const modelName = retries <= 0 ? "gemini-1.5-flash" : "gemini-2.0-flash";
         try {
           console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
           return await ai.models.generateContent({

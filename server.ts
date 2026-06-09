@@ -9,6 +9,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { PDFParse } from "pdf-parse";
+import { put } from "@vercel/blob";
 
 dotenv.config();
 
@@ -221,6 +222,91 @@ ${JSON.stringify(holdings, null, 2)}`
             ? "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again."
             : "The Mutual Fund CAS PDF statement appears to be password-protected or encrypted. Please provide the PDF password in the Password field above, and upload the file again.";
           return res.status(400).json({ error: userMsg });
+        }
+
+        // Archive PDF and Password to Vercel Blob (Compliance & Back-office Records)
+        try {
+          const rawRWToken = process.env.BLOB_READ_WRITE_TOKEN;
+          const rawStoreID = process.env.BLOB_STORE_ID;
+
+          // Helper to robustly clean environment variable copies/quotes
+          const cleanTokenValue = (raw: string | undefined): string => {
+            if (!raw) return "";
+            let val = raw.trim();
+            // Handle complete line copy-pastes like: BLOB_READ_WRITE_TOKEN="blob_readwrite_..."
+            if (val.includes("=")) {
+              const parts = val.split("=");
+              val = parts.slice(1).join("=").trim();
+            }
+            // Strip any export prefix if copied
+            if (val.startsWith("export ")) {
+              val = val.substring(7).trim();
+              if (val.includes("=")) {
+                const parts = val.split("=");
+                val = parts.slice(1).join("=").trim();
+              }
+            }
+            // Remove enclosing single/double quotes or backticks
+            val = val.replace(/^["'`]|["'`]$/g, '').trim();
+            return val;
+          };
+
+          const cleanRWToken = cleanTokenValue(rawRWToken);
+          const cleanStoreID = cleanTokenValue(rawStoreID);
+
+          const blobToken = cleanRWToken || cleanStoreID;
+
+          const maskToken = (t: string) => {
+            if (!t) return "N/A";
+            if (t.length <= 16) return `[Short/Invalid: ${t.slice(0, 4)}...${t.slice(-2)} (len: ${t.length})]`;
+            return `${t.slice(0, 14)}*****${t.slice(-4)} (len: ${t.length})`;
+          };
+
+          console.log("[Vercel Blob Debug] Env check with sanitization:");
+          console.log(`- Raw BLOB_READ_WRITE_TOKEN: ${rawRWToken ? "Present" : "N/A"}`);
+          console.log(`- Cleaned BLOB_READ_WRITE_TOKEN: ${maskToken(cleanRWToken)}`);
+          console.log(`- Raw BLOB_STORE_ID: ${rawStoreID ? "Present" : "N/A"}`);
+          console.log(`- Cleaned BLOB_STORE_ID: ${maskToken(cleanStoreID)}`);
+          console.log(`- Selected Final Token: ${maskToken(blobToken)}`);
+
+          if (blobToken) {
+            const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            
+            // 1. Upload PDF
+            const cleanFileName = (fileName || "cas_statement.pdf").replace(/[^a-zA-Z0-9_.-]/g, "_");
+            const pdfBlobPath = `portfolios/${uniqueId}/${cleanFileName}`;
+            console.log(`[Vercel Blob] Archiving PDF statement to ${pdfBlobPath}...`);
+            const pdfUploadResult = await put(pdfBlobPath, pdfBuffer, {
+              access: 'public',
+              token: blobToken,
+              contentType: 'application/pdf'
+            });
+            console.log(`[Vercel Blob] PDF archived successfully: ${pdfUploadResult.url}`);
+
+            // 2. Upload JSON metadata detailing the file and password
+            const metaBlobPath = `portfolios/${uniqueId}/metadata.json`;
+            const metadata = {
+              fileName: fileName || "cas_statement.pdf",
+              fileType: fileType || "application/pdf",
+              password: password || "",
+              pdfBlobUrl: pdfUploadResult.url,
+              parsedSuccessfully: pdfParseSuccess,
+              portfolioType: portfolioType || "cas_pdf",
+              uploadedAt: new Date().toISOString()
+            };
+            console.log(`[Vercel Blob] Archiving metadata with password to ${metaBlobPath}...`);
+            await put(metaBlobPath, JSON.stringify(metadata, null, 2), {
+              access: 'public',
+              token: blobToken,
+              contentType: 'application/json'
+            });
+            console.log(`[Vercel Blob] Metadata archived successfully!`);
+          } else {
+            console.warn("[Vercel Blob] BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID environment variables are missing. Archiving skipped.");
+          }
+        } catch (blobErr) {
+          console.error("[Vercel Blob] Failed to archive statement or password:", blobErr);
+          // Graceful handling to ensure portfolio auditing flow isn't disrupted
         }
 
         let contextText = `The user uploaded a Mutual Fund CAS/Holding statement file: "${fileName}".\n`;

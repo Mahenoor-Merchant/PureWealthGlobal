@@ -257,8 +257,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
       }
 
       // Implement robust exponential backoff retry with model fallback for 503/429 errors
-      const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
-        const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-3.5-flash";
+      const getResponseVal = async (retries = 5, delay = 2000): Promise<any> => {
+        const modelName = retries <= 2 ? "gemini-3.1-flash-lite" : "gemini-3.5-flash";
         try {
           console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
           return await ai.models.generateContent({
@@ -369,10 +369,15 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         } catch (err: any) {
           const errMsg = err.message || String(err);
           const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand");
-          if (retries > 0 && isTransient) {
-            console.warn(`[Portfolio Audit] Transient error encountered (code/msg: ${errMsg.slice(0, 150)}). Retrying in ${delay}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            return getResponseVal(retries - 1, delay * 2.2);
+          
+          if (isTransient) {
+            if (retries > 0) {
+              console.warn(`[Portfolio Audit] Transient error encountered. Retrying in ${delay}ms...`);
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              return getResponseVal(retries - 1, delay * 2.2);
+            } else {
+              throw new Error("The AI model is currently experiencing exceptionally high demand and is overloaded (503). We attempted multiple retries but it is still unavailable. Please try your audit again in a few minutes.");
+            }
           }
           throw err;
         }
@@ -655,7 +660,13 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
   });
 
   // Serve static assets or mount Vite dev middleware
-  if (process.env.NODE_ENV !== "production") {
+  // Determine if we are running in production: either NODE_ENV is set to production, or we are running the compiled CJS bundle, or we are not in a local development process.
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    process.argv[1]?.includes("server.cjs") ||
+    !process.argv[1]?.includes("server.ts");
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

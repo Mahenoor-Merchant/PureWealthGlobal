@@ -728,11 +728,22 @@ export default function PortfolioAuditor() {
       if (!response.ok) {
         const errText = await response.text();
         let errMsg = "Audit processing failed.";
+        
+        // Handle Vercel or Edge 404 NOT_FOUND response
+        if (response.status === 404 && (errText.includes("NOT_FOUND") || errText.includes("The page could not be found"))) {
+           throw new Error("API Route Not Found (404). This often happens if the app is deployed to a static host (like Vercel or Netlify) without configuring the Express serverless functions. Ensure your provider runs both the frontend and the Express backend (server.ts).");
+        }
+
         try {
           const parsed = JSON.parse(errText);
           errMsg = parsed.error || errMsg;
         } catch {
-          errMsg = errText || errMsg;
+          // If it's a generic HTML error page, sanitize it
+          if (errText.includes("<html") && errText.includes("503")) {
+            errMsg = "The service is temporarily unavailable or overloaded (HTTP 503).";
+          } else {
+            errMsg = errText.length < 200 ? errText : errMsg;
+          }
         }
         throw new Error(errMsg);
       }

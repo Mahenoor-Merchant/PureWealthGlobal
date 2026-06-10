@@ -325,7 +325,7 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
 
       // Implement robust exponential backoff retry with model fallback for 503/429 errors
       const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
-        const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-3.5-flash";
+        const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-2.5-flash";
         try {
           console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
           return await ai.models.generateContent({

@@ -5,10 +5,10 @@
 
 import express from "express";
 import path from "path";
+import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { put } from "@vercel/blob";
-import { getDocumentProxy, extractText } from "unpdf";
+import { PDFParse } from "pdf-parse";
 
 dotenv.config();
 
@@ -21,7 +21,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
   // API Route for Portfolio Audit API
-  app.post(["/api/portfolio-audit", "/api", "/"], async (req, res) => {
+  app.post("/api/portfolio-audit", async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -187,124 +187,40 @@ ${JSON.stringify(holdings, null, 2)}`
         }
 
         const pdfBuffer = Buffer.from(rawBase64, "base64");
-        
         let pdfText = "";
         let pdfParseSuccess = false;
         let pdfParseError = "";
 
         try {
-          const pdfOptions: any = {};
+          // pdf-parse options:
+          // The optional password parameter can be sent to PDFJS via options.password
+          const options: any = {
+            data: pdfBuffer,
+          };
           if (password) {
-            pdfOptions.password = password;
+            options.password = password;
           }
-          const pdf = await getDocumentProxy(new Uint8Array(pdfBuffer), pdfOptions);
-          const extracted = await extractText(pdf, { mergePages: true });
-          pdfText = typeof extracted.text === "string" ? extracted.text : String(extracted.text);
+          const parser = new PDFParse(options);
+          const parsedPdf = await parser.getText();
+          pdfText = parsedPdf.text;
           pdfParseSuccess = true;
-          console.log(`[Portfolio Audit] Successfully parsed PDF with unpdf. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
+          console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
         } catch (err: any) {
           pdfParseError = err.message || String(err);
-          console.error("[Portfolio Audit] unpdf failed to parse or decrypt PDF:", err);
+          console.error("[Portfolio Audit] pdf-parse failed to parse or decrypt PDF:", err);
         }
 
-        if (!pdfParseSuccess) {
-          const isPasswordIssue =
-            pdfParseError.toLowerCase().includes("password") ||
-            pdfParseError.toLowerCase().includes("decrypt") ||
-            pdfParseError.toLowerCase().includes("encrypt") ||
-            !!password;
-          const userMsg = isPasswordIssue
+        const isPasswordIssue =
+          pdfParseError.toLowerCase().includes("password") ||
+          pdfParseError.toLowerCase().includes("decrypt") ||
+          pdfParseError.toLowerCase().includes("encrypt") ||
+          !!password;
+
+        if (!pdfParseSuccess && isPasswordIssue) {
+          const userMsg = password
             ? "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again."
-            : `Failed to extract text from the PDF statement: ${pdfParseError}. Please provide a valid Mutual Fund CAS PDF or enter your holdings manually.`;
+            : "The Mutual Fund CAS PDF statement appears to be password-protected or encrypted. Please provide the PDF password in the Password field above, and upload the file again.";
           return res.status(400).json({ error: userMsg });
-        }
-
-        // Archive PDF and Password to Vercel Blob (Compliance & Back-office Records)
-        try {
-          const rawRWToken = process.env.BLOB_READ_WRITE_TOKEN;
-          const rawStoreID = process.env.BLOB_STORE_ID;
-
-          // Helper to robustly clean environment variable copies/quotes
-          const cleanTokenValue = (raw: string | undefined): string => {
-            if (!raw) return "";
-            if (raw.includes("•") || raw.includes("●") || raw.includes("*")) {
-              console.warn("[Vercel Blob] WARNING: The provided token appears to be masked. Please copy the revealed token from Vercel.");
-            }
-            let val = raw.trim();
-            // Handle complete line copy-pastes like: BLOB_READ_WRITE_TOKEN="blob_readwrite_..."
-            if (val.includes("=")) {
-              const parts = val.split("=");
-              val = parts.slice(1).join("=").trim();
-            }
-            // Strip any export prefix if copied
-            if (val.startsWith("export ")) {
-              val = val.substring(7).trim();
-              if (val.includes("=")) {
-                const parts = val.split("=");
-                val = parts.slice(1).join("=").trim();
-              }
-            }
-            // Remove enclosing single/double quotes or backticks
-            val = val.replace(/^["'`]|["'`]$/g, '').trim();
-            return val;
-          };
-
-          const cleanRWToken = cleanTokenValue(rawRWToken);
-          const cleanStoreID = cleanTokenValue(rawStoreID);
-
-          const blobToken = cleanRWToken || cleanStoreID;
-
-          const maskToken = (t: string) => {
-            if (!t) return "N/A";
-            if (t.length <= 16) return `[Short/Invalid: ${t.slice(0, 4)}...${t.slice(-2)} (len: ${t.length})]`;
-            return `${t.slice(0, 14)}*****${t.slice(-4)} (len: ${t.length})`;
-          };
-
-          console.log("[Vercel Blob Debug] Env check with sanitization:");
-          console.log(`- Raw BLOB_READ_WRITE_TOKEN: ${rawRWToken ? "Present" : "N/A"}`);
-          console.log(`- Cleaned BLOB_READ_WRITE_TOKEN: ${maskToken(cleanRWToken)}`);
-          console.log(`- Raw BLOB_STORE_ID: ${rawStoreID ? "Present" : "N/A"}`);
-          console.log(`- Cleaned BLOB_STORE_ID: ${maskToken(cleanStoreID)}`);
-          console.log(`- Selected Final Token: ${maskToken(blobToken)}`);
-
-          if (blobToken) {
-            const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            
-            // 1. Upload PDF
-            const cleanFileName = (fileName || "cas_statement.pdf").replace(/[^a-zA-Z0-9_.-]/g, "_");
-            const pdfBlobPath = `portfolios/${uniqueId}/${cleanFileName}`;
-            console.log(`[Vercel Blob] Archiving PDF statement to ${pdfBlobPath}...`);
-            const pdfUploadResult = await put(pdfBlobPath, pdfBuffer, {
-              access: 'private',
-              token: blobToken,
-              contentType: 'application/pdf'
-            });
-            console.log(`[Vercel Blob] PDF archived successfully: ${pdfUploadResult.url}`);
-
-            // 2. Upload JSON metadata detailing the file and password
-            const metaBlobPath = `portfolios/${uniqueId}/metadata.json`;
-            const metadata = {
-              fileName: fileName || "cas_statement.pdf",
-              fileType: fileType || "application/pdf",
-              password: password || "",
-              pdfBlobUrl: pdfUploadResult.url,
-              parsedSuccessfully: true,
-              portfolioType: portfolioType || "cas_pdf",
-              uploadedAt: new Date().toISOString()
-            };
-            console.log(`[Vercel Blob] Archiving metadata with password to ${metaBlobPath}...`);
-            await put(metaBlobPath, JSON.stringify(metadata, null, 2), {
-              access: 'private',
-              token: blobToken,
-              contentType: 'application/json'
-            });
-            console.log(`[Vercel Blob] Metadata archived successfully!`);
-          } else {
-            console.warn("[Vercel Blob] BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID environment variables are missing. Archiving skipped.");
-          }
-        } catch (blobErr) {
-          console.error("[Vercel Blob] Failed to archive statement or password:", blobErr);
-          // Graceful handling to ensure portfolio auditing flow isn't disrupted
         }
 
         let contextText = `The user uploaded a Mutual Fund CAS/Holding statement file: "${fileName}".\n`;
@@ -312,13 +228,30 @@ ${JSON.stringify(holdings, null, 2)}`
           contextText += `Statement was password-encrypted. User supplied statement password for background context: "${password}".\n`;
         }
 
-        contextText += `\n--- START OF EXTRACTED PDF TEXT RECORD ---\n`;
-        contextText += pdfText;
-        contextText += `\n--- END OF EXTRACTED PDF TEXT RECORD ---\n\n`;
-        contextText += `CRITICAL DIRECTIVE: You MUST analyze and audit the EXACT extracted text above. Extract and evaluate ALL mutual fund schemes, folio names, portfolio weights/valuations, and NAV values mentioned in this text record.
+        if (pdfParseSuccess && pdfText && pdfText.trim()) {
+          contextText += `\n--- START OF EXTRACTED PDF TEXT RECORD ---\n`;
+          contextText += pdfText;
+          contextText += `\n--- END OF EXTRACTED PDF TEXT RECORD ---\n\n`;
+          contextText += `CRITICAL DIRECTIVE: You MUST analyze and audit the EXACT extracted text above. Extract and evaluate ALL mutual fund schemes, folio names, portfolio weights/valuations, and NAV values mentioned in this text record.
 Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings of the user. If you find no valid fund holdings in the text, return a response containing 0 holdings in the 'fundWiseAudit' array, but explain clearly in the 'diversificationAnalysis' and 'overallStrengths'/'criticalLeaks' that the file text did not seem to contain detectable mutual fund schemes, rather than inventing fake data.`;
           
-        contents = [basePrompt, { text: contextText }];
+          contents = [basePrompt, { text: contextText }];
+        } else {
+          // Fallback: pass the base64 PDF directly to Gemini
+          console.log("[Portfolio Audit] Falling back to passing binary PDF directly with strict instructions.");
+          const pdfPart = {
+            inlineData: {
+              mimeType: fileType || "application/pdf",
+              data: rawBase64,
+            },
+          };
+          
+          contextText += `\nWe were unable to extract plain text on our server using pdf-parse (Error: ${pdfParseError}). We are passing the raw PDF directly to you. 
+If this PDF is password-protected or has security restrictions, you may not be able to read it. 
+CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's investments inside the document, do NOT fabricate standard/demo holdings. Instead, return a 0 holdings state (empty list in 'fundWiseAudit') but populate the 'diversificationAnalysis' warning explaining that the PDF has a password or a complex format that prevents reading, and encourage the user to type holdings manually or use the manual input tab for a precise audit. This ensures absolute honesty and real-time validity for the user.`;
+
+          contents = [pdfPart, basePrompt, { text: contextText }];
+        }
       } else {
         return res.status(400).json({ error: "Missing holdings metadata or statement file content." });
       }
@@ -722,8 +655,7 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
   });
 
   // Serve static assets or mount Vite dev middleware
-  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-    const { createServer: createViteServer } = await import("vite");
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -737,23 +669,9 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
     });
   }
 
-  if (process.env.VERCEL) {
-    // Vercel serverless environments handle listening automatically, so we just return the app
-    return app;
-  }
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Portfolio Auditor Backend successfully booted on port ${PORT}`);
   });
-  
-  return app;
 }
 
-// Support for local Cloud Run/Node executions
-const appPromise = startServer();
-
-// Support for Vercel serverless functions (export the app)
-export default async function handler(req: any, res: any) {
-  const app = await appPromise;
-  return app(req, res);
-}
+startServer();

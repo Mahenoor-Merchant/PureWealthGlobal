@@ -10,7 +10,8 @@ if (typeof globalThis.Path2D === 'undefined') {
 
 import express from "express";
 import { GoogleGenAI, Type } from "@google/genai";
-import pdfParse from "pdf-parse";
+import * as pdfParseModule from "pdf-parse";
+const PDFParse = (pdfParseModule as any).PDFParse;
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -189,12 +190,18 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       let pdfParseError = "";
 
       try {
-        const options: any = {};
+        const options: any = { data: pdfBuffer };
         if (password) {
           options.password = password;
         }
-        const parsedPdf = await pdfParse(pdfBuffer, options);
-        pdfText = parsedPdf.text;
+        const parser = new PDFParse(options);
+        const parsedPdf = await parser.getText();
+        pdfText = parsedPdf.text || parsedPdf; // parsedPdf might just be a string or object. In 2.4.5, it typically resolves to string or an object with .text. Wait, I should just check `parsedPdf` directly.
+        if (typeof parsedPdf === "string") {
+          pdfText = parsedPdf;
+        } else if (parsedPdf && parsedPdf.text) {
+          pdfText = parsedPdf.text;
+        }
         pdfParseSuccess = true;
         console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
       } catch (err: any) {

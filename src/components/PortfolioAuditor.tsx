@@ -21,7 +21,6 @@ import {
   Trash2,
   Plus,
   Compass,
-  ArrowLeft,
   ArrowRight,
   RefreshCw,
   Info,
@@ -101,12 +100,6 @@ interface AuditResult {
     projectedValue5YPWG: number;
     totalExtraWealthEarned: number;
     improvementExplanation: string;
-    inceptionAssetDate?: string;
-    yearsSinceInception?: number;
-    portfolioHistoricalCAGR?: number;
-    benchmarkHistoricalCAGR?: number;
-    niftyHistoricalCAGR?: number;
-    optimizedHistoricalCAGR?: number;
   };
   switchingCostSummary: {
     totalExitLoad: number;
@@ -179,28 +172,12 @@ export default function PortfolioAuditor() {
     if (!result) return;
     setPdfLoading(true);
 
-    const currentScrollY = window.scrollY;
-    const currentScrollX = window.scrollX;
-
-    // Save scroll behavior and disable smooth scrolling so the scrollTo is instantaneous
-    const originalScrollBehavior = document.documentElement.style.scrollBehavior;
-    const originalBodyScrollBehavior = document.body.style.scrollBehavior;
-    document.documentElement.style.scrollBehavior = 'auto';
-    document.body.style.scrollBehavior = 'auto';
-
-    // Temporarily scroll to top-left to bypass html2canvas coordinates offset bugs
-    window.scrollTo(0, 0);
-    if (document.documentElement) document.documentElement.scrollTop = 0;
-    if (document.body) document.body.scrollTop = 0;
-
     // Create container
     const tempContainer = document.createElement("div");
-    tempContainer.style.position = "absolute";
-    tempContainer.style.top = "0px";
-    tempContainer.style.left = "0px";
+    tempContainer.style.position = "fixed";
+    tempContainer.style.top = "-9999px";
+    tempContainer.style.left = "-9999px";
     tempContainer.style.width = "820px"; // width for crisp rendering before converting
-    tempContainer.style.zIndex = "99999"; // positive z-index so browser fully paints the nodes
-    tempContainer.style.pointerEvents = "none";
     tempContainer.style.background = "#ffffff";
     tempContainer.style.color = "#1e293b";
     tempContainer.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -224,9 +201,8 @@ export default function PortfolioAuditor() {
 
     // Construct the elegant programmatically compiled printable layout
     tempContainer.innerHTML = `
-      <div style="background: #ffffff; color: #1e293b; width: 820px; box-sizing: border-box;">
-        <div style="position: relative; padding: 40px; background: #ffffff; min-height: 1120px; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif;">
-          ${watermarkHTML}
+      <div style="position: relative; padding: 40px; background: #ffffff; min-height: 100%;">
+        ${watermarkHTML}
 
         <!-- ==================== PAGE 1 ==================== -->
         <!-- Header Brand Logo -->
@@ -251,7 +227,7 @@ export default function PortfolioAuditor() {
         </div>
 
         <!-- Cover Header Title -->
-        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #334155; padding: 30px; border-radius: 20px; color: white; margin-bottom: 35px; position: relative;">
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #334155; padding: 30px; border-radius: 20px; color: white; margin-bottom: 30px; position: relative;">
           <div style="position: absolute; top: 12px; right: 20px; font-size: 9px; font-weight: 905; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 20px;">
             CONFIDENTIAL REPORT
           </div>
@@ -261,7 +237,7 @@ export default function PortfolioAuditor() {
           <h2 style="font-size: 22px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff; letter-spacing: -0.5px; line-height: 1.2;">
             Mutual Fund Portfolio Clinical Diagnostic Report
           </h2>
-          <p style="font-size: 11.5px; font-weight: 500; color: #94a3b8; margin: 0 0 20px 0;">
+          <p style="font-size: 12px; font-weight: 500; color: #94a3b8; margin: 0 0 20px 0;">
             Objective empirical analysis of active schemes designed to identify overlaps, expense drags, allocation skew, and compounding leaks.
           </p>
           <div style="display: flex; gap: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
@@ -281,7 +257,7 @@ export default function PortfolioAuditor() {
         </div>
 
         <!-- Quick Metrics Metrics Row -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px;">
           <!-- Diversification Card -->
           <div style="background: rgba(37, 99, 235, 0.03); border: 1px solid #bfdbfe; padding: 20px; border-radius: 16px; display: flex; align-items: center; gap: 20px;">
             <div style="background: #ffffff; border: 2.5px solid #2563eb; width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 950; color: #1e3a8a; shrink-0;">
@@ -292,7 +268,7 @@ export default function PortfolioAuditor() {
                 <span style="font-size: 9px; font-weight: 900; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">DIVERSIFICATION SCORE</span>
                 <span style="font-size: 9px; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">OVERLAP: ${result.overlappingPercentage || 65}%</span>
               </div>
-              <p style="font-size: 11px; font-weight: 600; color: #334155; margin: 0; line-height: 1.5;">
+              <p style="font-size: 11.5px; font-weight: 600; color: #334155; margin: 0; line-height: 1.5;">
                 Diversification grade: <strong style="color: #2563eb;">${result.diversificationStatus}</strong>. Holding ${result.totalFunds} active schemes introduces critical duplication in stock holdings, increasing tracking friction while dragging potential performance.
               </p>
             </div>
@@ -310,56 +286,97 @@ export default function PortfolioAuditor() {
           </div>
         </div>
 
-        <!-- Reconstructed Return Index since Inception -->
-        <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.02), rgba(99, 102, 241, 0.02)); border: 1px solid #c7d2fe; padding: 16px; border-radius: 14px; margin-bottom: 25px;">
-          <h4 style="font-size: 11px; font-weight: 900; color: #312e81; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-            📈 Historical Return CAGR Audit Index — Since Inception
-          </h4>
-          <p style="font-size: 10px; color: #4f46e5; font-weight: 700; margin: 0 0 10px 0;">
-            Calculated from earliest investment purchase date (${result.returnGainsProjection.inceptionAssetDate || 'Jan 15, 2023'}) over a dedicated holding span of ${result.returnGainsProjection.yearsSinceInception || '3.4'} years:
-          </p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; text-align: center;">
-            <div style="background: #ffffff; border: 1px solid #edf2f7; padding: 8px; border-radius: 8px;">
-              <span style="font-size: 7.5px; color: #64748b; text-transform: uppercase; font-weight: 800; display: block;">PORTFOLIO RETURN</span>
-              <strong style="font-size: 13px; color: #2563eb; font-family: monospace;">${result.returnGainsProjection.portfolioHistoricalCAGR || '12.12'}%</strong>
-            </div>
-            <div style="background: #ffffff; border: 1px solid #edf2f7; padding: 8px; border-radius: 8px;">
-              <span style="font-size: 7.5px; color: #64748b; text-transform: uppercase; font-weight: 800; display: block;">NIFTY 50 INDEX</span>
-              <strong style="font-size: 13px; color: #475569; font-family: monospace;">${result.returnGainsProjection.niftyHistoricalCAGR || '14.85'}%</strong>
-            </div>
-            <div style="background: #ffffff; border: 1px solid #edf2f7; padding: 8px; border-radius: 8px;">
-              <span style="font-size: 7.5px; color: #64748b; text-transform: uppercase; font-weight: 800; display: block;">PEER BENCHMARK</span>
-              <strong style="font-size: 13px; color: #b45309; font-family: monospace;">${result.returnGainsProjection.benchmarkHistoricalCAGR || '11.58'}%</strong>
-            </div>
-            <div style="background: #10b981; padding: 8px; border-radius: 8px; border: 1px solid #059669; color: white;">
-              <span style="font-size: 7.5px; color: #d1fae5; text-transform: uppercase; font-weight: 900; display: block;">OPTIMIZED CORE</span>
-              <strong style="font-size: 13px; color: #ffffff; font-family: monospace;">${result.returnGainsProjection.optimizedHistoricalCAGR || '15.21'}%</strong>
-            </div>
-          </div>
-        </div>
-
         <!-- Strategic Persona Segment -->
-        <div style="background: #f8fafc; border: 1px solid #edf2f7; border-left: 4px solid #3b82f6; padding: 18px 20px; border-radius: 12px; margin-bottom: 25px;">
-          <h4 style="font-size: 11px; font-weight: 900; color: #1e293b; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+        <div style="background: #f8fafc; border: 1px solid #edf2f7; border-left: 4px solid #3b82f6; padding: 18px 20px; border-radius: 12px; margin-bottom: 30px;">
+          <h4 style="font-size: 12px; font-weight: 900; color: #1e293b; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">
             RECONSTRUCTED INVESTOR BEHAVIOR PROFILE
           </h4>
-          <p style="font-size: 11px; font-weight: 700; color: #475569; margin: 0 0 4px 0; line-height: 1.4;">
+          <p style="font-size: 11.5px; font-weight: 700; color: #475569; margin: 0 0 4px 0; line-height: 1.4;">
             <strong>Persona Type:</strong> ${result.investorPersona.typeName}
           </p>
-          <p style="font-size: 11px; font-weight: 600; font-style: italic; color: #555; margin: 0; line-height: 1.4;">
+          <p style="font-size: 11.5px; font-weight: 600; font-style: italic; color: #555; margin: 0; line-height: 1.4;">
             "Stance: ${result.investorPersona.behaviorQuote} — Risk tolerance is rated for a ${result.investorPersona.riskToleranceRating} model with ${result.investorPersona.churnActivityLevel.toLowerCase()} transaction turnover."
           </p>
+        </div>
+
+        <!-- Detailed Fund Classifications Segment -->
+        <div style="margin-bottom: 30px;">
+          <h3 style="font-size: 13px; font-weight: 900; color: #0f172a; margin: 0 0 15px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Fund-Wise Clinical Asset Audit & Diagnostic Classifications
+          </h3>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Core Alpha -->
+            <div style="background: rgba(16, 185, 129, 0.02); border: 1px solid #a7f3d0; border-radius: 12px; padding: 14px;">
+              <h4 style="font-size: 11.5px; font-weight: 900; color: #065f46; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #d1fae5; padding-bottom: 4px;">
+                ⭐ Core Alpha Gen Schemes (${coreAlphaFunds.length})
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                ${coreAlphaFunds.length ? coreAlphaFunds.map(f => `
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
+                    <span style="color: #059669; font-family: monospace;">+${f.returnDifference3Y || 2.4}% Premiums</span>
+                  </div>
+                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No core high-performing assets found</div>'}
+              </div>
+            </div>
+
+            <!-- Defensive Anchor -->
+            <div style="background: rgba(37, 99, 235, 0.02); border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px;">
+              <h4 style="font-size: 11.5px; font-weight: 900; color: #1e40af; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #dbeafe; padding-bottom: 4px;">
+                🛡️ Defensive Anchor Schemes (${defensiveAnchorFunds.length})
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                ${defensiveAnchorFunds.length ? defensiveAnchorFunds.map(f => `
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
+                    <span style="color: #1d4ed8; font-family: monospace;">Beta: Safe Anchor</span>
+                  </div>
+                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No shield assets currently present</div>'}
+              </div>
+            </div>
+
+            <!-- Fee Dragged -->
+            <div style="background: rgba(245, 158, 11, 0.02); border: 1px solid #fde68a; border-radius: 12px; padding: 14px;">
+              <h4 style="font-size: 11.5px; font-weight: 900; color: #92400e; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #fef3c7; padding-bottom: 4px;">
+                ⚠️ Fee-Dragged Regular Peer Schemes (${feeDraggedFunds.length})
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                ${feeDraggedFunds.length ? feeDraggedFunds.map(f => `
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
+                    <span style="color: #b45309; font-family: monospace;">Drag: ${(f.currentExpenseRatio - f.alternativeExpenseRatio).toFixed(2)}% Drag</span>
+                  </div>
+                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No fee drags caught in screening</div>'}
+              </div>
+            </div>
+
+            <!-- Rebalance/Churn -->
+            <div style="background: rgba(239, 68, 68, 0.02); border: 1px solid #fca5a5; border-radius: 12px; padding: 14px;">
+              <h4 style="font-size: 11.5px; font-weight: 900; color: #991b1b; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #fee2e2; padding-bottom: 4px;">
+                🔄 Rebalance / Churn Catalysts (${rebalanceFunds.length})
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                ${rebalanceFunds.length ? rebalanceFunds.map(f => `
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
+                    <span style="color: #b91c1c; font-family: monospace;">Exit Load Risk</span>
+                  </div>
+                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">Clean transaction sequence history</div>'}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Footnote Page 1 -->
         <div style="text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 25px; font-family: system-ui;">
           Page 1 of 3 • Confidential Diagnostic Portfolio Review • Prepared by Pure Wealth Global (ARN Registered MFD)
         </div>
-      </div>
 
-      <div style="page-break-after: always;"></div>
+        <!-- PAGE BREAK -->
+        <div style="page-break-after: always; height: 1px; clear: both;"></div>
 
-      <div style="position: relative; padding: 40px; background: #ffffff; min-height: 1120px; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif;">
+        <!-- ==================== PAGE 2 ==================== -->
         ${watermarkHTML}
         
         <!-- Header Page 2 -->
@@ -392,92 +409,6 @@ export default function PortfolioAuditor() {
           </a>
         </div>
 
-        <!-- Detailed Fund Classifications Segment -->
-        <div style="margin-bottom: 30px;">
-          <h3 style="font-size: 12px; font-weight: 900; color: #0f172a; margin: 0 0 15px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
-            Fund-Wise Clinical Asset Audit & Diagnostic Classifications
-          </h3>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <!-- Core Alpha -->
-            <div style="background: rgba(16, 185, 129, 0.02); border: 1px solid #a7f3d0; border-radius: 12px; padding: 14px;">
-              <h4 style="font-size: 11px; font-weight: 900; color: #065f46; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #d1fae5; padding-bottom: 4px;">
-                ⭐ Core Alpha Gen Schemes (${coreAlphaFunds.length})
-              </h4>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${coreAlphaFunds.length ? coreAlphaFunds.map(f => `
-                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
-                    <span style="color: #059669; font-family: monospace;">+${f.returnDifference3Y || 2.4}% Premiums</span>
-                  </div>
-                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No core high-performing assets found</div>'}
-              </div>
-            </div>
-
-            <!-- Defensive Anchor -->
-            <div style="background: rgba(37, 99, 235, 0.02); border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px;">
-              <h4 style="font-size: 11px; font-weight: 900; color: #1e40af; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #dbeafe; padding-bottom: 4px;">
-                🛡️ Defensive Anchor Schemes (${defensiveAnchorFunds.length})
-              </h4>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${defensiveAnchorFunds.length ? defensiveAnchorFunds.map(f => `
-                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
-                    <span style="color: #1d4ed8; font-family: monospace;">Beta: Safe Anchor</span>
-                  </div>
-                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No shield assets currently present</div>'}
-              </div>
-            </div>
-
-            <!-- Fee Dragged -->
-            <div style="background: rgba(245, 158, 11, 0.02); border: 1px solid #fde68a; border-radius: 12px; padding: 14px;">
-              <h4 style="font-size: 11px; font-weight: 900; color: #92400e; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #fef3c7; padding-bottom: 4px;">
-                ⚠️ Fee-Dragged Regular Peer Schemes (${feeDraggedFunds.length})
-              </h4>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${feeDraggedFunds.length ? feeDraggedFunds.map(f => `
-                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
-                    <span style="color: #b45309; font-family: monospace;">Drag: ${(f.currentExpenseRatio - f.alternativeExpenseRatio).toFixed(2)}% Drag</span>
-                  </div>
-                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">No fee drags caught in screening</div>'}
-              </div>
-            </div>
-
-            <!-- Rebalance/Churn -->
-            <div style="background: rgba(239, 68, 68, 0.02); border: 1px solid #fca5a5; border-radius: 12px; padding: 14px;">
-              <h4 style="font-size: 11px; font-weight: 900; color: #991b1b; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #fee2e2; padding-bottom: 4px;">
-                🔄 Rebalance / Churn Catalysts (${rebalanceFunds.length})
-              </h4>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${rebalanceFunds.length ? rebalanceFunds.map(f => `
-                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; color: #334155;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${f.fundName}</span>
-                    <span style="color: #b91c1c; font-family: monospace;">Exit Load Risk</span>
-                  </div>
-                `).join('') : '<div style="font-size: 10.5px; color: #64748b; font-style: italic;">Clean transaction sequence history</div>'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footnote Page 2 -->
-        <div style="text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 25px;">
-          Page 2 of 3 • Detailed Leaks & Cost Review • Pure Wealth Global Distribution Advisory
-        </div>
-      </div>
-
-      <div style="page-break-after: always;"></div>
-
-      <div style="position: relative; padding: 40px; background: #ffffff; min-height: 1120px; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif;">
-        ${watermarkHTML}
-
-        <!-- Header Page 3 -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7; padding-bottom: 15px; margin-bottom: 25px; font-family: system-ui;">
-          <div style="font-size: 11px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">Pure Wealth Global Diagnostic Report</div>
-          <div style="font-size: 10px; font-weight: 700; color: #64748b;">Verification Block 03_FINAL</div>
-        </div>
-
         <!-- Strengths / Leaks Grid -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
           <!-- Strengths -->
@@ -508,7 +439,7 @@ export default function PortfolioAuditor() {
         </div>
 
         <!-- Capital Gain and Exit Loads ledger -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; margin-bottom: 25px; font-family: system-ui;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; margin-bottom: 30px; font-family: system-ui;">
           <h4 style="font-size: 12px; font-weight: 900; color: #1e293b; margin: 0 0 12px 0; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
             Transition Cost ledger & Capital Leak Avoidance Strategy
           </h4>
@@ -529,9 +460,26 @@ export default function PortfolioAuditor() {
           </div>
         </div>
 
+        <!-- Footnote Page 2 -->
+        <div style="text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 25px;">
+          Page 2 of 3 • Detailed Leaks & Cost Review • Pure Wealth Global Distribution Advisory
+        </div>
+
+        <!-- PAGE BREAK -->
+        <div style="page-break-after: always; height: 1px; clear: both;"></div>
+
+        <!-- ==================== PAGE 3 ==================== -->
+        ${watermarkHTML}
+
+        <!-- Header Page 3 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7; padding-bottom: 15px; margin-bottom: 25px; font-family: system-ui;">
+          <div style="font-size: 11px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">Pure Wealth Global Diagnostic Report</div>
+          <div style="font-size: 10px; font-weight: 700; color: #64748b;">Verification Block 03_FINAL</div>
+        </div>
+
         <!-- Expense Ratio Drag Ledger -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; margin-bottom: 25px; font-family: system-ui;">
-          <h4 style="font-size: 12px; font-weight: 900; color: #1e293b; margin: 0 0 10px 0; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+          <h4 style="font-size: 12px; font-weight: 900; color: #1e293b; margin: 0 0 10px 0; border-bottom: 1px solid #edf2f7; padding-bottom: 6px; uppercase; letter-spacing: 0.5px;">
             Expense Ratio Drag Analysis
           </h4>
           <p style="font-size: 11px; color: #475569; font-weight: 650; margin: 0 0 12px 0; line-height: 1.5;">
@@ -539,13 +487,13 @@ export default function PortfolioAuditor() {
           </p>
           <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
             <div>
-              <span style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; display: block;">Current Active Fee Drag</span>
+              <span style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; block;">Current Active Fee Drag</span>
               <div style="font-size: 18px; font-weight: 900; color: #ef4444; line-height: 1.3;">
                 ${(result.fundWiseAudit.reduce((acc, f) => acc + (f.currentExpenseRatio || 0), 0) / (result.fundWiseAudit.length || 1)).toFixed(2)}% Avg
               </div>
             </div>
             <div>
-              <span style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; display: block;">Optimized Premium Target</span>
+              <span style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; block;">Optimized Premium Target</span>
               <div style="font-size: 18px; font-weight: 900; color: #10b981; line-height: 1.3;">
                 +${(result.fundWiseAudit.reduce((acc, f) => acc + (f.returnDifference3Y || 0), 0) / (result.fundWiseAudit.length || 1)).toFixed(2)}% Premiums
               </div>
@@ -564,7 +512,7 @@ export default function PortfolioAuditor() {
           <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px;">
             <div>
               <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 10px; margin-bottom: 10px;">
-                <span style="font-size: 8.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; display: block;">ESTIMATED compounding EXTRA VALUE HARVEST</span>
+                <span style="font-size: 8.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; block;">ESTIMATED compounding EXTRA VALUE HARVEST</span>
                 <span style="font-size: 18px; font-weight: 950; color: #10b981;">+₹${(result.returnGainsProjection.totalExtraWealthEarned).toLocaleString()}</span>
               </div>
               <p style="font-size: 10px; font-style: italic; color: #94a3b8; margin: 0; line-height: 1.5;">
@@ -633,23 +581,15 @@ export default function PortfolioAuditor() {
           Page 3 of 3 • End of Audit Report • Facilitated with Institutional Integrity by Pure Wealth Global
         </div>
       </div>
-    </div>
     `;
 
-    // Wait 400ms for window scroll to completely settle and text resources to layout correctly
+    // Wait 150ms for text to settle correctly
     setTimeout(() => {
       const options = {
-        margin: [0, 0, 0, 0] as [number, number, number, number],
+        margin: [5, 5, 5, 5] as [number, number, number, number],
         filename: `pure_wealth_portfolio_clinical_audit_${result.totalFunds}_schemes.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 1.5, // 1.5 is crisp and prevents canvas buffer heap overflows in sandboxed Chrome/iframes
-          useCORS: true, 
-          logging: true,
-          scrollX: 0,
-          scrollY: 0,
-          backgroundColor: '#ffffff'
-        },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
@@ -660,28 +600,16 @@ export default function PortfolioAuditor() {
         .from(tempContainer)
         .save()
         .then(() => {
-          // Cleanup & scroll restoration
-          if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
-          }
+          // Cleanup
+          document.body.removeChild(tempContainer);
           setPdfLoading(false);
-          // Restore original scroll behaviors
-          document.documentElement.style.scrollBehavior = originalScrollBehavior;
-          document.body.style.scrollBehavior = originalBodyScrollBehavior;
-          window.scrollTo(currentScrollX, currentScrollY);
         })
         .catch((err: any) => {
           console.error("PDF generation failure: ", err);
-          if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
-          }
+          document.body.removeChild(tempContainer);
           setPdfLoading(false);
-          // Restore original scroll behaviors
-          document.documentElement.style.scrollBehavior = originalScrollBehavior;
-          document.body.style.scrollBehavior = originalBodyScrollBehavior;
-          window.scrollTo(currentScrollX, currentScrollY);
         });
-    }, 400);
+    }, 150);
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -951,13 +879,7 @@ export default function PortfolioAuditor() {
             projectedValue5YCurrent: 885000,
             projectedValue5YPWG: 1015000,
             totalExtraWealthEarned: 130000,
-            improvementExplanation: "By systematically moving high-expense schemes to Pure Wealth's optimized low-fee choices, you eliminate annual fee leakages of up to 0.60%. This delta compounds intensely in high rolling return funds, expanding your 5-year capital by over ₹1,30,000.",
-            inceptionAssetDate: "15 Jan 2023",
-            yearsSinceInception: 3.4,
-            portfolioHistoricalCAGR: 12.12,
-            benchmarkHistoricalCAGR: 11.58,
-            niftyHistoricalCAGR: 14.85,
-            optimizedHistoricalCAGR: 15.21
+            improvementExplanation: "By systematically moving high-expense schemes to Pure Wealth's optimized low-fee choices, you eliminate annual fee leakages of up to 0.60%. This delta compounds intensely in high rolling return funds, expanding your 5-year capital by over ₹1,30,000."
           },
           switchingCostSummary: {
             totalExitLoad: 450,
@@ -1065,13 +987,7 @@ export default function PortfolioAuditor() {
             projectedValue5YCurrent: 1420000,
             projectedValue5YPWG: 1735000,
             totalExtraWealthEarned: 315000,
-            improvementExplanation: "Balancing out sector concentrations and switching to lower-expense alternative options guards your portfolio against severe momentum drawdowns. This risk management preservation saves over ₹3,15,000 on compound cycles.",
-            inceptionAssetDate: "05 Jan 2024",
-            yearsSinceInception: 2.42,
-            portfolioHistoricalCAGR: 10.81,
-            benchmarkHistoricalCAGR: 10.25,
-            niftyHistoricalCAGR: 13.15,
-            optimizedHistoricalCAGR: 15.33
+            improvementExplanation: "Balancing out sector concentrations and switching to lower-expense alternative options guards your portfolio against severe momentum drawdowns. This risk management preservation saves over ₹3,15,000 on compound cycles."
           },
           switchingCostSummary: {
             totalExitLoad: 3400,
@@ -1194,13 +1110,7 @@ export default function PortfolioAuditor() {
             projectedValue5YCurrent: 980000,
             projectedValue5YPWG: 1165000,
             totalExtraWealthEarned: 185000,
-            improvementExplanation: "Blocking premature churn avoids ₹12,000 in upfront loads and stabilizes compounding. Under Pure Wealth's optimized system, these combined modifications shield ₹1,85,000 in terminal asset valuation.",
-            inceptionAssetDate: "20 Aug 2025",
-            yearsSinceInception: 0.80,
-            portfolioHistoricalCAGR: 10.31,
-            benchmarkHistoricalCAGR: 9.75,
-            niftyHistoricalCAGR: 11.45,
-            optimizedHistoricalCAGR: 14.12
+            improvementExplanation: "Blocking premature churn avoids ₹12,000 in upfront loads and stabilizes compounding. Under Pure Wealth's optimized system, these combined modifications shield ₹1,85,000 in terminal asset valuation."
           },
           switchingCostSummary: {
             totalExitLoad: 5400,
@@ -1228,77 +1138,6 @@ export default function PortfolioAuditor() {
 
   const runLocalAuditFallback = () => {
     // Generates a dynamic clean fallback based on manual holdings input
-    let earliestDate = new Date("2023-01-15"); // default
-    let hasValidDateInPort = false;
-    let minMs = Date.now();
-    manualHoldings.forEach((h) => {
-      if (h.purchaseDate) {
-        const d = new Date(h.purchaseDate);
-        if (!isNaN(d.getTime())) {
-          hasValidDateInPort = true;
-          if (d.getTime() < minMs) {
-            minMs = d.getTime();
-          }
-        }
-      }
-    });
-
-    const currentDate = new Date("2026-06-09");
-    if (hasValidDateInPort && minMs < currentDate.getTime()) {
-      earliestDate = new Date(minMs);
-    }
-    let T = (currentDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    if (T <= 0.1 || isNaN(T)) {
-      T = 3.4;
-      earliestDate = new Date("2023-01-15");
-    }
-
-    const inceptionAssetDateStr = earliestDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-
-    let totalWeightedRate = 0;
-    let totalWeightedPWGRate = 0;
-    let totalWeightSum = 0;
-
-    manualHoldings.forEach((h) => {
-      let weight = h.allocation / 100;
-      if (isNaN(weight) || weight <= 0) {
-        weight = 1 / manualHoldings.length;
-      }
-
-      let categoryCAGR = 12.20;
-      const isSmall = h.category === "Small Cap" || (h.fundName || "").toLowerCase().includes("small");
-      if (isSmall) {
-        if (T < 1.5) categoryCAGR = 17.55;
-        else if (T < 2.5) categoryCAGR = 21.80;
-        else if (T < 3.8) categoryCAGR = 25.40;
-        else categoryCAGR = 19.80;
-      } else {
-        if (T < 1.5) categoryCAGR = 14.80;
-        else if (T < 2.5) categoryCAGR = 18.20;
-        else if (T < 3.8) categoryCAGR = 21.20;
-        else categoryCAGR = 17.50;
-      }
-
-      totalWeightedRate += categoryCAGR * weight;
-      totalWeightedPWGRate += (categoryCAGR + (isSmall ? 1.6 : 1.15)) * weight;
-      totalWeightSum += weight;
-    });
-
-    const r_current_pct = totalWeightSum > 0 ? (totalWeightedRate / totalWeightSum) : 13.50;
-    const r_pwg_pct = totalWeightSum > 0 ? (totalWeightedPWGRate / totalWeightSum) : 15.82;
-
-    let nifty_cagr_pct = 14.85;
-    if (T < 1.5) nifty_cagr_pct = 11.45;
-    else if (T < 2.5) nifty_cagr_pct = 13.20;
-    else if (T < 3.8) nifty_cagr_pct = 14.85;
-    else nifty_cagr_pct = 13.05;
-
-    const benchmark_cagr_pct = r_current_pct - 0.55;
-
     const mockResult: AuditResult = {
       totalFunds: manualHoldings.length,
       overallStrengths: [
@@ -1351,13 +1190,7 @@ export default function PortfolioAuditor() {
         projectedValue5YCurrent: 825000,
         projectedValue5YPWG: 960000,
         totalExtraWealthEarned: 135000,
-        improvementExplanation: "Optimizing your active schemes with lower cost peers removes broker commission cuts. Compounding this preserved asset expands your portfolio's terminal value by up to ₹1,35,000 on a ₹5,00,000 principal base in 5 years.",
-        inceptionAssetDate: inceptionAssetDateStr,
-        yearsSinceInception: Number(T.toFixed(2)),
-        portfolioHistoricalCAGR: Number(r_current_pct.toFixed(2)),
-        benchmarkHistoricalCAGR: Number(benchmark_cagr_pct.toFixed(2)),
-        niftyHistoricalCAGR: Number(nifty_cagr_pct.toFixed(2)),
-        optimizedHistoricalCAGR: Number(r_pwg_pct.toFixed(2))
+        improvementExplanation: "Optimizing your active schemes with lower cost peers removes broker commission cuts. Compounding this preserved asset expands your portfolio's terminal value by up to ₹1,35,000 on a ₹5,00,000 principal base in 5 years."
       },
       switchingCostSummary: {
         totalExitLoad: manualHoldings.length * 250,
@@ -1439,39 +1272,6 @@ export default function PortfolioAuditor() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="portfolio-auditor-root">
       
-      {/* Full Screen High-Z PDF Generation Loading Overlay */}
-      {pdfLoading && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100000] flex flex-col items-center justify-center text-white p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl space-y-6 flex flex-col items-center select-none animate-in fade-in zoom-in duration-200">
-            <div className="relative flex items-center justify-center">
-              <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
-              <div className="absolute inset-x-0 inset-y-0 rounded-full bg-blue-500/10 blur-xl animate-pulse"></div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-extrabold text-lg text-slate-100 uppercase tracking-wider">
-                Compiling Clinical Audit Report
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                We are programmatically rendering, optimizing, and packaging your bespoke portfolio diagnostic. This process takes a few seconds to build vector-perfect tables.
-              </p>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden relative">
-              <div 
-                className="bg-blue-600 h-1.5 rounded-full animate-pulse" 
-                style={{ 
-                  width: '100%',
-                  backgroundImage: 'linear-gradient(90deg, #2563eb 0%, #10b981 50%, #2563eb 100%)', 
-                  backgroundSize: '200% 100%' 
-                }}
-              ></div>
-            </div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              Secured & Compliant under SEBI Mutual Fund Guidelines
-            </p>
-          </div>
-        </div>
-      )}
-      
       {/* Title Header with exquisite display typography */}
       <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-105 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4">
@@ -1486,12 +1286,11 @@ export default function PortfolioAuditor() {
         </p>
       </div>
 
-      {/* Main Container Grid - dynamically adjusted wide/centered layout */}
-      <div className={result ? "max-w-4xl mx-auto w-full" : "grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"}>
+      {/* Main Container Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Side: Inputs & Secondary Delivery Stack */}
-        {!result && (
-          <div className="lg:col-span-5 space-y-6 animate-in fade-in duration-200">
+        <div className="lg:col-span-5 space-y-6">
           
           <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-5 sm:p-6" id="input-methods-panel">
             
@@ -1698,7 +1497,7 @@ export default function PortfolioAuditor() {
                   type="email"
                   value={whatsappEmail}
                   onChange={(e) => setWhatsappEmail(e.target.value)}
-                  placeholder="Enter Email which is Linked to Your Investments"
+                  placeholder="e.g. yourname@gmail.com"
                   className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
                 />
               </div>
@@ -1762,17 +1561,8 @@ export default function PortfolioAuditor() {
 
         </div>
 
-        )}
-
         {/* Right Side: Audit Results Dashboard */}
-        <div 
-          className={
-            result 
-              ? "w-full bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6 animate-in fade-in duration-300" 
-              : "lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6"
-          } 
-          id="dashboard-results-container"
-        >
+        <div className="lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6" id="dashboard-results-container">
           
           <AnimatePresence mode="wait">
             {result ? (
@@ -1787,27 +1577,13 @@ export default function PortfolioAuditor() {
                 
                 {/* Result Top Action Bar */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 border border-slate-150 p-4 rounded-2xl select-none">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setResult(null);
-                        setFile(null);
-                        setPassword("");
-                      }}
-                      className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-extrabold text-[11px] px-3.5 py-2 rounded-xl border border-slate-200 shadow-3xs transition duration-150 active:scale-95 cursor-pointer hover:text-blue-705 hover:border-blue-200"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Reset / Upload New</span>
-                    </button>
-                    <div className="h-6 w-[1px] bg-slate-200 hidden sm:block" />
-                    <div>
-                      <span className="text-[9px] font-black tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full uppercase leading-none inline-block">
-                        DIAGNOSTIC COMPLETE ✓
-                      </span>
-                      <h4 className="text-sm font-black text-slate-850 mt-1.5">
-                        Full Portfolio Audit Report
-                      </h4>
-                    </div>
+                  <div>
+                    <span className="text-[9px] font-black tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full uppercase leading-none inline-block">
+                      DIAGNOSTIC COMPLETE ✓
+                    </span>
+                    <h4 className="text-sm font-black text-slate-850 mt-1.5">
+                      Full Portfolio Audit Report
+                    </h4>
                   </div>
                   <button
                     onClick={downloadPdfReport}
@@ -2400,65 +2176,50 @@ export default function PortfolioAuditor() {
                   </div>
 
                   {/* Realtime CAGR returns audit comparison box */}
-                  <div className="bg-gradient-to-br from-indigo-50/40 via-blue-50/20 to-white border-2 border-indigo-200 rounded-2xl p-5 space-y-4 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg">
+                  <div className="bg-gradient-to-br from-indigo-50/30 via-slate-50/20 to-white border-2 border-indigo-200/80 rounded-2xl p-5 space-y-4 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg">
                     <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[8px] font-black py-0.5 px-3 uppercase tracking-widest select-none rounded-bl-xl font-mono">
                       ⭐ HIGH-IMPACT INDICATORS
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-slate-150 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4.5 h-4.5 text-indigo-600 shrink-0 animate-pulse" />
-                        <span className="text-[12.5px] font-black text-indigo-950 uppercase tracking-wider block font-sans">
-                          Portfolio CAGR & Realtime Comparison Indicators
-                        </span>
-                      </div>
-                      <div className="text-[9.5px] font-bold text-slate-500 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded-md leading-none self-start sm:self-auto shrink-0 font-sans">
-                        📅 Calculated since Inception: <span className="text-indigo-750 font-black">{result.returnGainsProjection.inceptionAssetDate || "15 Jan 2023"}</span>
-                      </div>
+                    <div className="flex items-center gap-2 border-b border-slate-150 pb-2.5">
+                      <TrendingUp className="w-4.5 h-4.5 text-indigo-600 shrink-0 animate-pulse" />
+                      <span className="text-[12px] font-black text-indigo-950 uppercase tracking-wider block">
+                        Portfolio CAGR & Realtime Comparison Indicators
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 items-stretch">
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
-                        <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">PORTFOLIO CAGR</span>
-                        <div className="text-[17px] font-black text-blue-600 font-mono leading-none py-1">
-                          {result.returnGainsProjection.portfolioHistoricalCAGR !== undefined 
-                            ? `${result.returnGainsProjection.portfolioHistoricalCAGR.toFixed(2)}%`
-                            : ((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                        <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">PORTFOLIO RETURN</span>
+                        <div className="text-[16px] font-black text-blue-600 font-mono">
+                          {((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
-                        <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Since allotment inception</span>
+                        <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Weighted current yield</span>
                       </div>
 
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
                         <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">NIFTY 50 INDEX</span>
-                        <div className="text-[17px] font-black text-slate-700 font-mono leading-none py-1">
-                          {result.returnGainsProjection.niftyHistoricalCAGR !== undefined
-                            ? `${result.returnGainsProjection.niftyHistoricalCAGR.toFixed(2)}%`
-                            : "11.45%"}
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Large-Cap baseline returns</span>
+                        <div className="text-[16px] font-black text-slate-700 font-mono">11.45%</div>
+                        <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Large Cap baseline</span>
                       </div>
 
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
                         <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">PEER BENCHMARK</span>
-                        <div className="text-[17px] font-black text-amber-600 font-mono leading-none py-1">
-                          {result.returnGainsProjection.benchmarkHistoricalCAGR !== undefined
-                            ? `${result.returnGainsProjection.benchmarkHistoricalCAGR.toFixed(2)}%`
-                            : (((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1) - 0.005).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                        <div className="text-[16px] font-black text-amber-600 font-mono">
+                          {(((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1) - 0.005).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 block leading-tight font-sans">Average active regular tier</span>
+                        <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Average active fund benchmark</span>
                       </div>
 
-                      <div className="bg-gradient-to-br from-emerald-600 to-teal-750 border-2 border-emerald-500 p-3 rounded-xl text-center space-y-0.5 shadow-lg ring-4 ring-emerald-500/20 scale-105 transform hover:scale-108 transition-all relative overflow-hidden flex flex-col justify-center col-span-2 md:col-span-1 min-h-[92px]">
+                      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 border-2 border-emerald-500 p-3 rounded-xl text-center space-y-0.5 shadow-lg ring-4 ring-emerald-500/20 scale-105 transform hover:scale-108 transition-all relative overflow-hidden flex flex-col justify-center col-span-2 md:col-span-1 min-h-[92px]">
                         <div className="absolute -top-1 -right-8 bg-amber-400 text-slate-900 text-[6px] font-black py-0.5 px-8 uppercase tracking-widest font-sans rotate-12 shadow-sm select-none">
                           WINNER
                         </div>
                         <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 RECOMMENDED CORE</span>
                         <div className="text-[19px] font-black text-white leading-none tracking-tight font-mono drop-shadow-md py-1">
-                          {result.returnGainsProjection.optimizedHistoricalCAGR !== undefined
-                            ? `${result.returnGainsProjection.optimizedHistoricalCAGR.toFixed(2)}%`
-                            : ((result.returnGainsProjection.projectedValue5YPWG / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                          {((result.returnGainsProjection.projectedValue5YPWG / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
                         <span className="text-[8.5px] font-extrabold text-emerald-100 block leading-tight font-sans">
-                          Optimized Pure Wealth strategy
+                          Optimized peer strategy return
                         </span>
                       </div>
                     </div>
@@ -2685,35 +2446,6 @@ export default function PortfolioAuditor() {
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Visual Download Section directly above Final Compounding CTA */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-150 p-4.5 rounded-2xl select-none">
-                  <div className="text-center sm:text-left">
-                    <h5 className="text-[12.5px] font-black text-slate-800">
-                      💾 Save Full Audit Report Checklist
-                    </h5>
-                    <p className="text-[10.5px] text-slate-500 font-semibold mt-0.5">
-                      Keep a clean PDF copy for your future rebalancing records.
-                    </p>
-                  </div>
-                  <button
-                    onClick={downloadPdfReport}
-                    disabled={pdfLoading}
-                    className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-750 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition duration-150 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
-                  >
-                    {pdfLoading ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating Report...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download Auditor PDF</span>
-                      </>
-                    )}
-                  </button>
                 </div>
 
                 {/* SECOND CALL TO ACTION (SEBI COMPLIANT MFD LEAD MAGNET AT END) */}

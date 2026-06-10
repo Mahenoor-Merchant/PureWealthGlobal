@@ -91,36 +91,54 @@ CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH
      - High Capital Overlap Penalty: If multiple funds overlap within the identical exact AMCs & categories (e.g. 2 or more Large Cap funds, or 2 or more Small Cap funds), deduct exactly 10 points.
      - Compute the math step-by-step internally in your thought buffer, and output the exact calculated score as 'diversificationScore'. Describe this exact breakdown clearly inside 'diversificationAnalysis'.
 
-4. MATHEMATICALLY AIRTIGHT COMPOUND PROJECTIONS (5-YEAR TIMELINE):
-   - 'currentValue': Parse aggregate valuation from PDF. If not declared, default to 500000.
-   - Calculate standard weighted-average compound rates:
-     - Current Portfolio CAGR (r_current): Base on asset mix using: Large Cap/Debt = 11.5% (0.115), Mid/Flexi/Multi = 13% (0.13), Small/Thematic = 14.5% (0.145). Limit r_current strictly to a range of 11% to 13.5%.
-     - Pure Wealth Optimized CAGR (r_pwg): Formulate as exactly r_current + 2.2% (reflecting 0.8% CAGR expense ratio recovery and 1.4% strategic risk-adjusted peer selection outperformance).
-   - Compute five-year compounding values precisely (rounded to nearest rupee):
+4. HISTORICAL CAGR AND COMPOUND PROJECTIONS SINCE INCEPTION:
+   - Identify the oldest transaction date in the portfolio's holding statement (e.g. '05-Aug-1998' or '12-Jan-2018'). This is the 'earliestInvestmentDate'.
+   - Sum up all purchase or transaction investment amounts listed in the document to calculate the 'totalAcquisitionCost'. If not explicitly mentioned or readable, assume 'totalAcquisitionCost' is roughly 80% of 'currentValue' (representing a 20% absolute return since inception).
+   - 'currentValue': Parse the current aggregate valuation of the portfolio. If not declared, default to 500000.
+   - Calculate the actual historical CAGR achieved by the portfolio since inception:
+     portfolioCAGR = (currentValue / totalAcquisitionCost) ^ (1 / Years) - 1, where Years is the time elapsed from 'earliestInvestmentDate' to June 10, 2026. Limit portfolioCAGR to a realistic range of 8% to 15%.
+   - Estimate the benchmark NIFTY 50 CAGR (niftyCAGR) for that exact same time range (typically 11.5% to 13.5% over recent 3-7 year intervals).
+   - Estimate the active peer benchmark CAGR (peerBenchmarkCAGR) for that period (typically niftyCAGR - 0.5%).
+   - Calculate our recommended Pure Wealth Optimized CAGR (oursOptimizedCAGR) over that historical period, which typically matches standard optimized regular portfolios (portfolioCAGR + 2.2%, due to 0.8% lower peer fees and 1.4% superior peer strategy outperformance, typically ranging from 13.5% to 17.5%).
+   - Calculate standard weighted-average compound rates for 5-Year future projections using these CAGR rates (r_current = portfolioCAGR, r_pwg = oursOptimizedCAGR):
      - projectedValue5YCurrent = Round(currentValue * (1 + r_current)^5)
      - projectedValue5YPWG = Round(currentValue * (1 + r_pwg)^5)
      - totalExtraWealthEarned = projectedValue5YPWG - projectedValue5YCurrent
    - ALWAYS double-check this math so that the sum and difference match to the single rupee.
 
-5. UNIFORM METRICS RULEBOOK (ZERO TEMPERATURE VARIATION):
-   To prevent minor statistical drift for the same fund, apply these precise guidelines based on basket classification:
-   - "Rebalance/Churn Catalyst": 'currentExpenseRatio' = 1.95, 'alternativeExpenseRatio' = 1.15, 'returnDifference3Y' = 2.45, 'rollingReturnsRating' = 4, 'downsideProtectionRating' = 3, 'betterAlternativeFund' = "[Competing AMC] Large & Mid Cap Regular Selection".
-   - "Fee-Dragged Peer": 'currentExpenseRatio' = 1.85, 'alternativeExpenseRatio' = 1.20, 'returnDifference3Y' = 1.80, 'rollingReturnsRating' = 5, 'downsideProtectionRating' = 5, 'betterAlternativeFund' = "[Competing AMC] Equity Regular Opportunity Selection".
-   - "Defensive Anchor": 'currentExpenseRatio' = 0.95, 'alternativeExpenseRatio' = 0.75, 'returnDifference3Y' = 0.65, 'rollingReturnsRating' = 7, 'downsideProtectionRating' = 9, 'betterAlternativeFund' = "[Competing AMC] Balanced Advantage Regular Scheme".
-   - "Core Alpha Gen": 'currentExpenseRatio' = 1.65, 'alternativeExpenseRatio' = 1.15, 'returnDifference3Y' = 1.35, 'rollingReturnsRating' = 8, 'downsideProtectionRating' = 8, 'betterAlternativeFund' = "[Competing AMC] Flexi Cap Regular Selection".
-   (For Competing AMC, please substitute the dynamic name of a real Indian Mutual Fund house e.g., SBI Mutual Fund, HDFC Mutual Fund, ICICI Prudential Mutual Fund, Quant Mutual Fund, Parag Parikh Mutual Fund, etc., ensuring that recommended alternative fund is from a different AMC than current to reflect realistic Competing Peer strategies).
+5. PEER-TO-PEER FEE DETAILS & CATEGORY ALIGNMENT:
+   - For every fund, do NOT use a single hardcoded expense ratio if the user has a Direct plan in their statement. If a fund name contains "Direct" or "Dir", set its 'currentExpenseRatio' realistically to a Direct plan's level:
+     - Large Cap or Index: 0.30% to 0.55%
+     - Mid or Small or Flexi: 0.55% to 0.85%
+     - Sectoral / Thematic: 0.65% to 0.95%
+     - Hybrid / Balanced: 0.50% to 0.80%
+     - Debt / Liquid / Arbitrage: 0.15% to 0.35%
+   - If a fund is a Regular plan (i.e. name does not contain "Direct" or "Dir"):
+     - Large Cap or Index: 1.25% to 1.75%
+     - Mid or Small or Flexi: 1.65% to 2.15%
+     - Sectoral / Thematic: 1.85% to 2.45%
+     - Hybrid / Balanced: 1.45% to 2.05%
+     - Debt / Liquid / Arbitrage: 0.55% to 1.15%
+   - For recommended alternative peer funds (which should always be premium Competing AMC matching Regular plans):
+     - Large Cap or Index: 1.15% expense score
+     - Mid or Small or Flexi: 1.25% expense score
+     - Sectoral / Thematic: 1.30% expense score
+     - Hybrid / Balanced: 1.10% expense score
+     - Debt / Liquid / Arbitrage: 0.55% expense score
+   - Ensure the category of 'betterAlternativeFund' matches the category of the audited fund 100% (e.g. recommend Small Cap for Small Cap, Mid Cap for Mid Cap, Balanced Advantage for Balanced Advantage, Liquid for Liquid).
+   - In recommended peer optimization, specify the full correct scheme name (e.g., "[Competing AMC] Small Cap Growth Regular" or "[Competing AMC] Mid Cap Regular Growth"), resolving "[Competing AMC]" dynamic names to a real top Indian AMC (SBI, ICICI Prudential, HDFC, Parag Parikh, Quant, etc.).
 
 6. EXACT SWITCHING EXIT LOADS & CAPITAL GAINS TAXATION IMPACTS:
    - For each fund, compute exit charges and tax impacts based on standard Indian rules:
-     - Today's date is June 8, 2026. Review purchase/hold dates (e.g. 2023, 2024, 2025):
+     - Today's date is June 10, 2026. Review purchase/hold dates (e.g. 2023, 2024, 2025):
        - If purchase date is NOT clearly readable or declared in the document, assume standard aging split of 80% Long-term and 20% Short-term:
          - 'switchingExitLoadCost' = Round((totalFundValue * 0.20) * 0.01) [i.e., 1% exit load on the 20% short-term portion].
          - 'taxImplication' = -Round((totalFundValue * 0.20 * 0.15) * 0.20) [assuming 15% flat gains on the 20% short-term portion, taxed under 20% flat STCG rate].
        - If purchase date is clearly readable:
-         - If purchase date is < 365 days ago (Short-Term, i.e., purchased after June 8, 2025):
+         - If purchase date is < 365 days ago (Short-Term, i.e., purchased after June 10, 2025):
            - Exit load 'switchingExitLoadCost' = Exactly 1.0% of the fund value.
            - STCG Tax Rate: 20%. Estimate gains as 15% of holding value, causing 'taxImplication' = - (fundValue * 0.15 * 0.20) = -3% of holding value.
-         - If purchase date is >= 365 days ago (Long-Term, i.e., purchased on or before June 8, 2025):
+         - If purchase date is >= 365 days ago (Long-Term, i.e., purchased on or before June 10, 2025):
            - Exit load 'switchingExitLoadCost' = Exactly 0.
            - LTCG Tax Rate: 12.5% on gains exceeding ₹1.25 Lakh. Estimate LTCG gains as 30% of holding value. Proportional LTCG tax impact: If total LTCG gains across all LTCG holdings > 125,000, apply 12.5% tax on the excess, and allocate proportionally as a negative 'taxImplication' (otherwise 0).
    - In 'switchingCostSummary':
@@ -162,10 +180,16 @@ Return your analysis as a single JSON response conforming ONLY to this schema:
   ],
   "returnGainsProjection": {
     "currentValue": number, (current relative amount, default 500000 if not clear)
-    "projectedValue5YCurrent": number, (estimated standard compound value of current funds in 5 years at e.g. 11.5% compounding)
-    "projectedValue5YPWG": number, (projected value of optimizing with Pure Wealth optimized peer selections at e.g. 14.1% compounding)
+    "projectedValue5YCurrent": number, (estimated standard compound value of current funds in 5 years)
+    "projectedValue5YPWG": number, (projected value of optimizing with Pure Wealth optimized peer selections)
     "totalExtraWealthEarned": number, (the cumulative 5 Year compound delta earned by switching to optimized funds)
-    "improvementExplanation": string (2-3 sentences outlining the power of compounding with lower-fee and higher risk-adjusted Sortino/Rolling ratio mutual fund strategies)
+    "improvementExplanation": string, (2-3 sentences outlining the power of compounding with lower-fee and higher risk-adjusted Sortino/Rolling ratio mutual fund strategies)
+    "portfolioCAGR": number, (computed compound yield achieved since inception, e.g. 0.1245)
+    "niftyCAGR": number, (computed nifty compound yield since inception, e.g. 0.1145)
+    "peerBenchmarkCAGR": number, (computed peer average active fund yield since inception, e.g. 0.1095)
+    "oursOptimizedCAGR": number, (computed optimized strategy return since inception, e.g. 0.1465)
+    "earliestInvestmentDate": string, (oldest transaction date parsed, e.g. "12-Sep-2019")
+    "totalAcquisitionCost": number (computed net invested value parsed, e.g. 400000)
   },
   "switchingCostSummary": {
     "totalExitLoad": number, (sum of estimated exit load penalties in Rupees)
@@ -368,9 +392,27 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
                     projectedValue5YCurrent: { type: Type.NUMBER },
                     projectedValue5YPWG: { type: Type.NUMBER },
                     totalExtraWealthEarned: { type: Type.NUMBER },
-                    improvementExplanation: { type: Type.STRING }
+                    improvementExplanation: { type: Type.STRING },
+                    portfolioCAGR: { type: Type.NUMBER },
+                    niftyCAGR: { type: Type.NUMBER },
+                    peerBenchmarkCAGR: { type: Type.NUMBER },
+                    oursOptimizedCAGR: { type: Type.NUMBER },
+                    earliestInvestmentDate: { type: Type.STRING },
+                    totalAcquisitionCost: { type: Type.NUMBER }
                   },
-                  required: ["currentValue", "projectedValue5YCurrent", "projectedValue5YPWG", "totalExtraWealthEarned", "improvementExplanation"]
+                  required: [
+                    "currentValue",
+                    "projectedValue5YCurrent",
+                    "projectedValue5YPWG",
+                    "totalExtraWealthEarned",
+                    "improvementExplanation",
+                    "portfolioCAGR",
+                    "niftyCAGR",
+                    "peerBenchmarkCAGR",
+                    "oursOptimizedCAGR",
+                    "earliestInvestmentDate",
+                    "totalAcquisitionCost"
+                  ]
                 },
                 switchingCostSummary: {
                   type: Type.OBJECT,
@@ -428,11 +470,48 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
       currentValue = 500000;
     }
 
+    let earliestInvestmentDate = parsedData.returnGainsProjection?.earliestInvestmentDate || "12-Sep-2019";
+    let totalAcquisitionCost = Number(parsedData.returnGainsProjection?.totalAcquisitionCost || parsedData.returnGainsProjection?.total_acquisition_cost) || Math.round(currentValue * 0.8125);
+    if (isNaN(totalAcquisitionCost) || totalAcquisitionCost <= 0) {
+      totalAcquisitionCost = Math.round(currentValue * 0.8125);
+    }
+
+    let yearsElapsed = 5.0;
+    try {
+      const msToday = Date.parse("2026-06-10");
+      const msStart = Date.parse(earliestInvestmentDate);
+      if (!isNaN(msStart)) {
+        const msDiff = msToday - msStart;
+        const calcYears = msDiff / (1000 * 60 * 60 * 24 * 365.25);
+        if (calcYears > 0.1 && calcYears < 30) {
+          yearsElapsed = calcYears;
+        }
+      }
+    } catch (e) {
+      yearsElapsed = 5.0;
+    }
+
+    let portfolioCAGR = Math.pow(currentValue / totalAcquisitionCost, 1 / yearsElapsed) - 1;
+    if (isNaN(portfolioCAGR) || portfolioCAGR < 0.05 || portfolioCAGR > 0.40) {
+      portfolioCAGR = 0.1245;
+    }
+
+    let niftyCAGR = 0.1145;
+    if (yearsElapsed > 4) {
+      niftyCAGR = 0.1185;
+    } else if (yearsElapsed > 2) {
+      niftyCAGR = 0.1250;
+    }
+
+    let peerBenchmarkCAGR = niftyCAGR - 0.005;
+    let oursOptimizedCAGR = portfolioCAGR + 0.022;
+
     if (Array.isArray(parsedData.fundWiseAudit)) {
       parsedData.fundWiseAudit = parsedData.fundWiseAudit.map((fund: any, index: number) => {
         const fundName = fund.fundName || fund.name || `Fund ${index + 1}`;
         const cat = (fund.category || "").toLowerCase();
         const nameLower = (fundName).toLowerCase();
+        const isDirect = nameLower.includes("direct") || nameLower.includes("dir") || nameLower.includes("- d") || nameLower.includes("(d)");
 
         let basket = fund.basketClassification || "Core Alpha Gen";
         if (
@@ -464,46 +543,81 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
           basket = "Core Alpha Gen";
         }
 
-        let currentExpenseRatio = 1.65;
-        let alternativeExpenseRatio = 1.15;
-        let returnDifference3Y = 1.35;
-        let rollingReturnsRating = 8;
-        let downsideProtectionRating = 8;
+        let defaultExpenseRatio = 1.65;
+        let altExpenseRatio = 1.15;
+        let returnDiff = 1.35;
+        let rollRating = 8;
+        let downRating = 8;
 
         if (basket === "Rebalance/Churn Catalyst") {
-          currentExpenseRatio = 1.95;
-          alternativeExpenseRatio = 1.15;
-          returnDifference3Y = 2.45;
-          rollingReturnsRating = 4;
-          downsideProtectionRating = 3;
+          defaultExpenseRatio = isDirect ? 0.75 : 1.95;
+          altExpenseRatio = 1.15;
+          returnDiff = 2.45;
+          rollRating = 4;
+          downRating = 3;
         } else if (basket === "Fee-Dragged Peer") {
-          currentExpenseRatio = 1.85;
-          alternativeExpenseRatio = 1.20;
-          returnDifference3Y = 1.80;
-          rollingReturnsRating = 5;
-          downsideProtectionRating = 5;
+          defaultExpenseRatio = isDirect ? 0.65 : 1.85;
+          altExpenseRatio = 1.20;
+          returnDiff = 1.80;
+          rollRating = 5;
+          downRating = 5;
         } else if (basket === "Defensive Anchor") {
-          currentExpenseRatio = 0.95;
-          alternativeExpenseRatio = 0.75;
-          returnDifference3Y = 0.65;
-          rollingReturnsRating = 7;
-          downsideProtectionRating = 9;
+          defaultExpenseRatio = isDirect ? 0.25 : 0.95;
+          altExpenseRatio = 0.75;
+          returnDiff = 0.65;
+          rollRating = 7;
+          downRating = 9;
+        } else {
+          defaultExpenseRatio = isDirect ? 0.70 : 1.65;
+          altExpenseRatio = 1.15;
+          returnDiff = 1.35;
+          rollRating = 8;
+          downRating = 8;
         }
 
-        const indexSeed = (fundName.length + index) % 4;
-        const targetAMCs = ["SBI Mutual Fund", "HDFC Mutual Fund", "ICICI Prudential Mutual Fund", "Quant Mutual Fund"];
-        let selectedAMC = targetAMCs[indexSeed];
+        let currentExpenseRatio = Number(fund.currentExpenseRatio) || 0;
+        if (currentExpenseRatio <= 0.05 || currentExpenseRatio > 3.5) {
+          currentExpenseRatio = defaultExpenseRatio;
+        } else {
+          if (isDirect && currentExpenseRatio > 1.2) {
+            currentExpenseRatio = defaultExpenseRatio;
+          }
+          if (!isDirect && currentExpenseRatio < 0.9) {
+            currentExpenseRatio = defaultExpenseRatio;
+          }
+        }
+
+        let alternativeExpenseRatio = Number(fund.alternativeExpenseRatio) || 0;
+        if (alternativeExpenseRatio <= 0.05 || alternativeExpenseRatio > 3.0) {
+          alternativeExpenseRatio = altExpenseRatio;
+        }
+
+        let returnDifference3Y = Number(fund.returnDifference3Y) || returnDiff;
+
+        const amcList = ["SBI", "HDFC", "ICICI Prudential", "Nippon India", "Quant", "Parag Parikh", "Kotak"];
+        const indexSeed = (fundName.length + index) % amcList.length;
+        let selectedAMC = amcList[indexSeed];
         
-        if (
-          nameLower.includes("sbi") && selectedAMC.includes("SBI") ||
-          nameLower.includes("hdfc") && selectedAMC.includes("HDFC") ||
-          nameLower.includes("icici") && selectedAMC.includes("ICICI") ||
-          nameLower.includes("quant") && selectedAMC.includes("Quant")
-        ) {
-          selectedAMC = targetAMCs[(indexSeed + 1) % 4];
+        const amcKeywords = ["sbi", "hdfc", "icici", "nippon", "quant", "parag parikh", "kotak", "axis", "mirae", "tata"];
+        let currentAMC = "";
+        for (const kw of amcKeywords) {
+          if (nameLower.includes(kw)) {
+            currentAMC = kw;
+            break;
+          }
+        }
+        
+        if (currentAMC) {
+          for (let i = 0; i < amcList.length; i++) {
+            const candidate = amcList[(indexSeed + i) % amcList.length];
+            if (!candidate.toLowerCase().includes(currentAMC)) {
+              selectedAMC = candidate;
+              break;
+            }
+          }
         }
 
-        let categoryLabel = fund.category || "Equity Opportunity";
+        let categoryLabel = fund.category || "Equity";
         let cleanCatLabel = categoryLabel
           .replace(/regular|direct|growth|plan|scheme|class/gi, "")
           .replace(/\s+/g, " ")
@@ -512,7 +626,13 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         if (!cleanCatLabel) {
           cleanCatLabel = "Equity Growth";
         }
-        const betterAlternativeFund = `${selectedAMC} ${cleanCatLabel} Regular Plan`;
+        
+        let schemeCategoryPart = cleanCatLabel;
+        if (!schemeCategoryPart.toLowerCase().includes("fund") && !schemeCategoryPart.toLowerCase().includes("scheme")) {
+          schemeCategoryPart = schemeCategoryPart + " Fund";
+        }
+
+        const betterAlternativeFund = `${selectedAMC} ${schemeCategoryPart} Regular Growth`;
 
         let weight = 1 / parsedData.fundWiseAudit.length;
         if (fund.allocation && typeof fund.allocation === 'string') {
@@ -555,8 +675,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
           alternativeExpenseRatio,
           betterAlternativeFund,
           returnDifference3Y,
-          rollingReturnsRating,
-          downsideProtectionRating,
+          rollingReturnsRating: Number(fund.rollingReturnsRating) || rollRating,
+          downsideProtectionRating: Number(fund.downsideProtectionRating) || downRating,
           switchingExitLoadCost: exitLoad,
           taxImplication: tax,
           fundCAGR,
@@ -576,28 +696,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     };
 
     const val = currentValue;
-    let totalWeightedRate = 0;
-    let totalWeightedPWGRate = 0;
-    let totalWeightSum = 0;
-    auditList.forEach((f: any) => {
-      let weight = 1 / (auditList.length || 1);
-      if (f.allocation && typeof f.allocation === 'string') {
-        const pctMatch = f.allocation.match(/(\d+(?:\.\d+)?)\s*%/);
-        if (pctMatch) {
-          weight = parseFloat(pctMatch[1]) / 100;
-        }
-      }
-      totalWeightedRate += (f.fundCAGR || 12.20) * weight;
-      totalWeightedPWGRate += (f.alternativeCAGR || 14.40) * weight;
-      totalWeightSum += weight;
-    });
-
-    let r_current = totalWeightSum > 0 ? (totalWeightedRate / totalWeightSum) / 100 : 0.122;
-    let r_pwg = totalWeightSum > 0 ? (totalWeightedPWGRate / totalWeightSum) / 100 : 0.144;
-
-    if (r_current < 0.08) r_current = 0.08;
-    if (r_current > 0.16) r_current = 0.16;
-    if (r_pwg < r_current + 0.01) r_pwg = r_current + 0.022;
+    let r_current = portfolioCAGR;
+    let r_pwg = oursOptimizedCAGR;
 
     const projectedValue5YCurrent = Math.round(val * Math.pow(1 + r_current, 5));
     const projectedValue5YPWG = Math.round(val * Math.pow(1 + r_pwg, 5));
@@ -608,7 +708,13 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
       projectedValue5YCurrent,
       projectedValue5YPWG,
       totalExtraWealthEarned,
-      improvementExplanation: parsedData.returnGainsProjection?.improvementExplanation || "Redirecting investment to peer schemes with optimized charges saves up to 0.8% annually, allowing your compound curves to stack much faster over the next five years."
+      improvementExplanation: parsedData.returnGainsProjection?.improvementExplanation || "Redirecting investment to peer schemes with optimized charges saves up to 0.8% annually, allowing your compound curves to stack much faster over the next five years.",
+      portfolioCAGR,
+      niftyCAGR,
+      peerBenchmarkCAGR,
+      oursOptimizedCAGR,
+      earliestInvestmentDate,
+      totalAcquisitionCost
     };
 
     const N = auditList.length;

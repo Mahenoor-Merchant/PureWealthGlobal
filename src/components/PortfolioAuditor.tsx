@@ -100,6 +100,12 @@ interface AuditResult {
     projectedValue5YPWG: number;
     totalExtraWealthEarned: number;
     improvementExplanation: string;
+    portfolioCAGR?: number;
+    niftyCAGR?: number;
+    peerBenchmarkCAGR?: number;
+    oursOptimizedCAGR?: number;
+    earliestInvestmentDate?: string;
+    totalAcquisitionCost?: number;
   };
   switchingCostSummary: {
     totalExitLoad: number;
@@ -1280,6 +1286,600 @@ export default function PortfolioAuditor() {
     }
   };
 
+  const inputMethodsPanel = (
+    <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-5 sm:p-6" id="input-methods-panel">
+      
+      <h2 className="text-base font-black text-slate-900 mb-5 flex items-center gap-2">
+        <Compass className="w-4.5 h-4.5 text-blue-600" />
+        <span>Select Holding Source</span>
+      </h2>
+
+      {/* Action Navigation Tabs */}
+      <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-50 border border-slate-100 rounded-2xl mb-6">
+        <button
+          onClick={() => { setActiveTab("upload"); setErrorStatus(null); }}
+          className={`py-2 px-1 text-[11px] sm:text-[12.5px] font-black rounded-xl transition-all cursor-pointer ${
+            activeTab === "upload" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          Upload CAS PDF
+        </button>
+        <button
+          onClick={() => { setActiveTab("demo"); setErrorStatus(null); }}
+          className={`py-2 px-1 text-[11px] sm:text-[12.5px] font-black rounded-xl transition-all cursor-pointer ${
+            activeTab === "demo" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          Demo Statements
+        </button>
+      </div>
+
+      {/* Tab 1: PDF Upload View */}
+      {activeTab === "upload" && (
+        <div className="space-y-5" id="pdf-upload-view">
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
+              dragActive
+                ? "border-blue-600 bg-blue-50/50"
+                : file
+                ? "border-emerald-500 bg-emerald-50/10 hover:border-emerald-600"
+                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/30"
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            
+            <div className={`p-3 rounded-full ${file ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+              <FileText className="w-5 h-5" />
+            </div>
+
+            {file ? (
+              <div className="space-y-1">
+                <p className="font-extrabold text-[13px] text-slate-855 line-clamp-1">
+                  {file.name}
+                </p>
+                <p className="text-[11px] font-bold text-slate-500">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB • CAS Statement
+                </p>
+                <p className="text-[9.5px] font-black text-emerald-700 uppercase tracking-wider mt-1 inline-block bg-emerald-100/60 px-2 rounded-full">
+                  File Ready
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-[13px] font-black text-slate-700">
+                  Drag and drop your CAS PDF statement, or browse
+                </p>
+                <p className="text-[11px] font-semibold text-slate-400">
+                  Supports encrypted CAMS/KFintech statement files
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Password option */}
+          <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-slate-500" />
+                <span className="text-[12px] font-black text-slate-800">Statement Password Protection</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-medium leading-relaxed text-slate-550">
+              Many CAS statements are encrypted by CAMS/KFintech using your PAN card or Email. Providing the password runs background text miners natively.
+            </p>
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter statement password (e.g. your PAN in CAPITALS or Email)"
+                className="w-full bg-white border border-slate-205 rounded-xl text-xs py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-blue-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-650 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Demo portfolios selection */}
+      {activeTab === "demo" && (
+        <div className="space-y-3" id="demo-choices-view">
+          <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
+            Standard Industry Demo Profiles
+          </label>
+          {DEMO_PORTFOLIOS.map((demo) => (
+            <button
+              key={demo.id}
+              onClick={() => runDemoAudit(demo.id)}
+              className="w-full text-left p-4 rounded-2xl border border-slate-150 bg-white hover:border-blue-500 hover:bg-blue-50/5 transition-all text-xs flex justify-between items-start gap-4 cursor-pointer group hover:shadow-sm"
+            >
+              <div className="space-y-1">
+                <span className="font-extrabold text-slate-855 group-hover:text-blue-700 block">
+                  {demo.title}
+                </span>
+                <p className="text-[11px] font-medium leading-relaxed text-slate-500">
+                  {demo.description}
+                </p>
+                <span className="inline-block text-[9.5px] font-extrabold bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 mt-1 sm:mt-2">
+                   {demo.fundsCount} Funds • Equivalent value ₹{demo.investedAmount.toLocaleString()}
+                </span>
+              </div>
+              <ChevronDown className="w-4.5 h-4.5 text-slate-400 -rotate-90 group-hover:translate-x-1 transition-transform shrink-0 mt-0.5" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Audit Action Button */}
+      {activeTab !== "demo" && (
+        <button
+          onClick={auditPortfolio}
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-extrabold text-[13px] py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-6 cursor-pointer active:scale-[0.98]"
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Processing CAS Statements...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4.5 h-4.5" />
+              <span>Run Deep Diagnostic Audit</span>
+            </>
+          )}
+        </button>
+      )}
+
+      {errorStatus && (
+        <div className="mt-4 p-3 border border-rose-100 bg-rose-50 text-rose-700 rounded-2xl text-[11px] font-extrabold flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{errorStatus}</span>
+        </div>
+      )}
+
+    </div>
+  );
+
+  const whatsappCard = (
+    <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400/80 rounded-3xl shadow-xl p-5 sm:p-6 space-y-4" id="whatsapp-direct-diagnostic-card">
+      
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/60 pb-3">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span>100% Confidential & Secure</span>
+        </div>
+        <span className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          SEBI Compliant Guide
+        </span>
+      </div>
+
+      <div className="space-y-1 text-left">
+        <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-snug">
+          OR Directly Get Your <span className="text-emerald-700 underline decoration-emerald-300">FREE Portfolio Audit Report PDF</span> on WhatsApp & Email 🚀
+        </h3>
+        <p className="text-[11.5px] font-semibold text-slate-500 leading-relaxed">
+          Just share your investment-linked Email ID through WhatsApp and <strong className="text-slate-700">Pure Wealth Global</strong> will handle the entire complex extraction for you!
+        </p>
+      </div>
+
+      {/* Input & Sender button */}
+      <div className="space-y-3 pt-1">
+        <div className="space-y-1 text-left">
+          <label className="text-[9.5px] font-black text-slate-400 uppercase block tracking-wider">
+            Investment-Linked Email Address
+          </label>
+          <input
+            type="email"
+            value={whatsappEmail}
+            onChange={(e) => setWhatsappEmail(e.target.value)}
+            placeholder="e.g. yourname@gmail.com"
+            className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
+          />
+        </div>
+
+        {/* Dynamic Anchor Tag to redirect cleanly to WhatsApp */}
+        {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(whatsappEmail.trim()) ? (
+          <a
+            href={`https://wa.me/917718860398?text=${encodeURIComponent(
+              `Hi Pure Wealth Global! ✅ I would like to receive my FREE Portfolio Audit Report PDF. My investment-linked Email ID is: ${whatsappEmail.trim()}. Please guide with 1:1 Analysis of the Report 📈.`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center animate-pulse"
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>Send to our WhatsApp Now</span>
+            <ArrowUpRight className="w-4 h-4 shrink-0" />
+          </a>
+        ) : (
+          <button
+            disabled
+            className="w-full bg-slate-200 text-slate-400 font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
+          >
+            <span>Enter Valid Email to Send on WhatsApp</span>
+          </button>
+        )}
+      </div>
+
+      {/* Confidence & Encouragement points */}
+      <div className="bg-white/80 border border-emerald-100/50 rounded-2xl p-3 sm:p-4 text-xs space-y-2.5 text-left shadow-sm">
+        <div className="flex gap-2 items-start">
+          <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
+            <ShieldCheck className="w-3.5 h-3.5" />
+          </div>
+          <div className="space-y-0.5">
+            <span className="font-extrabold text-slate-800 block text-[11px]">Zero Shared Passwords Required</span>
+            <span className="text-[10.5px] text-slate-500 leading-normal block">
+              We securely generate detailed audits using authorized statutory distribution rails. Your raw login credentials or state passwords are <strong className="text-emerald-700">never</strong> required.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 items-start">
+          <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
+            <Award className="w-3.5 h-3.5" />
+          </div>
+          <div className="space-y-0.5">
+            <span className="font-extrabold text-slate-800 block text-[11px]">Handled by AMFI Certified Advisors</span>
+            <span className="text-[10.5px] text-slate-500 leading-normal block">
+              Your portfolios are mapped dynamically by professional distribution planners, providing instant clarity on exit loads, high fees, and index overlap.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[10px] font-medium text-slate-400 text-center leading-relaxed">
+        🔒 Pure Wealth Global practices military-grade data protection policies. Your personal details are protected under legal compliance mandates.
+      </p>
+
+    </div>
+  );
+
+  const placeholderAuditCard = (
+    <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-5 sm:p-7 space-y-6" id="placeholder-audit-card">
+      
+      {/* Header */}
+      <div className="text-center space-y-1.5 pb-4 border-b border-slate-100">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[10.5px] font-black uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          Interactive Guide
+        </span>
+        <h3 className="text-[16px] sm:text-[18px] font-black text-slate-900 tracking-tight">
+          How to Get CAS Pdf Statement
+        </h3>
+        <div className="flex items-center justify-center gap-1">
+          <span className="h-[2px] w-6 bg-emerald-500 rounded-full" />
+          <p className="text-[12.5px] font-extrabold text-slate-550 uppercase tracking-widest">
+            3 Easy Steps
+          </p>
+          <span className="h-[2px] w-6 bg-emerald-500 rounded-full" />
+        </div>
+      </div>
+
+      {/* Step 1 */}
+      <div className="space-y-3 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-3">
+          <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            1
+          </span>
+          <div className="space-y-1 text-left">
+            <h4 className="text-[13px] font-black text-slate-800">Go to CAMS Online CAS Portal</h4>
+            <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
+              Navigate to the official CAMS Consolidated Account Statement request page:
+            </p>
+          </div>
+        </div>
+        <div className="pl-9 text-left">
+          <a
+            href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-750 hover:to-indigo-700 text-white font-black text-[11px] tracking-wide px-4 py-2 rounded-xl transition-all shadow-md shadow-blue-500/10 cursor-pointer text-center"
+          >
+            <span>Open CAMS CAS Request Portal</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+
+      {/* Step 2 */}
+      <div className="space-y-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-3">
+          <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            2
+          </span>
+          <div className="space-y-1 text-left">
+            <h4 className="text-[13px] font-black text-slate-800">select Configuration & Statement Type</h4>
+            <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
+              In <strong className="text-slate-700">Statement Type</strong> - configure exactly as illustrated below to capture all your historical, inactive, and active investments:
+            </p>
+          </div>
+        </div>
+
+        {/* Simulated screenshot CSS mockup for Cas SS */}
+        <div className="pl-9">
+          <div className="border border-slate-150 rounded-xl overflow-hidden shadow-sm bg-slate-50/50">
+            
+            {/* Sub-header of browser */}
+            <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-150 flex items-center gap-1.5">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+              </div>
+              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">CAMS Online Simulator</span>
+            </div>
+
+            {/* Content panel */}
+            <div className="p-3.5 space-y-3 text-left font-sans text-[10px] select-none">
+              
+              {/* Statement Type */}
+              <div className="space-y-1">
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Statement Type</span>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <label className="flex items-center gap-1.5 text-slate-405 cursor-not-allowed">
+                    <span className="w-3 h-3 rounded-full border border-slate-300 flex items-center justify-center bg-white"></span>
+                    <span>Summary (Only balances)</span>
+                  </label>
+                  
+                  <label className="flex items-center gap-1.5 text-blue-705 font-black bg-blue-100/30 border border-blue-200 px-2 py-0.5 rounded-md animate-pulse">
+                    <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
+                    <span>Detailed (Includes transaction listing) 🎯</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Period Selection */}
+              <div className="space-y-1">
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Period</span>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <label className="flex items-center gap-1.5 text-slate-405 cursor-not-allowed">
+                    <span className="w-3 h-3 rounded-full border border-slate-300 flex items-center justify-center bg-white"></span>
+                    <span>Current FY</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-blue-705 font-extrabold bg-blue-100/30 border border-blue-150/40 px-2 py-0.5 rounded-md">
+                    <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
+                    <span>Specific Period 🗓️</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* From Date to To Date */}
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <div className="space-y-0.5">
+                  <span className="text-[8px] font-black text-slate-400 uppercase">From Date</span>
+                  <div className="bg-white border border-slate-200 rounded px-2 py-1 font-mono text-[9px] text-slate-650 flex items-center justify-between">
+                    <span>01-Jan-1955</span>
+                    <span className="text-[8px] text-blue-600 font-bold">Since Start 🗓️</span>
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-[8px] font-black text-slate-400 uppercase">To Date</span>
+                  <div className="bg-white border border-slate-200 rounded px-2 py-1 font-mono text-[9px] text-slate-650">
+                    <span>09-Jun-2026</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Folio Listing */}
+              <div className="space-y-1 border-t border-slate-100 pt-2 mt-1">
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Folio Listing</span>
+                <div className="flex flex-col gap-1">
+                  <label className="flex items-center gap-1.5 text-blue-750 font-black bg-blue-100/30 border border-blue-200 px-2 py-1 rounded-md">
+                    <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
+                    <span>With zero balance folios 📌</span>
+                  </label>
+                  <span className="text-[8.5px] font-bold text-slate-500 leading-normal pl-5">
+                    ⚠️ Audits historic, inactive, and active schemes in your statement!
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Step 3 */}
+      <div className="space-y-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-3">
+          <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            3
+          </span>
+          <div className="space-y-1 text-left">
+            <h4 className="text-[13px] font-black text-slate-800">Enter Credentials & Set secure Password</h4>
+            <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
+              Input the <strong className="text-slate-750">Email ID</strong> linked to your investments. <strong className="text-emerald-700 underline decoration-dashed decoration-2 font-extrabold">NO PAN card detail is required</strong> (leave empty!). Enter and confirm a statement password, then click <strong className="text-slate-750">Submit</strong>.
+            </p>
+          </div>
+        </div>
+
+        {/* Simulated Form CSS mockup for Cas ss2 */}
+        <div className="pl-9">
+          <div className="border border-slate-150 rounded-xl overflow-hidden shadow-sm bg-slate-50/50">
+            
+            {/* Sub-header */}
+            <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-150 flex items-center justify-between">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Authentication Credentials</span>
+              <span className="text-[8.5px] font-black text-rose-600 bg-rose-50 px-1.5 rounded-md uppercase">No Pan Required 🔒</span>
+            </div>
+
+            {/* simulated fields */}
+            <div className="p-3.5 space-y-3 text-left font-sans text-[10px] select-none">
+              <div className="grid grid-cols-2 gap-3">
+                
+                {/* Email Field with verify */}
+                <div className="space-y-1">
+                  <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
+                    <span>Email *</span>
+                    <span className="text-[8px] text-emerald-600 font-bold">✓</span>
+                  </label>
+                  <div className="bg-white border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-[8.5px] font-bold text-slate-800 flex items-center justify-between shadow-sm">
+                    <span className="truncate">Enter Email which is linked to Investment</span>
+                  </div>
+                </div>
+
+                {/* PAN Field - crossed out with red X */}
+                <div className="space-y-1 relative">
+                  <label className="text-[8.5px] font-black text-slate-400 uppercase flex items-center gap-1">
+                    <span>PAN (Optional)</span>
+                    <span className="text-[8.5px] text-rose-500 font-extrabold">✕ Not Required</span>
+                  </label>
+                  <div className="bg-slate-105 border border-slate-200 rounded-lg px-2 py-1.5 text-[8.5px] text-slate-400 font-medium line-through decoration-rose-500 decoration-2 flex items-center justify-between">
+                    <span>(Skip/Leave Blank)</span>
+                    <span className="text-[7px] font-black bg-rose-100 text-rose-750 px-1 rounded">No PAN</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                
+                {/* Password Field */}
+                <div className="space-y-1">
+                  <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
+                    <span>Create Password *</span>
+                    <span className="text-[8px] text-emerald-600 font-bold">✓</span>
+                  </label>
+                  <div className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-mono text-slate-700">
+                    ••••••••
+                  </div>
+                </div>
+
+                {/* Confirm Password Field */}
+                <div className="space-y-1">
+                  <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
+                    <span>Confirm Password *</span>
+                    <span className="text-[8px] text-emerald-600 font-bold">✓</span>
+                  </label>
+                  <div className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-mono text-slate-700">
+                    ••••••••
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Submit button simulated */}
+              <div className="pt-1 select-none">
+                <div className="bg-blue-650 text-center py-2 rounded-xl text-white font-black text-[9.5px] uppercase tracking-wide cursor-not-allowed shadow-md">
+                  Submit Request
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Email Inbox Receipt: Cas SS3 */}
+      <div className="space-y-3 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-3">
+          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-[10.5px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            ✓
+          </span>
+          <div className="space-y-1 text-left">
+            <h4 className="text-[13px] font-black text-emerald-855 flex items-center gap-1.5">
+              <span>Check Your Email Inbox</span>
+              <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-855 px-1.5 py-0.5 rounded-md animate-pulse">Email Sent Instantly</span>
+            </h4>
+            <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
+              CAMS will instantly deliver a Consolidated Account Statement PDF directly to your mailbox:
+            </p>
+          </div>
+        </div>
+
+        {/* Simulated Email Inbox Item Mockup */}
+        <div className="pl-9">
+          <div className="bg-slate-50/50 border border-slate-150 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner text-left">
+            <div className="flex gap-2.5 items-center">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-[10px] font-black text-slate-800 block truncate">
+                  CAMS Mailback Server
+                </span>
+                <span className="text-[9.5px] font-medium text-slate-500 block truncate">
+                  Consolidated Account Statement - CAMS Mailback Request - Funds...
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-black bg-emerald-120 text-emerald-800 px-2 py-0.5 rounded-full self-end sm:self-auto shrink-0">
+              📩 PDF Attached
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Download and Fill instructions */}
+      <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/40 border border-blue-150 p-4 sm:p-5 rounded-2xl space-y-4 text-left">
+        <div className="space-y-1.5">
+          <h4 className="text-[13.5px] font-black text-slate-855">
+            4. Download and Decrypt PDF Attachment
+          </h4>
+          <p className="text-[11.5px] text-slate-650 leading-relaxed font-semibold">
+            Download the CAMS Consolidated Account Statement PDF and drag-and-drop or select it in the <strong className="text-blue-700">Upload CAS PDF</strong> section on the left.
+          </p>
+        </div>
+
+        {/* Synchronized Password input */}
+        <div className="bg-white border border-slate-150 p-4 rounded-xl space-y-2.5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+              🔑 Enter CAS Statement Password Below
+            </span>
+            <span className="text-[9px] font-black bg-blue-55 text-blue-700 px-1.5 py-0.5 rounded-full uppercase">
+              Syncs Automatically
+            </span>
+          </div>
+
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter PDF password you set at CAMS Online (in Step 3)"
+              className="w-full bg-slate-55 border border-slate-200 rounded-xl text-[12px] py-3 pl-3.5 pr-10 focus:outline-none focus:border-blue-550 focus:bg-white font-mono font-semibold"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 cursor-pointer"
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-[9.5px] font-semibold text-slate-400 leading-normal">
+            🔒 Decryption occurs fully client-side inside your secure sandbox. Absolutely none of your investments or statement details are saved on external servers.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="portfolio-auditor-root">
       
@@ -1297,294 +1897,43 @@ export default function PortfolioAuditor() {
         </p>
       </div>
 
-      {/* Main Container Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Side: Inputs & Secondary Delivery Stack */}
-        <div className="lg:col-span-5 space-y-6">
-          
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-5 sm:p-6" id="input-methods-panel">
-            
-            <h2 className="text-base font-black text-slate-900 mb-5 flex items-center gap-2">
-              <Compass className="w-4.5 h-4.5 text-blue-600" />
-              <span>Select Holding Source</span>
-            </h2>
-
-            {/* Action Navigation Tabs */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-50 border border-slate-100 rounded-2xl mb-6">
-              <button
-                onClick={() => { setActiveTab("upload"); setErrorStatus(null); }}
-                className={`py-2 px-1 text-[11px] sm:text-[12.5px] font-black rounded-xl transition-all cursor-pointer ${
-                  activeTab === "upload" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Upload CAS PDF
-              </button>
-              <button
-                onClick={() => { setActiveTab("demo"); setErrorStatus(null); }}
-                className={`py-2 px-1 text-[11px] sm:text-[12.5px] font-black rounded-xl transition-all cursor-pointer ${
-                  activeTab === "demo" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Demo Statements
-              </button>
+      {!result ? (
+        <div className="space-y-8 animate-fade-in">
+          {/* Top Row: Select Holding Source and WhatsApp card side-by-side */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-5 col-span-1">
+              {inputMethodsPanel}
             </div>
-
-            {/* Tab 1: PDF Upload View */}
-            {activeTab === "upload" && (
-              <div className="space-y-5" id="pdf-upload-view">
-                <div
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
-                    dragActive
-                      ? "border-blue-600 bg-blue-50/50"
-                      : file
-                      ? "border-emerald-500 bg-emerald-50/10 hover:border-emerald-600"
-                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/30"
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  
-                  <div className={`p-3 rounded-full ${file ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
-                    <FileText className="w-5 h-5" />
-                  </div>
-
-                  {file ? (
-                    <div className="space-y-1">
-                      <p className="font-extrabold text-[13px] text-slate-855 line-clamp-1">
-                        {file.name}
-                      </p>
-                      <p className="text-[11px] font-bold text-slate-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • CAS Statement
-                      </p>
-                      <p className="text-[9.5px] font-black text-emerald-700 uppercase tracking-wider mt-1 inline-block bg-emerald-100/60 px-2 rounded-full">
-                        File Ready
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="text-[13px] font-black text-slate-700">
-                        Drag and drop your CAS PDF statement, or browse
-                      </p>
-                      <p className="text-[11px] font-semibold text-slate-400">
-                        Supports encrypted CAMS/KFintech statement files
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Password option */}
-                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-slate-500" />
-                      <span className="text-[12px] font-black text-slate-800">Statement Password Protection</span>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] font-medium leading-relaxed text-slate-550">
-                    Many CAS statements are encrypted by CAMS/KFintech using your PAN card or Email. Providing the password runs background text miners natively.
-                  </p>
-
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter statement password (e.g. your PAN in CAPITALS or Email)"
-                      className="w-full bg-white border border-slate-205 rounded-xl text-xs py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-blue-500 font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-650 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 2: Demo portfolios selection */}
-            {activeTab === "demo" && (
-              <div className="space-y-3" id="demo-choices-view">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
-                  Standard Industry Demo Profiles
-                </label>
-                {DEMO_PORTFOLIOS.map((demo) => (
-                  <button
-                    key={demo.id}
-                    onClick={() => runDemoAudit(demo.id)}
-                    className="w-full text-left p-4 rounded-2xl border border-slate-150 bg-white hover:border-blue-500 hover:bg-blue-50/5 transition-all text-xs flex justify-between items-start gap-4 cursor-pointer group hover:shadow-sm"
-                  >
-                    <div className="space-y-1">
-                      <span className="font-extrabold text-slate-850 group-hover:text-blue-700 block">
-                        {demo.title}
-                      </span>
-                      <p className="text-[11px] font-medium leading-relaxed text-slate-500">
-                        {demo.description}
-                      </p>
-                      <span className="inline-block text-[9.5px] font-extrabold bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 mt-1 sm:mt-2">
-                         {demo.fundsCount} Funds • Equivalent value ₹{demo.investedAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    <ChevronDown className="w-4.5 h-4.5 text-slate-400 -rotate-90 group-hover:translate-x-1 transition-transform shrink-0 mt-0.5" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Audit Action Button */}
-            {activeTab !== "demo" && (
-              <button
-                onClick={auditPortfolio}
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-extrabold text-[13px] py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-6 cursor-pointer active:scale-[0.98]"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Processing CAS Statements...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4.5 h-4.5" />
-                    <span>Run Deep Diagnostic Audit</span>
-                  </>
-                )}
-              </button>
-            )}
-
-            {errorStatus && (
-              <div className="mt-4 p-3 border border-rose-100 bg-rose-50 text-rose-700 rounded-2xl text-[11px] font-extrabold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{errorStatus}</span>
-              </div>
-            )}
-
+            <div className="lg:col-span-7 col-span-1">
+              {whatsappCard}
+            </div>
           </div>
 
-          {/* Highlighted WhatsApp Direct Delivery Card */}
-          <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400/80 rounded-3xl shadow-xl p-5 sm:p-6 space-y-4" id="whatsapp-direct-diagnostic-card">
-            
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100/60 pb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>100% Confidential & Secure</span>
-              </div>
-              <span className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                SEBI Compliant Guide
-              </span>
-            </div>
-
-            <div className="space-y-1 text-left">
-              <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-snug">
-                OR Directly Get Your <span className="text-emerald-700 underline decoration-emerald-300">FREE Portfolio Audit Report PDF</span> on WhatsApp & Email 🚀
-              </h3>
-              <p className="text-[11.5px] font-semibold text-slate-500 leading-relaxed">
-                Just share your investment-linked Email ID through WhatsApp and <strong className="text-slate-700">Pure Wealth Global</strong> will handle the entire complex extraction for you!
-              </p>
-            </div>
-
-            {/* Input & Sender button */}
-            <div className="space-y-3 pt-1">
-              <div className="space-y-1 text-left">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block tracking-wider">
-                  Investment-Linked Email Address
-                </label>
-                <input
-                  type="email"
-                  value={whatsappEmail}
-                  onChange={(e) => setWhatsappEmail(e.target.value)}
-                  placeholder="e.g. yourname@gmail.com"
-                  className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
-                />
-              </div>
-
-              {/* Dynamic Anchor Tag to redirect cleanly to WhatsApp */}
-              {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(whatsappEmail.trim()) ? (
-                <a
-                  href={`https://wa.me/917718860398?text=${encodeURIComponent(
-                    `Hi Pure Wealth Global! ✅ I would like to receive my FREE Portfolio Audit Report PDF. My investment-linked Email ID is: ${whatsappEmail.trim()}. Please guide with 1:1 Analysis of the Report 📈.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center animate-pulse"
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  <span>Send to our WhatsApp Now</span>
-                  <ArrowUpRight className="w-4 h-4 shrink-0" />
-                </a>
-              ) : (
-                <button
-                  disabled
-                  className="w-full bg-slate-200 text-slate-400 font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
-                >
-                  <span>Enter Valid Email to Send on WhatsApp</span>
-                </button>
-              )}
-            </div>
-
-            {/* Confidence & Encouragement points */}
-            <div className="bg-white/80 border border-emerald-100/50 rounded-2xl p-3 sm:p-4 text-xs space-y-2.5 text-left shadow-sm">
-              <div className="flex gap-2 items-start">
-                <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                </div>
-                <div className="space-y-0.5">
-                  <span className="font-extrabold text-slate-800 block text-[11px]">Zero Shared Passwords Required</span>
-                  <span className="text-[10.5px] text-slate-500 leading-normal block">
-                    We securely generate detailed audits using authorized statutory distribution rails. Your raw login credentials or state passwords are <strong className="text-emerald-700">never</strong> required.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 items-start">
-                <div className="p-1 bg-emerald-100 text-emerald-700 rounded-md shrink-0 mt-0.5">
-                  <Award className="w-3.5 h-3.5" />
-                </div>
-                <div className="space-y-0.5">
-                  <span className="font-extrabold text-slate-800 block text-[11px]">Handled by AMFI Certified Advisors</span>
-                  <span className="text-[10.5px] text-slate-500 leading-normal block">
-                    Your portfolios are mapped dynamically by professional distribution planners, providing instant clarity on exit loads, high fees, and index overlap.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[10px] font-medium text-slate-400 text-center leading-relaxed">
-              🔒 Pure Wealth Global practices military-grade data protection policies. Your personal details are protected under legal compliance mandates.
-            </p>
-
-          </div>
-
+          {/* Bottom Row: How to Get CAS Pdf Statement guide */}
+          {placeholderAuditCard}
         </div>
-
-        {/* Right Side: Audit Results Dashboard */}
-        <div className="lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6" id="dashboard-results-container">
+      ) : (
+        /* Main Container Grid after Audit */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          <AnimatePresence mode="wait">
-            {result ? (
-              <motion.div
-                key="results-loaded"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
-              >
+          {/* Left Side: Inputs & WhatsApp Direct stack */}
+          <div className="lg:col-span-5 space-y-6">
+            {inputMethodsPanel}
+            {whatsappCard}
+          </div>
+
+          {/* Right Side: Audit Results Dashboard */}
+          <div className="lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-5 sm:p-6" id="dashboard-results-container">
+            <AnimatePresence mode="wait">
+              {result && (
+                <motion.div
+                  key="results-loaded"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-8"
+                >
                 
                 {/* Result Top Action Bar */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 border border-slate-150 p-4 rounded-2xl select-none">
@@ -2198,25 +2547,50 @@ export default function PortfolioAuditor() {
                       </span>
                     </div>
 
+                    {result.returnGainsProjection.earliestInvestmentDate && (
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/60 rounded-xl p-3 border border-indigo-150/40 text-xs text-indigo-900 shadow-inner">
+                        <div>
+                          <span className="font-semibold text-indigo-950">Inception Date:</span>{" "}
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100">{result.returnGainsProjection.earliestInvestmentDate}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-indigo-950">Net Acquisition Cost:</span>{" "}
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100">₹{Number(result.returnGainsProjection.totalAcquisitionCost || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-indigo-950">Current Evaluation:</span>{" "}
+                          <span className="font-mono font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-100">₹{Number(result.returnGainsProjection.currentValue || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 items-stretch">
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
                         <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">PORTFOLIO RETURN</span>
                         <div className="text-[16px] font-black text-blue-600 font-mono">
-                          {((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                          {result.returnGainsProjection.portfolioCAGR !== undefined 
+                            ? (result.returnGainsProjection.portfolioCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
+                            : ((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
                         <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Weighted current yield</span>
                       </div>
 
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
                         <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">NIFTY 50 INDEX</span>
-                        <div className="text-[16px] font-black text-slate-700 font-mono">11.45%</div>
+                        <div className="text-[16px] font-black text-slate-700 font-mono">
+                          {result.returnGainsProjection.niftyCAGR !== undefined
+                            ? (result.returnGainsProjection.niftyCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
+                            : "11.45%"}
+                        </div>
                         <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Large Cap baseline</span>
                       </div>
 
                       <div className="bg-white/90 border border-slate-150 p-3 rounded-xl text-center space-y-1 shadow-sm flex flex-col justify-center">
                         <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest block font-sans">PEER BENCHMARK</span>
                         <div className="text-[16px] font-black text-amber-600 font-mono">
-                          {(((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1) - 0.005).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                          {result.returnGainsProjection.peerBenchmarkCAGR !== undefined
+                            ? (result.returnGainsProjection.peerBenchmarkCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
+                            : (((result.returnGainsProjection.projectedValue5YCurrent / result.returnGainsProjection.currentValue) ** (1/5) - 1) - 0.005).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
                         <span className="text-[9px] font-bold text-slate-500 block leading-tight font-sans">Average active fund benchmark</span>
                       </div>
@@ -2227,7 +2601,9 @@ export default function PortfolioAuditor() {
                         </div>
                         <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 RECOMMENDED CORE</span>
                         <div className="text-[19px] font-black text-white leading-none tracking-tight font-mono drop-shadow-md py-1">
-                          {((result.returnGainsProjection.projectedValue5YPWG / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
+                          {result.returnGainsProjection.oursOptimizedCAGR !== undefined
+                            ? (result.returnGainsProjection.oursOptimizedCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
+                            : ((result.returnGainsProjection.projectedValue5YPWG / result.returnGainsProjection.currentValue) ** (1/5) - 1).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })}
                         </div>
                         <span className="text-[8.5px] font-extrabold text-emerald-100 block leading-tight font-sans">
                           Optimized peer strategy return
@@ -2499,334 +2875,13 @@ export default function PortfolioAuditor() {
                 </div>
 
               </motion.div>
-            ) : (
-              <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-5 sm:p-7 space-y-6" id="placeholder-audit-card">
-                
-                {/* Header */}
-                <div className="text-center space-y-1.5 pb-4 border-b border-slate-100">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[10.5px] font-black uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                    Interactive Guide
-                  </span>
-                  <h3 className="text-[16px] sm:text-[18px] font-black text-slate-900 tracking-tight">
-                    How to Get CAS Pdf Statement
-                  </h3>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="h-[2px] w-6 bg-emerald-500 rounded-full" />
-                    <p className="text-[12.5px] font-extrabold text-slate-550 uppercase tracking-widest">
-                      3 Easy Steps
-                    </p>
-                    <span className="h-[2px] w-6 bg-emerald-500 rounded-full" />
-                  </div>
-                </div>
+              )}
+            </AnimatePresence>
 
-                {/* Step 1 */}
-                <div className="space-y-3 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      1
-                    </span>
-                    <div className="space-y-1 text-left">
-                      <h4 className="text-[13px] font-black text-slate-800">Go to CAMS Online CAS Portal</h4>
-                      <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
-                        Navigate to the official CAMS Consolidated Account Statement request page:
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pl-9 text-left">
-                    <a
-                      href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-750 hover:to-indigo-700 text-white font-black text-[11px] tracking-wide px-4 py-2 rounded-xl transition-all shadow-md shadow-blue-500/10 cursor-pointer text-center"
-                    >
-                      <span>Open CAMS CAS Request Portal</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="space-y-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      2
-                    </span>
-                    <div className="space-y-1 text-left">
-                      <h4 className="text-[13px] font-black text-slate-800">select Configuration & Statement Type</h4>
-                      <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
-                        In <strong className="text-slate-700">Statement Type</strong> - configure exactly as illustrated below to capture all your historical, inactive, and active investments:
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Simulated screenshot CSS mockup for Cas SS */}
-                  <div className="pl-9">
-                    <div className="border border-slate-150 rounded-xl overflow-hidden shadow-sm bg-slate-50/50">
-                      
-                      {/* Sub-header of browser */}
-                      <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-150 flex items-center gap-1.5">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                          <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                          <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                        </div>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">CAMS Online Simulator</span>
-                      </div>
-
-                      {/* Content panel */}
-                      <div className="p-3.5 space-y-3 text-left font-sans text-[10px] select-none">
-                        
-                        {/* Statement Type */}
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Statement Type</span>
-                          <div className="flex flex-wrap gap-4 items-center">
-                            <label className="flex items-center gap-1.5 text-slate-405 cursor-not-allowed">
-                              <span className="w-3 h-3 rounded-full border border-slate-300 flex items-center justify-center bg-white"></span>
-                              <span>Summary (Only balances)</span>
-                            </label>
-                            
-                            <label className="flex items-center gap-1.5 text-blue-705 font-black bg-blue-100/30 border border-blue-200 px-2 py-0.5 rounded-md animate-pulse">
-                              <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
-                              <span>Detailed (Includes transaction listing) 🎯</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Period Selection */}
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Period</span>
-                          <div className="flex flex-wrap gap-4 items-center">
-                            <label className="flex items-center gap-1.5 text-slate-405 cursor-not-allowed">
-                              <span className="w-3 h-3 rounded-full border border-slate-300 flex items-center justify-center bg-white"></span>
-                              <span>Current FY</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 text-blue-705 font-extrabold bg-blue-100/30 border border-blue-150/40 px-2 py-0.5 rounded-md">
-                              <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
-                              <span>Specific Period 🗓️</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* From Date to To Date */}
-                        <div className="grid grid-cols-2 gap-2 pt-0.5">
-                          <div className="space-y-0.5">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">From Date</span>
-                            <div className="bg-white border border-slate-200 rounded px-2 py-1 font-mono text-[9px] text-slate-650 flex items-center justify-between">
-                              <span>01-Jan-1955</span>
-                              <span className="text-[8px] text-blue-600 font-bold">Since Start 🗓️</span>
-                            </div>
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">To Date</span>
-                            <div className="bg-white border border-slate-200 rounded px-2 py-1 font-mono text-[9px] text-slate-650">
-                              <span>09-Jun-2026</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Folio Listing */}
-                        <div className="space-y-1 border-t border-slate-100 pt-2 mt-1">
-                          <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Folio Listing</span>
-                          <div className="flex flex-col gap-1">
-                            <label className="flex items-center gap-1.5 text-blue-750 font-black bg-blue-100/30 border border-blue-200 px-2 py-1 rounded-md">
-                              <span className="w-3 h-3 rounded-full border-4 border-blue-600 flex items-center justify-center bg-white shrink-0"></span>
-                              <span>With zero balance folios 📌</span>
-                            </label>
-                            <span className="text-[8.5px] font-bold text-slate-500 leading-normal pl-5">
-                              ⚠️ Audits historic, inactive, and active schemes in your statement!
-                            </span>
-                          </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="space-y-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      3
-                    </span>
-                    <div className="space-y-1 text-left">
-                      <h4 className="text-[13px] font-black text-slate-800">Enter Credentials & Set secure Password</h4>
-                      <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
-                        Input the <strong className="text-slate-750">Email ID</strong> linked to your investments. <strong className="text-emerald-700 underline decoration-dashed decoration-2 font-extrabold">NO PAN card detail is required</strong> (leave empty!). Enter and confirm a statement password, then click <strong className="text-slate-750">Submit</strong>.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Simulated Form CSS mockup for Cas ss2 */}
-                  <div className="pl-9">
-                    <div className="border border-slate-150 rounded-xl overflow-hidden shadow-sm bg-slate-50/50">
-                      
-                      {/* Sub-header */}
-                      <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-150 flex items-center justify-between">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Authentication Credentials</span>
-                        <span className="text-[8.5px] font-black text-rose-600 bg-rose-50 px-1.5 rounded-md uppercase">No Pan Required 🔒</span>
-                      </div>
-
-                      {/* simulated fields */}
-                      <div className="p-3.5 space-y-3 text-left font-sans text-[10px] select-none">
-                        <div className="grid grid-cols-2 gap-3">
-                          
-                          {/* Email Field with verify */}
-                          <div className="space-y-1">
-                            <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
-                              <span>Email *</span>
-                              <span className="text-[8px] text-emerald-600 font-bold">✓</span>
-                            </label>
-                            <div className="bg-white border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-[8.5px] font-bold text-slate-800 flex items-center justify-between shadow-sm">
-                              <span className="truncate">Enter Email which is linked to Investment</span>
-                            </div>
-                          </div>
-
-                          {/* PAN Field - crossed out with red X */}
-                          <div className="space-y-1 relative">
-                            <label className="text-[8.5px] font-black text-slate-400 uppercase flex items-center gap-1">
-                              <span>PAN (Optional)</span>
-                              <span className="text-[8.5px] text-rose-500 font-extrabold">✕ Not Required</span>
-                            </label>
-                            <div className="bg-slate-105 border border-slate-200 rounded-lg px-2 py-1.5 text-[8.5px] text-slate-400 font-medium line-through decoration-rose-500 decoration-2 flex items-center justify-between">
-                              <span>(Skip/Leave Blank)</span>
-                              <span className="text-[7px] font-black bg-rose-100 text-rose-750 px-1 rounded">No PAN</span>
-                            </div>
-                          </div>
-
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          
-                          {/* Password Field */}
-                          <div className="space-y-1">
-                            <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
-                              <span>Create Password *</span>
-                              <span className="text-[8px] text-emerald-600 font-bold">✓</span>
-                            </label>
-                            <div className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-mono text-slate-700">
-                              ••••••••
-                            </div>
-                          </div>
-
-                          {/* Confirm Password Field */}
-                          <div className="space-y-1">
-                            <label className="text-[8.5px] font-black text-slate-500 uppercase flex items-center gap-1">
-                              <span>Confirm Password *</span>
-                              <span className="text-[8px] text-emerald-600 font-bold">✓</span>
-                            </label>
-                            <div className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-mono text-slate-700">
-                              ••••••••
-                            </div>
-                          </div>
-
-                        </div>
-
-                        {/* Submit button simulated */}
-                        <div className="pt-1 select-none">
-                          <div className="bg-blue-650 text-center py-2 rounded-xl text-white font-black text-[9.5px] uppercase tracking-wide cursor-not-allowed shadow-md">
-                            Submit Request
-                          </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Email Inbox Receipt: Cas SS3 */}
-                <div className="space-y-3 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-[10.5px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      ✓
-                    </span>
-                    <div className="space-y-1 text-left">
-                      <h4 className="text-[13px] font-black text-emerald-850 flex items-center gap-1.5">
-                        <span>Check Your Email Inbox</span>
-                        <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-850 px-1.5 py-0.5 rounded-md animate-pulse">Email Sent Instantly</span>
-                      </h4>
-                      <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
-                        CAMS will instantly deliver a Consolidated Account Statement PDF directly to your mailbox:
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Simulated Email Inbox Item Mockup */}
-                  <div className="pl-9">
-                    <div className="bg-slate-50/50 border border-slate-150 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner text-left">
-                      <div className="flex gap-2.5 items-center">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-[10px] font-black text-slate-800 block truncate">
-                            CAMS Mailback Server
-                          </span>
-                          <span className="text-[9.5px] font-medium text-slate-500 block truncate">
-                            Consolidated Account Statement - CAMS Mailback Request - Funds...
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-black bg-emerald-120 text-emerald-800 px-2 py-0.5 rounded-full self-end sm:self-auto shrink-0">
-                        📩 PDF Attached
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Download and Fill instructions */}
-                <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/40 border border-blue-150 p-4 sm:p-5 rounded-2xl space-y-4 text-left">
-                  <div className="space-y-1.5">
-                    <h4 className="text-[13.5px] font-black text-slate-850">
-                      4. Download and Decrypt PDF Attachment
-                    </h4>
-                    <p className="text-[11.5px] text-slate-650 leading-relaxed font-semibold">
-                      Download the CAMS Consolidated Account Statement PDF and drag-and-drop or select it in the <strong className="text-blue-700">Upload CAS PDF</strong> section on the left.
-                    </p>
-                  </div>
-
-                  {/* Synchronized Password input */}
-                  <div className="bg-white border border-slate-150 p-4 rounded-xl space-y-2.5 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                        🔑 Enter CAS Statement Password Below
-                      </span>
-                      <span className="text-[9px] font-black bg-blue-55 text-blue-700 px-1.5 py-0.5 rounded-full uppercase">
-                        Syncs Automatically
-                      </span>
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter PDF password you set at CAMS Online (in Step 3)"
-                        className="w-full bg-slate-55 border border-slate-200 rounded-xl text-[12px] py-3 pl-3.5 pr-10 focus:outline-none focus:border-blue-550 focus:bg-white font-mono font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 cursor-pointer"
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-[9.5px] font-semibold text-slate-400 leading-normal">
-                      🔒 Decryption occurs fully client-side inside your secure sandbox. Absolutely none of your investments or statement details are saved on external servers.
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-            )}
-          </AnimatePresence>
+          </div>
 
         </div>
-
-      </div>
+      )}
 
     </div>
   );

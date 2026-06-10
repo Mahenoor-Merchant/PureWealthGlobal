@@ -680,9 +680,18 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Portfolio Auditor Backend successfully booted on port ${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Portfolio Auditor Backend successfully booted on port ${PORT}`);
+    });
+  }
+
+  return app;
 }
 
-startServer();
+// Export the Express app for serverless environments like Vercel
+const appPromise = startServer();
+export default async function (req: any, res: any) {
+  const app = await appPromise;
+  return app(req, res);
+}

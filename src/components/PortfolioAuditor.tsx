@@ -682,7 +682,7 @@ export default function PortfolioAuditor() {
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      const targetFrameElement = (iframeDoc.body.firstElementChild as HTMLElement) || tempContainer;
+      const targetFrameElement = iframeDoc.body.firstElementChild || tempContainer;
 
       // Run html2pdf
       html2pdf()

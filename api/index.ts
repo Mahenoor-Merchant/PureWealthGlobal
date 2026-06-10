@@ -324,26 +324,17 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
       }
 
       // Implement robust exponential backoff retry with model fallback for 503/429 errors
-      const getResponseVal = async (retries = 2, delay = 1000): Promise<any> => {
+      const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
         const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-3.5-flash";
-        const attemptNum = 3 - retries; // max 3 attempts
-        const timeoutMs = 15000;
         try {
-          const contentsLength = JSON.stringify(contents).length;
-          console.log(`[Portfolio Audit Debug] Attempt ${attemptNum} | Model: ${modelName} | Payload size: ~${contentsLength} chars`);
-          console.log(`[Portfolio Audit Debug] Timestamp BEFORE call: ${new Date().toISOString()}`);
-          
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(new Error(`Timeout of ${timeoutMs}ms exceeded`)), timeoutMs);
-
-          const generatePromise = ai.models.generateContent({
+          console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
+          return await ai.models.generateContent({
             model: modelName,
             contents: contents,
             config: {
               responseMimeType: "application/json",
               temperature: 0.0,
               seed: 42,
-              httpOptions: { timeout: timeoutMs }, // Ensure Vercel edge/node fetch times out correctly natively if using genai SDK 2.x
               responseSchema: {
                 type: Type.OBJECT,
                 properties: {
@@ -442,40 +433,19 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
               }
             },
           });
-          
-          const result = await Promise.race([
-            generatePromise,
-            new Promise<any>((_, reject) => {
-              controller.signal.addEventListener("abort", () => {
-                reject(controller.signal.reason || new Error("Timeout exceeded"));
-              });
-            })
-          ]);
-          clearTimeout(timeoutId);
-
-          console.log(`[Portfolio Audit Debug] Timestamp AFTER call: ${new Date().toISOString()}`);
-          console.log(`[Portfolio Audit Debug] Response text length: ~${(result.text || "").length} chars`);
-          return result;
         } catch (err: any) {
-          console.log(`[Portfolio Audit Debug] Timestamp ERROR caught: ${new Date().toISOString()}`);
           const errMsg = err.message || String(err);
-          console.error(`[Portfolio Audit Debug] Attempt ${attemptNum} failed with error:`, err);
-          
-          if (retries === 0) {
-            throw new Error("The analysis service is busy right now — please try again in a minute.");
-          }
-
-          const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand") || errMsg.includes("Timeout");
+          const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand");
           if (retries > 0 && isTransient) {
             console.warn(`[Portfolio Audit] Transient error encountered (code/msg: ${errMsg.slice(0, 150)}). Retrying in ${delay}ms...`);
             await new Promise((resolve) => setTimeout(resolve, delay));
-            return getResponseVal(retries - 1, delay * 2.0);
+            return getResponseVal(retries - 1, delay * 2.2);
           }
           throw err;
         }
       };
 
-      const response = await getResponseVal(2, 1000);
+      const response = await getResponseVal(3, 1500);
 
       const parsedData = JSON.parse(response.text || "{}");
 

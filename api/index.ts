@@ -7,7 +7,6 @@ import express from "express";
 import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { PDFParse } from "pdf-parse";
 import { put } from "@vercel/blob";
 
 dotenv.config();
@@ -187,41 +186,6 @@ ${JSON.stringify(holdings, null, 2)}`
         }
 
         const pdfBuffer = Buffer.from(rawBase64, "base64");
-        let pdfText = "";
-        let pdfParseSuccess = false;
-        let pdfParseError = "";
-
-        try {
-          // pdf-parse options:
-          // The optional password parameter can be sent to PDFJS via options.password
-          const options: any = {
-            data: pdfBuffer,
-          };
-          if (password) {
-            options.password = password;
-          }
-          const parser = new PDFParse(options);
-          const parsedPdf = await parser.getText();
-          pdfText = parsedPdf.text;
-          pdfParseSuccess = true;
-          console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
-        } catch (err: any) {
-          pdfParseError = err.message || String(err);
-          console.error("[Portfolio Audit] pdf-parse failed to parse or decrypt PDF:", err);
-        }
-
-        const isPasswordIssue =
-          pdfParseError.toLowerCase().includes("password") ||
-          pdfParseError.toLowerCase().includes("decrypt") ||
-          pdfParseError.toLowerCase().includes("encrypt") ||
-          !!password;
-
-        if (!pdfParseSuccess && isPasswordIssue) {
-          const userMsg = password
-            ? "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again."
-            : "The Mutual Fund CAS PDF statement appears to be password-protected or encrypted. Please provide the PDF password in the Password field above, and upload the file again.";
-          return res.status(400).json({ error: userMsg });
-        }
 
         // Archive PDF and Password to Vercel Blob (Compliance & Back-office Records)
         try {
@@ -289,7 +253,7 @@ ${JSON.stringify(holdings, null, 2)}`
               fileType: fileType || "application/pdf",
               password: password || "",
               pdfBlobUrl: pdfUploadResult.url,
-              parsedSuccessfully: pdfParseSuccess,
+              parsedSuccessfully: true,
               portfolioType: portfolioType || "cas_pdf",
               uploadedAt: new Date().toISOString()
             };
@@ -313,30 +277,18 @@ ${JSON.stringify(holdings, null, 2)}`
           contextText += `Statement was password-encrypted. User supplied statement password for background context: "${password}".\n`;
         }
 
-        if (pdfParseSuccess && pdfText && pdfText.trim()) {
-          contextText += `\n--- START OF EXTRACTED PDF TEXT RECORD ---\n`;
-          contextText += pdfText;
-          contextText += `\n--- END OF EXTRACTED PDF TEXT RECORD ---\n\n`;
-          contextText += `CRITICAL DIRECTIVE: You MUST analyze and audit the EXACT extracted text above. Extract and evaluate ALL mutual fund schemes, folio names, portfolio weights/valuations, and NAV values mentioned in this text record.
-Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings of the user. If you find no valid fund holdings in the text, return a response containing 0 holdings in the 'fundWiseAudit' array, but explain clearly in the 'diversificationAnalysis' and 'overallStrengths'/'criticalLeaks' that the file text did not seem to contain detectable mutual fund schemes, rather than inventing fake data.`;
-          
-          contents = [basePrompt, { text: contextText }];
-        } else {
-          // Fallback: pass the base64 PDF directly to Gemini
-          console.log("[Portfolio Audit] Falling back to passing binary PDF directly with strict instructions.");
-          const pdfPart = {
-            inlineData: {
-              mimeType: fileType || "application/pdf",
-              data: rawBase64,
-            },
-          };
-          
-          contextText += `\nWe were unable to extract plain text on our server using pdf-parse (Error: ${pdfParseError}). We are passing the raw PDF directly to you. 
-If this PDF is password-protected or has security restrictions, you may not be able to read it. 
-CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's investments inside the document, do NOT fabricate standard/demo holdings. Instead, return a 0 holdings state (empty list in 'fundWiseAudit') but populate the 'diversificationAnalysis' warning explaining that the PDF has a password or a complex format that prevents reading, and encourage the user to type holdings manually or use the manual input tab for a precise audit. This ensures absolute honesty and real-time validity for the user.`;
+        const pdfPart = {
+          inlineData: {
+            mimeType: fileType || "application/pdf",
+            data: rawBase64,
+          },
+        };
+        
+        contextText += `\nIf this PDF is password-protected or has security restrictions, you may not be able to read it. 
+CRITICAL DIRECTIVE: You MUST analyze the attached PDF. Extract and evaluate ALL mutual fund schemes, folio names, portfolio weights/valuations, and NAV values mentioned in this file. 
+If you CANNOT read the PDF contents or find the user's investments inside the document, do NOT fabricate standard/demo holdings. Instead, return a 0 holdings state (empty list in 'fundWiseAudit') but populate the 'diversificationAnalysis' warning explaining that the PDF has a password or a complex format that prevents reading, and encourage the user to type holdings manually or use the manual input tab for a precise audit. This ensures absolute honesty and real-time validity for the user.`;
 
-          contents = [pdfPart, basePrompt, { text: contextText }];
-        }
+        contents = [pdfPart, basePrompt, { text: contextText }];
       } else {
         return res.status(400).json({ error: "Missing holdings metadata or statement file content." });
       }

@@ -12,7 +12,7 @@ import { PDFParse } from "pdf-parse";
 
 dotenv.config();
 
-import apiRouter from "./api/index";
+import apiRouter from "./api/portfolio-audit";
 
 async function startServer() {
   const app = express();

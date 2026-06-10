@@ -8,7 +8,6 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { PDFParse } from "pdf-parse";
 
 dotenv.config();
 

@@ -1,6 +1,6 @@
 import express from "express";
 import { GoogleGenAI, Type } from "@google/genai";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -179,12 +179,11 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       let pdfParseError = "";
 
       try {
-        const options: any = { data: pdfBuffer };
+        const options: any = {};
         if (password) {
           options.password = password;
         }
-        const parser = new PDFParse(options);
-        const parsedPdf = await parser.getText();
+        const parsedPdf = await pdfParse(pdfBuffer, options);
         pdfText = parsedPdf.text;
         pdfParseSuccess = true;
         console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);

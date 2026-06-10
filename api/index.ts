@@ -326,9 +326,13 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
       // Implement robust exponential backoff retry with model fallback for 503/429 errors
       const getResponseVal = async (retries = 3, delay = 1500): Promise<any> => {
         const modelName = retries <= 0 ? "gemini-flash-latest" : "gemini-2.5-flash";
+        const attemptNum = 4 - retries; // max 4 attempts
         try {
-          console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
-          return await ai.models.generateContent({
+          const contentsLength = JSON.stringify(contents).length;
+          console.log(`[Portfolio Audit Debug] Attempt ${attemptNum} | Model: ${modelName} | Payload size: ~${contentsLength} chars`);
+          console.log(`[Portfolio Audit Debug] Timestamp BEFORE call: ${new Date().toISOString()}`);
+          
+          const result = await ai.models.generateContent({
             model: modelName,
             contents: contents,
             config: {
@@ -433,8 +437,14 @@ Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings 
               }
             },
           });
+          
+          console.log(`[Portfolio Audit Debug] Timestamp AFTER call: ${new Date().toISOString()}`);
+          console.log(`[Portfolio Audit Debug] Response text length: ~${(result.text || "").length} chars`);
+          return result;
         } catch (err: any) {
+          console.log(`[Portfolio Audit Debug] Timestamp ERROR caught: ${new Date().toISOString()}`);
           const errMsg = err.message || String(err);
+          console.error(`[Portfolio Audit Debug] Attempt ${attemptNum} failed with error:`, err);
           const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand");
           if (retries > 0 && isTransient) {
             console.warn(`[Portfolio Audit] Transient error encountered (code/msg: ${errMsg.slice(0, 150)}). Retrying in ${delay}ms...`);

@@ -227,6 +227,9 @@ ${JSON.stringify(holdings, null, 2)}`
           // Helper to robustly clean environment variable copies/quotes
           const cleanTokenValue = (raw: string | undefined): string => {
             if (!raw) return "";
+            if (raw.includes("•") || raw.includes("●") || raw.includes("*")) {
+              console.warn("[Vercel Blob] WARNING: The provided token appears to be masked. Please copy the revealed token from Vercel.");
+            }
             let val = raw.trim();
             // Handle complete line copy-pastes like: BLOB_READ_WRITE_TOKEN="blob_readwrite_..."
             if (val.includes("=")) {

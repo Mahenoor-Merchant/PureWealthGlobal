@@ -225,15 +225,18 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       let isWrongPassword = false;
       let isPasswordRequired = false;
 
-      if (!pdfParseSuccess && pdfParseErrorName === "PasswordException") {
-        if (pdfParseErrorCode === 2) {
-          isWrongPassword = true;
-        } else if (pdfParseErrorCode === 1) {
+      if (!pdfParseSuccess) {
+        const lowerErr = (pdfParseError || "").toLowerCase();
+        
+        if (pdfParseErrorName === "PasswordException" || lowerErr.includes("password exception")) {
+          if (pdfParseErrorCode === 2 || lowerErr.includes("incorrect password")) {
+            isWrongPassword = true;
+          } else if (pdfParseErrorCode === 1 || lowerErr.includes("no password given")) {
+            isPasswordRequired = true;
+          }
+        } else if (pdfParseErrorCode === 1 || lowerErr.includes("no password given")) {
           isPasswordRequired = true;
-        }
-      } else if (!pdfParseSuccess) {
-        const lowerErr = pdfParseError.toLowerCase();
-        if (lowerErr.includes("incorrect") && lowerErr.includes("password")) {
+        } else if (pdfParseErrorCode === 2 || (lowerErr.includes("incorrect") && lowerErr.includes("password"))) {
           isWrongPassword = true;
         } else if (lowerErr.includes("password") || lowerErr.includes("decrypt") || lowerErr.includes("encrypt")) {
           if (password) {

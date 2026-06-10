@@ -196,37 +196,66 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       let pdfText = "";
       let pdfParseSuccess = false;
       let pdfParseError = "";
+      let pdfParseErrorName: string | null = null;
+      let pdfParseErrorCode: number | null = null;
 
       try {
         const options: any = {};
-        if (password) {
-          options.password = password;
+        const trimmedPassword = password ? String(password).trim() : "";
+        if (trimmedPassword) {
+          options.password = trimmedPassword;
         }
         const parsedPdf = await pdfParse(pdfBuffer, options);
-        pdfText = parsedPdf.text || parsedPdf;
         if (typeof parsedPdf === "string") {
           pdfText = parsedPdf;
-        } else if (parsedPdf && parsedPdf.text) {
+        } else if (parsedPdf && typeof parsedPdf.text === "string") {
           pdfText = parsedPdf.text;
+        } else {
+          pdfText = "";
         }
         pdfParseSuccess = true;
         console.log(`[Portfolio Audit] Successfully parsed PDF with pdf-parse. Extracted ${pdfText ? pdfText.length : 0} characters of text.`);
       } catch (err: any) {
         pdfParseError = err.message || String(err);
+        pdfParseErrorName = err.name || null;
+        pdfParseErrorCode = err.code || null;
         console.error("[Portfolio Audit] pdf-parse failed to parse or decrypt PDF:", err);
       }
 
-      const isPasswordIssue =
-        pdfParseError.toLowerCase().includes("password") ||
-        pdfParseError.toLowerCase().includes("decrypt") ||
-        pdfParseError.toLowerCase().includes("encrypt") ||
-        !!password;
+      let isWrongPassword = false;
+      let isPasswordRequired = false;
 
-      if (!pdfParseSuccess && isPasswordIssue) {
-        const userMsg = password
-          ? "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again."
-          : "The Mutual Fund CAS PDF statement appears to be password-protected or encrypted. Please provide the PDF password in the Password field above, and upload the file again.";
-        return res.status(400).json({ error: userMsg });
+      if (!pdfParseSuccess && pdfParseErrorName === "PasswordException") {
+        if (pdfParseErrorCode === 2) {
+          isWrongPassword = true;
+        } else if (pdfParseErrorCode === 1) {
+          isPasswordRequired = true;
+        }
+      } else if (!pdfParseSuccess) {
+        const lowerErr = pdfParseError.toLowerCase();
+        if (lowerErr.includes("incorrect") && lowerErr.includes("password")) {
+          isWrongPassword = true;
+        } else if (lowerErr.includes("password") || lowerErr.includes("decrypt") || lowerErr.includes("encrypt")) {
+          if (password) {
+            isWrongPassword = true;
+          } else {
+            isPasswordRequired = true;
+          }
+        }
+      }
+
+      if (!pdfParseSuccess && (isWrongPassword || isPasswordRequired)) {
+        if (isWrongPassword) {
+          return res.status(400).json({ 
+            error: "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again.",
+            reason: "WRONG_PASSWORD"
+          });
+        } else {
+          return res.status(400).json({ 
+            error: "The Mutual Fund CAS PDF statement appears to be password-protected or encrypted. Please provide the PDF password in the Password field above, and upload the file again.",
+            reason: "PASSWORD_REQUIRED"
+          });
+        }
       }
 
       let contextText = `The user uploaded a Mutual Fund CAS/Holding statement file: "${fileName}".\n`;

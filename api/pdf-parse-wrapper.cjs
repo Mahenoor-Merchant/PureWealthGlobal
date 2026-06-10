@@ -1,5 +1,10 @@
 let cachedMod = null;
 
+// Static references to force bundlers (like Vercel NFT / esbuild) to include these files in the deployment
+try {
+  require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+} catch (e) {}
+
 async function getPDFParseClass() {
   if (!cachedMod) {
     cachedMod = await import('pdf-parse');

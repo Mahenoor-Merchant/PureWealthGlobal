@@ -636,7 +636,7 @@ export default function PortfolioAuditor() {
     </div>
     `;
 
-    // Wait 400ms for window scroll to completely settle and text resources to layout correctly
+    // Wait 1000ms for window scroll to completely settle and text/fonts to layout correctly
     setTimeout(() => {
       const options = {
         margin: [0, 0, 0, 0] as [number, number, number, number],
@@ -648,7 +648,15 @@ export default function PortfolioAuditor() {
           logging: true,
           scrollX: 0,
           scrollY: 0,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          onclone: (clonedDoc: HTMLDocument) => {
+            // Remove style tags and external stylesheets from the cloned document
+            // This prevents html2canvas from attempting to parse modern Tailwind v4 CSS (like oklch)
+            // which often causes it to crash and produce a blank PDF.
+            // Our tempContainer has fully inline styles, so it will render correctly without global CSS.
+            const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+            styles.forEach(s => s.remove());
+          }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -672,6 +680,7 @@ export default function PortfolioAuditor() {
         })
         .catch((err: any) => {
           console.error("PDF generation failure: ", err);
+          console.error("Stringified error: ", JSON.stringify(err, Object.getOwnPropertyNames(err)));
           if (document.body.contains(tempContainer)) {
             document.body.removeChild(tempContainer);
           }

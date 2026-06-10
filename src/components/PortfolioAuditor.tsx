@@ -193,18 +193,46 @@ export default function PortfolioAuditor() {
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
 
-    // Create container
-    const tempContainer = document.createElement("div");
-    tempContainer.style.position = "absolute";
-    tempContainer.style.top = "0px";
-    tempContainer.style.left = "0px";
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '820px';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      console.error("Iframe document not accessible for PDF generation.");
+      setPdfLoading(false);
+      return;
+    }
+
+    // Open iframe document and prepare base structure
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Report</title>
+        <style>
+          body { padding: 0; margin: 0; background: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+          * { box-sizing: border-box; }
+        </style>
+      </head>
+      <body>
+        <div id="pdf-root"></div>
+      </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // Create container inside iframe
+    const tempContainer = iframeDoc.createElement("div");
     tempContainer.style.width = "820px"; // width for crisp rendering before converting
-    tempContainer.style.zIndex = "99999"; // positive z-index so browser fully paints the nodes
-    tempContainer.style.pointerEvents = "none";
     tempContainer.style.background = "#ffffff";
     tempContainer.style.color = "#1e293b";
-    tempContainer.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    document.body.appendChild(tempContainer);
+    iframeDoc.getElementById('pdf-root')?.appendChild(tempContainer);
 
     // Watermark style tag
     const watermarkHTML = `
@@ -636,7 +664,7 @@ export default function PortfolioAuditor() {
     </div>
     `;
 
-    // Wait 1000ms for window scroll to completely settle and text/fonts to layout correctly
+    // Wait 1000ms for iframe window to lay out fonts and text resources correctly
     setTimeout(() => {
       const options = {
         margin: [0, 0, 0, 0] as [number, number, number, number],
@@ -648,29 +676,23 @@ export default function PortfolioAuditor() {
           logging: true,
           scrollX: 0,
           scrollY: 0,
-          backgroundColor: '#ffffff',
-          onclone: (clonedDoc: HTMLDocument) => {
-            // Remove style tags and external stylesheets from the cloned document
-            // This prevents html2canvas from attempting to parse modern Tailwind v4 CSS (like oklch)
-            // which often causes it to crash and produce a blank PDF.
-            // Our tempContainer has fully inline styles, so it will render correctly without global CSS.
-            const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
-            styles.forEach(s => s.remove());
-          }
+          backgroundColor: '#ffffff'
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
+      const targetFrameElement = iframeDoc.body.firstElementChild || tempContainer;
+
       // Run html2pdf
       html2pdf()
         .set(options)
-        .from(tempContainer)
+        .from(targetFrameElement)
         .save()
         .then(() => {
           // Cleanup & scroll restoration
-          if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
           }
           setPdfLoading(false);
           // Restore original scroll behaviors
@@ -681,8 +703,8 @@ export default function PortfolioAuditor() {
         .catch((err: any) => {
           console.error("PDF generation failure: ", err);
           console.error("Stringified error: ", JSON.stringify(err, Object.getOwnPropertyNames(err)));
-          if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
           }
           setPdfLoading(false);
           // Restore original scroll behaviors
@@ -690,7 +712,7 @@ export default function PortfolioAuditor() {
           document.body.style.scrollBehavior = originalBodyScrollBehavior;
           window.scrollTo(currentScrollX, currentScrollY);
         });
-    }, 400);
+    }, 1000);
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);

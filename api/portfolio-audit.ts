@@ -1,18 +1,25 @@
-if (typeof globalThis.DOMMatrix === 'undefined') {
-  (globalThis as any).DOMMatrix = class DOMMatrix { constructor() {} };
-}
-if (typeof globalThis.ImageData === 'undefined') {
-  (globalThis as any).ImageData = class ImageData { constructor() {} };
-}
-if (typeof globalThis.Path2D === 'undefined') {
-  (globalThis as any).Path2D = class Path2D { constructor() {} };
-}
-
 import express from "express";
 import { GoogleGenAI, Type } from "@google/genai";
-import * as pdfParseModule from "pdf-parse";
-const PDFParse = (pdfParseModule as any).PDFParse;
 import dotenv from "dotenv";
+
+if (typeof (globalThis as any).DOMMatrix === 'undefined') {
+  (globalThis as any).DOMMatrix = class DOMMatrix { constructor() {} };
+}
+if (typeof (globalThis as any).ImageData === 'undefined') {
+  (globalThis as any).ImageData = class ImageData { constructor() {} };
+}
+if (typeof (globalThis as any).Path2D === 'undefined') {
+  (globalThis as any).Path2D = class Path2D { constructor() {} };
+}
+if (typeof (global as any).DOMMatrix === 'undefined') {
+  (global as any).DOMMatrix = class DOMMatrix { constructor() {} };
+}
+if (typeof (global as any).ImageData === 'undefined') {
+  (global as any).ImageData = class ImageData { constructor() {} };
+}
+if (typeof (global as any).Path2D === 'undefined') {
+  (global as any).Path2D = class Path2D { constructor() {} };
+}
 
 dotenv.config();
 
@@ -190,13 +197,16 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       let pdfParseError = "";
 
       try {
+        const pdfParseModule = await import("pdf-parse");
+        const PDFParse = (pdfParseModule as any).PDFParse || (pdfParseModule as any).default || pdfParseModule;
+        
         const options: any = { data: pdfBuffer };
         if (password) {
           options.password = password;
         }
         const parser = new PDFParse(options);
         const parsedPdf = await parser.getText();
-        pdfText = parsedPdf.text || parsedPdf; // parsedPdf might just be a string or object. In 2.4.5, it typically resolves to string or an object with .text. Wait, I should just check `parsedPdf` directly.
+        pdfText = parsedPdf.text || parsedPdf;
         if (typeof parsedPdf === "string") {
           pdfText = parsedPdf;
         } else if (parsedPdf && parsedPdf.text) {

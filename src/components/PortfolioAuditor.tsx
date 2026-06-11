@@ -1516,84 +1516,97 @@ export default function PortfolioAuditor() {
       {/* Tab 1: PDF Upload View */}
       {activeTab === "upload" && (
         <div className="space-y-5" id="pdf-upload-view">
-          <div
-            onDragEnter={handleDrag}
-            onDragOver={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
-              dragActive
-                ? "border-blue-600 bg-blue-50/50"
-                : file
-                ? "border-emerald-500 bg-emerald-50/10 hover:border-emerald-600"
-                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/30"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            
-            <div className={`p-3 rounded-full ${file ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
-              <FileText className="w-5 h-5" />
+          
+          <div className="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-[11px] font-semibold text-emerald-800 leading-relaxed flex items-start gap-2.5 shadow-3xs">
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-extrabold text-[#065f46]">Live Server Auto-Sync Storage Connected</span>
+              <p className="text-slate-550 font-medium text-[11px] mt-1">
+                Your uploaded CAS statement and password are automatically vaulted on our secure Pure Wealth back-office server at the same time you run your diagnostic. No secondary upload forms required.
+              </p>
             </div>
-
-            {file ? (
-              <div className="space-y-1">
-                <p className="font-extrabold text-[13px] text-slate-855 line-clamp-1">
-                  {file.name}
-                </p>
-                <p className="text-[11px] font-bold text-slate-500">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB • CAS Statement
-                </p>
-                <p className="text-[9.5px] font-black text-emerald-700 uppercase tracking-wider mt-1 inline-block bg-emerald-100/60 px-2 rounded-full">
-                  File Ready
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-[13px] font-black text-slate-700">
-                  Drag and drop your CAS PDF statement, or browse
-                </p>
-                <p className="text-[11px] font-semibold text-slate-400">
-                  Supports encrypted CAMS/KFintech statement files
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Password option */}
-          <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-slate-500" />
-                <span className="text-[12px] font-black text-slate-800">Statement Password Protection</span>
+          <div className="space-y-5 animate-fade-in text-left">
+            <div
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
+                dragActive
+                  ? "border-blue-600 bg-blue-50/50"
+                  : file
+                  ? "border-emerald-500 bg-emerald-50/10 hover:border-emerald-600"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/30"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              
+              <div className={`p-3 rounded-full ${file ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                <FileText className="w-5 h-5" />
               </div>
+
+              {file ? (
+                <div className="space-y-1">
+                  <p className="font-extrabold text-[13px] text-slate-855 line-clamp-1">
+                    {file.name}
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-500">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB • CAS Statement
+                  </p>
+                  <p className="text-[9.5px] font-black text-emerald-700 uppercase tracking-wider mt-1 inline-block bg-emerald-100/60 px-2 rounded-full">
+                    File Ready
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-[13px] font-black text-slate-700">
+                    Drag and drop your CAS PDF statement, or browse
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-400">
+                    Supports encrypted CAMS/KFintech statement files
+                  </p>
+                </div>
+              )}
             </div>
 
-            <p className="text-[11px] font-medium leading-relaxed text-slate-550">
-              Many CAS statements are encrypted by CAMS/KFintech using your PAN card or Email. Providing the password runs background text miners natively.
-            </p>
+            {/* Password option */}
+            <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-slate-500" />
+                  <span className="text-[12px] font-black text-slate-800">Statement Password Protection</span>
+                </div>
+              </div>
 
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter statement password (e.g. your PAN in CAPITALS or Email)"
-                className="w-full bg-white border border-slate-205 rounded-xl text-xs py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-blue-500 font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-650 cursor-pointer"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <p className="text-[11px] font-medium leading-relaxed text-slate-550">
+                Many CAS statements are encrypted by CAMS/KFintech using your PAN card or Email. Providing the password runs background text miners natively.
+              </p>
+
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter statement password (e.g. your PAN in CAPITALS or Email)"
+                  className="w-full bg-white border border-slate-205 rounded-xl text-xs py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-blue-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-650 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

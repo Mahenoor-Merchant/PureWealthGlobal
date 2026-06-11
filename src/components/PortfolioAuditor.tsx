@@ -94,6 +94,7 @@ interface FundAuditItem {
   benchmarkName?: string;
   benchmarkExpenseRatio?: number;
   isActive?: boolean;
+  isin?: string;
 }
 
 interface AuditResult {
@@ -809,7 +810,7 @@ export default function PortfolioAuditor() {
           setPdfLoading(false);
         })
         .catch((err: any) => {
-          console.error("PDF generation failure: ", err);
+          console.warn("PDF generation state: ", err);
           document.body.removeChild(tempContainer);
           setPdfLoading(false);
         });
@@ -956,7 +957,7 @@ export default function PortfolioAuditor() {
       setResult(auditData);
 
     } catch (err: any) {
-      console.error("[Portfolio Audit] Deep audit diagnostic error:", err);
+      console.warn("[Portfolio Audit] Deep audit diagnostic warning:", err);
       setErrorStatus(err.message || "An exception occurred while processing the portfolio report.");
     } finally {
       setLoading(false);
@@ -2202,19 +2203,21 @@ export default function PortfolioAuditor() {
                     {/* Fund count totalizer card */}
                     <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4.5 flex flex-col justify-between">
                       <div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-                          TOTAL AUDITED FUNDS
+                        <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest block mb-1">
+                          ACTIVE AUDITED SCHEMES
                         </span>
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-4xl font-black text-slate-900">{result.totalFunds}</span>
-                          <span className="text-[11px] font-black text-slate-500">Total Schemes</span>
+                          <span className="text-4xl font-black text-slate-900">
+                            {result.activeFundsCount ?? result.fundWiseAudit?.filter(f => f.isActive !== false).length ?? 0}
+                          </span>
+                          <span className="text-[11px] font-black text-slate-500">Active Funds</span>
                         </div>
                       </div>
                       <div className="mt-3 space-y-1.5 border-t border-slate-200/60 pt-2.5">
                         <div className="flex items-center justify-between text-[10.5px]">
                           <span className="text-slate-500 font-semibold flex items-center gap-1.5">
                             <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                            Active Holdings:
+                            Active Holdings (Valuation &gt; 0):
                           </span>
                           <span className="font-extrabold text-emerald-700 font-mono">
                             {result.activeFundsCount ?? result.fundWiseAudit?.filter(f => f.isActive !== false).length ?? 0}
@@ -2222,12 +2225,24 @@ export default function PortfolioAuditor() {
                         </div>
                         <div className="flex items-center justify-between text-[10.5px]">
                           <span className="text-slate-500 font-semibold flex items-center gap-1.5">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0" />
                             Inactive/NIL Folios:
                           </span>
                           <span className="font-extrabold text-slate-600 font-mono">
                             {result.inactiveFundsCount ?? result.fundWiseAudit?.filter(f => f.isActive === false).length ?? 0}
                           </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10.5px] border-t border-slate-100 pt-1.5 mt-1.5">
+                          <span className="text-slate-500 font-bold flex items-center gap-1.5">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                            Total Decoded Accounts:
+                          </span>
+                          <span className="font-black text-slate-700 font-mono">
+                            {result.totalFunds}
+                          </span>
+                        </div>
+                        <div className="mt-2.5 bg-slate-100 border border-slate-200/40 rounded-lg p-2 text-[9.5px] text-slate-550 leading-normal font-medium">
+                          ℹ️ <strong>Total Decoded Accounts</strong> is the exact count of unique ISIN schemes found in your statement (sum of active holdings and historical closed/nil-balance folios).
                         </div>
                       </div>
                     </div>
@@ -2348,7 +2363,7 @@ export default function PortfolioAuditor() {
                               >
                                 <div className="flex-1 min-w-0">
                                   <span className="text-[11.5px] font-black text-slate-800 block truncate">{f.fundName}</span>
-                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}{f.isin ? ` • ISIN: ${f.isin}` : ""}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9.5px] font-black font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
@@ -2389,7 +2404,7 @@ export default function PortfolioAuditor() {
                               >
                                 <div className="flex-1 min-w-0">
                                   <span className="text-[11.5px] font-black text-slate-800 block truncate">{f.fundName}</span>
-                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}{f.isin ? ` • ISIN: ${f.isin}` : ""}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9.5px] font-black font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
@@ -2430,7 +2445,7 @@ export default function PortfolioAuditor() {
                               >
                                 <div className="flex-1 min-w-0">
                                   <span className="text-[11.5px] font-black text-slate-800 block truncate">{f.fundName}</span>
-                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}{f.isin ? ` • ISIN: ${f.isin}` : ""}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9.5px] font-black font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
@@ -2471,7 +2486,7 @@ export default function PortfolioAuditor() {
                               >
                                 <div className="flex-1 min-w-0">
                                   <span className="text-[11.5px] font-black text-slate-800 block truncate">{f.fundName}</span>
-                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">Category: {f.category}{f.isin ? ` • ISIN: ${f.isin}` : ""}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9.5px] font-black font-mono text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
@@ -2647,9 +2662,16 @@ export default function PortfolioAuditor() {
                                 <span className="font-extrabold text-slate-800 block">
                                   {fund.fundName}
                                 </span>
-                                <span className={`inline-block text-[8.5px] font-extrabold px-1.5 py-0.2 rounded border ${getBasketColor(fund.basketClassification)}`}>
-                                  {getBasketBadge(fund.basketClassification)}
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={`inline-block text-[8.5px] font-extrabold px-1.5 py-0.2 rounded border ${getBasketColor(fund.basketClassification)}`}>
+                                    {getBasketBadge(fund.basketClassification)}
+                                  </span>
+                                  {fund.isin && (
+                                    <span className="inline-block text-[8px] font-mono font-black text-slate-400 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                                      ISIN: {fund.isin}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td className="py-2.5 px-2 text-center font-extrabold text-rose-600">

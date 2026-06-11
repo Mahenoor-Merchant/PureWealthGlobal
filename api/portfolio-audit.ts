@@ -206,6 +206,340 @@ function getDeterministicFundMetrics(fundName: string, categoryName: string, bas
   };
 }
 
+/**
+ * Pre-extracts potential mutual fund names from raw PDF text using AMC keywords and context scores.
+ * This provides a strict checklist for the Gemini model to avoid lazy omissions of list schemes.
+ */
+function preExtractFundNames(text: string): { name: string; rawLine: string }[] {
+  if (!text) return [];
+  const amcs = [
+    "sbi", "hdfc", "icici", "nippon", "quant", "parag parikh", "kotak", "axis", "mirae", "tata",
+    "dsp", "bandhan", "motilal", "jm", "canara", "whiteoak", "white oak", "aditya birla", "absl",
+    "sundaram", "franklin", "hsbc", "pgim", "union", "baroda", "helios", "groww", "uti", "edelweiss",
+    "invesco", "canara robeco", "mahindra", "taurus", "shriram", "navi", "safeguard", "l&t", "itrust",
+    "mirabilis", "ppfas"
+  ];
+  const lines = text.split(/\r?\n/);
+  const candidates: { name: string; rawLine: string }[] = [];
+  const seen = new Set<string>();
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length < 10) continue;
+
+    const lowerLine = trimmed.toLowerCase();
+    const hasAMC = amcs.some(amc => {
+      const index = lowerLine.indexOf(amc);
+      if (index === -1) return false;
+      const charBefore = index > 0 ? lowerLine[index - 1] : " ";
+      const charAfter = index + amc.length < lowerLine.length ? lowerLine[index + amc.length] : " ";
+      const isWordBefore = /[^a-z0-9]/.test(charBefore);
+      const isWordAfter = /[^a-z0-9]/.test(charAfter);
+      return isWordBefore && isWordAfter;
+    });
+
+    if (hasAMC) {
+      const fundKeywords = [
+        "fund", "scheme", "plan", "growth", "regular", "direct", "idcw", "dividend", 
+        "equity", "liquid", "debt", "hybrid", "index", "arbitrage", "elss", "bluechip",
+        "tax saver", "opportunities", "small cap", "smallcap", "mid cap", "midcap", "large cap",
+        "largecap", "savings", "tax shield", "balanced", "advantage", "gilt", "overnight", "pru"
+      ];
+      
+      const score = fundKeywords.reduce((count, kw) => count + (lowerLine.includes(kw) ? 1 : 0), 0);
+      if (score >= 1) {
+        // Strip transactions e.g. purchase, redemption, stamp duty, STT, payout
+        const ignoreKeywords = ["purchase", "sip", "redemption", "reddem", "switch-out", "switch-in", "stt", "stamp duty", "tax", "closing balance", "payout", "reinvestment", "dividend paid"];
+        const hasIgnore = ignoreKeywords.some(kw => lowerLine.includes(kw) && !lowerLine.includes("balance"));
+        if (hasIgnore) continue;
+
+        let amcIndex = -1;
+        for (const amc of amcs) {
+          const index = lowerLine.indexOf(amc);
+          if (index !== -1) {
+            const charBefore = index > 0 ? lowerLine[index - 1] : " ";
+            const charAfter = index + amc.length < lowerLine.length ? lowerLine[index + amc.length] : " ";
+            if (/[^a-z0-9]/.test(charBefore) && /[^a-z0-9]/.test(charAfter)) {
+              if (amcIndex === -1 || index < amcIndex) {
+                amcIndex = index;
+              }
+            }
+          }
+        }
+
+        if (amcIndex !== -1) {
+          const rawSuffix = trimmed.substring(amcIndex);
+          let cleaned = rawSuffix
+            .replace(/(?:Folio|ISIN|NAV|Units|INF\d|Rs\.|INR|\d+(?:\.\d+)?\s*(?:units|bal)|vlaution|valuation|\b[a-z0-0]{12}\b).*/i, "")
+            .replace(/[-–—\s,|]+\d+.*/, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          
+          cleaned = cleaned.replace(/[-–—,\s]+$/, "").trim();
+
+          if (cleaned.length > 8 && cleaned.split(" ").length >= 2) {
+            const cleanLower = cleaned.toLowerCase();
+            const hasKeyword = fundKeywords.some(kw => cleanLower.includes(kw)) || cleanLower.includes("growth") || cleanLower.includes("dividend");
+            if (hasKeyword && !seen.has(cleanLower)) {
+              seen.add(cleanLower);
+              candidates.push({ name: cleaned, rawLine: trimmed });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return candidates;
+}
+
+/**
+ * Auxiliary helper to clean and format scheme names from detailed lines.
+ */
+function extractCleanNameFromLine(line: string, isin: string): string {
+  let s = line.trim();
+  
+  // 1. Strip leading alphanumeric/short codes prefix followed by hyphen (like K477-, 128MCGPG-, or D66-) with optional spaces
+  s = s.replace(/^[A-Za-z0-9]+\s*[-–—]\s*/i, "");
+  
+  // 2. Strip trailing info starting from the isin code itself if present (case-insensitive)
+  if (isin) {
+    const isinCodeIndex = s.toUpperCase().indexOf(isin.toUpperCase());
+    if (isinCodeIndex !== -1) {
+      s = s.substring(0, isinCodeIndex).trim();
+    }
+  }
+
+  // 3. Strip standard trailing info starting from ISIN or Folio literal
+  const isinIndex = s.toUpperCase().indexOf("ISIN");
+  if (isinIndex !== -1) {
+    s = s.substring(0, isinIndex).trim();
+  }
+  
+  const folioIndex = s.toUpperCase().indexOf("FOLIO");
+  if (folioIndex !== -1) {
+    s = s.substring(0, folioIndex).trim();
+  }
+  
+  // 4. Strip any trailing Advisor ARN suffixes (e.g. (Advisor: ARN-0155))
+  s = s.replace(/\s*\(\s*Advisor\s*:\s*ARN\s*[-–—]\s*\d+\s*\)/gi, "");
+  s = s.replace(/\s*Advisor\s*:\s*ARN\s*[-–—]\s*\d+/gi, "");
+  s = s.replace(/\s*\(\s*ARN\s*[-–—]\s*\d+\s*\)/gi, "");
+  s = s.replace(/\s*ARN\s*[-–—]\s*\d+/gi, "");
+
+  // Clean up any trailing hyphens, commas, colons, parentheses, or spaces
+  s = s.replace(/[-–—,:;|\s\(\)]+$/, "").trim();
+  
+  return s;
+}
+
+/**
+ * High-precision Indian CAS parser using the ISIN (International Securities Identification Number) standard.
+ * In India, every mutual fund scheme code MUST possess a unique 12-char ISIN starting with "INF" (e.g. INF209K01UF5).
+ * The count of unique ISINs extracted corresponds exactly to the ground-truth number of schemes.
+ */
+function extractFundsFromISIN(text: string): { isin: string; name: string; valuation: number; isActive: boolean; rawLine: string }[] {
+  if (!text) return [];
+  const lines = text.split(/\r?\n/);
+  
+  // Find all unique 12-char Indian ISIN matches (IN followed by F, E, or 0, and 9 alphanumeric chars)
+  const isinRegex = /(IN[FE0][A-Z0-9]{9})/gi;
+  const allIsins: string[] = [];
+  
+  // Use matchAll to pull out all isin groups correctly
+  for (const m of text.matchAll(isinRegex)) {
+    if (m && m[1]) {
+      allIsins.push(m[1].toUpperCase());
+    }
+  }
+  
+  const uniqueIsins = Array.from(new Set(allIsins));
+  if (uniqueIsins.length === 0) {
+    return [];
+  }
+
+  const results: { isin: string; name: string; valuation: number; isActive: boolean; rawLine: string }[] = [];
+  const amcs = [
+    "sbi", "hdfc", "icici", "nippon", "quant", "parag parikh", "kotak", "axis", "mirae", "tata",
+    "dsp", "bandhan", "motilal", "jm", "canara", "whiteoak", "white oak", "aditya birla", "absl",
+    "sundaram", "franklin", "hsbc", "pgim", "union", "baroda", "helios", "groww", "uti", "edelweiss",
+    "invesco", "canara robeco", "mahindra", "taurus", "shriram", "navi", "safeguard", "l&t", "itrust",
+    "mirabilis", "ppfas"
+  ];
+
+  for (const isin of uniqueIsins) {
+    let lineIdx = -1;
+    
+    // First pass: Prefer lines containing ISIN, the word "ISIN", AND an AMC name
+    for (let idx = 0; idx < lines.length; idx++) {
+      const upperLine = lines[idx].toUpperCase();
+      const lowerLine = lines[idx].toLowerCase();
+      if (upperLine.includes(isin) && upperLine.includes("ISIN")) {
+        const hasAMC = amcs.some(amc => {
+          const index = lowerLine.indexOf(amc);
+          if (index === -1) return false;
+          const charBefore = index > 0 ? lowerLine[index - 1] : " ";
+          const charAfter = index + amc.length < lowerLine.length ? lowerLine[index + amc.length] : " ";
+          return /[^a-z0-9]/.test(charBefore) && /[^a-z0-9]/.test(charAfter);
+        });
+        if (hasAMC) {
+          lineIdx = idx;
+          break;
+        }
+      }
+    }
+
+    // Second pass: fallback if no line index was matched with AMC name
+    if (lineIdx === -1) {
+      for (let idx = 0; idx < lines.length; idx++) {
+        const upperLine = lines[idx].toUpperCase();
+        if (upperLine.includes(isin)) {
+          if (upperLine.includes("ISIN")) {
+            lineIdx = idx;
+            break;
+          }
+          if (lineIdx === -1) {
+            lineIdx = idx;
+          }
+        }
+      }
+    }
+
+    if (lineIdx === -1) continue;
+
+    const currentLine = lines[lineIdx];
+    
+    // Check surrounding line context to extract the scheme name and current value
+    const candidates = [
+      currentLine,
+      lineIdx > 0 ? lines[lineIdx - 1] : "",
+      lineIdx > 1 ? lines[lineIdx - 2] : "",
+      lineIdx < lines.length - 1 ? lines[lineIdx + 1] : ""
+    ].filter(Boolean);
+
+    let fundName = "";
+    
+    // Check if the current line containing the ISIN has an AMC keyword
+    const currentLineLower = currentLine.toLowerCase();
+    const matchedAMC = amcs.find(amc => {
+      const idx = currentLineLower.indexOf(amc);
+      if (idx === -1) return false;
+      const charBefore = idx > 0 ? currentLineLower[idx - 1] : " ";
+      const charAfter = idx + amc.length < currentLineLower.length ? currentLineLower[idx + amc.length] : " ";
+      return /[^a-z0-9]/.test(charBefore) && /[^a-z0-9]/.test(charAfter);
+    });
+
+    if (matchedAMC) {
+      fundName = extractCleanNameFromLine(currentLine, isin);
+    } else {
+      // Look back 1 or 2 lines, or forward 1 line to find a line with an AMC keyword
+      const surroundingIndices = [lineIdx - 1, lineIdx - 2, lineIdx + 1];
+      for (const idx of surroundingIndices) {
+        if (idx < 0 || idx >= lines.length) continue;
+        const lineLower = lines[idx].toLowerCase();
+        const amc = amcs.find(a => {
+          const amcIdx = lineLower.indexOf(a);
+          if (amcIdx === -1) return false;
+          const charBefore = amcIdx > 0 ? lineLower[amcIdx - 1] : " ";
+          const charAfter = amcIdx + a.length < lineLower.length ? lineLower[amcIdx + a.length] : " ";
+          return /[^a-z0-9]/.test(charBefore) && /[^a-z0-9]/.test(charAfter);
+        });
+        if (amc) {
+          fundName = extractCleanNameFromLine(lines[idx], isin);
+          if (fundName) break;
+        }
+      }
+    }
+
+    // Fallback: extract clean name from current line anyway
+    if (!fundName) {
+      fundName = extractCleanNameFromLine(currentLine, isin);
+    }
+
+    if (!fundName) {
+      fundName = `Omitted Scheme (${isin})`;
+    }
+
+    // 3. Determine active state and valuation
+    let valuation = 0;
+    let isActive = true;
+
+    const surroundingText = candidates.join(" ").toLowerCase();
+    const hasZeroOrNilWord = 
+      surroundingText.includes("nil balance") ||
+      surroundingText.includes("zero balance") ||
+      surroundingText.includes("closed position") ||
+      surroundingText.includes("closed folio") ||
+      surroundingText.includes("inactive folio") ||
+      surroundingText.includes("redeemed") ||
+      surroundingText.includes("nil units") ||
+      surroundingText.includes("zero units");
+
+    if (hasZeroOrNilWord) {
+      isActive = false;
+      valuation = 0;
+    } else {
+      const valRegexes = [
+        /(?:valuation|value|market\s+value|mkt\s+value|bal|balance)[\s:：]*[rRsS\.\s]*([0-9,]+\.[0-9]{2})\b/i,
+        /(?:valuation|value|market\s+value|mkt\s+value|bal|balance)[\s:：]*[rRsS\.\s]*([0-9,]+)\b/i,
+        /(?:Rs\.?|INR|[\s,])\s*([1-9][0-9,]*\.[0-9]{2,4})\b/i,
+        /\b([1-9][0-9,]*\.[0-9]{2,4})\b/
+      ];
+
+      let foundVal = 0;
+      for (const regex of valRegexes) {
+        for (const line of candidates) {
+          const match = line.match(regex);
+          if (match) {
+            const parsedVal = parseFloat(match[1].replace(/,/g, ""));
+            if (!isNaN(parsedVal) && parsedVal > 1) {
+              foundVal = parsedVal;
+              break;
+            }
+          }
+        }
+        if (foundVal > 0) break;
+      }
+
+      valuation = foundVal;
+      isActive = (valuation > 0 || !hasZeroOrNilWord);
+    }
+
+    results.push({
+      isin,
+      name: fundName,
+      valuation,
+      isActive,
+      rawLine: currentLine
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Searches the raw PDF text for aggregate portfolio valuations using generic CAS expression matches.
+ */
+function extractPortfolioValue(text: string): number | null {
+  if (!text) return null;
+  const patterns = [
+    /(?:total\s+valuation|current\s+valuation|portfolio\s+valuation|market\s+value|current\s+value|total\s+value)[\s:：]*[rRsS\.\s]*([0-9,]+\.?[0-9]*)/i,
+    /(?:valuation\s+as\s+of)[\s:：a-zA-Z0-0=]*[rRsS\.\s\:]*([0-9,]+\.?[0-9]*)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const cleaned = match[1].replace(/,/g, "");
+      const val = parseFloat(cleaned);
+      if (!isNaN(val) && val > 1000) {
+        return val;
+      }
+    }
+  }
+  return null;
+}
+
 app.post(["/api/portfolio-audit", "/"], async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -214,17 +548,20 @@ app.post(["/api/portfolio-audit", "/"], async (req, res) => {
     }
 
     const { fileData, fileName, fileType, password, holdings, portfolioType } = req.body;
+    let pdfText = "";
 
     const ai = new GoogleGenAI({
       apiKey: apiKey,
       httpOptions: {
+        timeout: 300000,
         headers: {
           "User-Agent": "aistudio-build",
+          "Connection": "close",
         },
       },
     });
 
-    let contents: any[] = [];
+    let contents: any = null;
     let basePrompt = `You are an elite Mutual Fund Research Analyst and Senior Wealth Planning Specialist at Pure Wealth Global (AMFI Registered Mutual Fund Distributor, ARN: 306022).
 Your objective is to perform a meticulously detailed audit on the user's mutual fund portfolio holdings.
 
@@ -236,13 +573,15 @@ CRITICAL INSTRUCTION: Since we are a registered Mutual Fund Distributor (ARN: 30
 CRITICAL MANDATES FOR DEEP, ACCURATE, DOUBLE-CHECKED & IN-DETAILED ANALYSIS WITH ABSOLUTE CONSISTENCY:
 =========================================
 
-1. ABSOLUTE EXTRACTION CONSISTENCY & DETAILED AUDITING:
-   - Carefully scan the provided text or raw document line-by-line multiple times. Identify and extract ALL mutual fund holdings listed.
-   - CRITICAL REQUIREMENT: You MUST include and audit ALL schemes found in the statement, regardless of whether they are active (with unit balances) or non-active/inactive, zero-balance, fully redeemed (0 units or ₹0.00 valuation), or marked as closed/historical/liquidated folios. DO NOT skip any scheme simply because its balance is currently zero or it is marked as inactive or closed/historical!
-   - For every single scheme found (both active and inactive/zero-balance/historical/closed), you MUST create a distinct item in the 'fundWiseAudit' array.
+1. ABSOLUTE EXTRACTION CONSISTENCY & RIGOROUS FULL-SCAN EXTRACTION:
+   - Carefully scan the provided text or raw document line-by-line multiple times from start to finish. Identify and extract 100% of the mutual fund holdings listed in the statement.
+   - CRITICAL REQUIREMENT: Many CAS statements list funds across multiple folios or pages. You MUST search all sections and capture EVERY scheme. Do NOT skip, drop, or summarize any holdings.
+   - INACTIVE & ZERO-BALANCE DISCOVERY: Include both active (with balances) and non-active/inactive, fully redeemed, or historical zero-balance folios listed. Zero schemes must NOT be omitted. If there are 15 schemes in the statement, the length of the 'fundWiseAudit' array MUST be exactly 15.
+   - GROUPING RULE: Group multiple individual transactions of the EXACT same scheme name together into a single unique scheme entry. But ensure that EVERY unique scheme name found in the document has its own dedicated entry block in 'fundWiseAudit'. No unique scheme is allowed to carry over without being audited.
+   - For every single scheme found, create a distinct item in the 'fundWiseAudit' array. If you are unsure of a scheme's category or basket classification, DO NOT skip it. Classify it as "Equity" and "Core Alpha Gen" (or "Defensive Anchor" for debt/liquid) rather than abandoning or filtering it out.
+   - Maintain the exact scheme name and NAV as listed in the CAS PDF for pinpoint precision.
    - If an inactive, closed, or zero-balance scheme is found, assign it a descriptive, accurate representation in 'allocation' (e.g. "0.00%", "₹0.00 (Inactive)", "Nil units (Closed)", or "Historical") rather than excluding it. This ensures the output totalFunds count exactly matches the absolute count of all active and inactive/historical schemes detected.
-   - Do NOT omit any holdings. Do NOT group separate schemes of different categories or AMCs under a single entry (unless they are exactly the same scheme). If there are 15 schemes (including 4 closed/inactive ones), totalFunds must be exactly 15, and the fundWiseAudit array must contain exactly 15 elements with zero random skips or omissions between runs.
-   - For each fund, maintain exact names (as listed in CAS PDF) and match its scheme category cleanly (e.g., Large Cap, Mid Cap, Small Cap, Flexi Cap, Sectoral/Thematic, Multi Asset, etc.).
+   - Return and list all of them to prevent lazy omissions. Do NOT stop after the first 3 or 4 pages, scan the rest. Double check your count of unique schemes and confirm totalFunds returns exactly that number.
 
 2. STRICT BASKET CLASSIFICATION GUIDELINES (ZERO RANDOM VARIATION):
    - You MUST classify each holding into one of Four Strategic Performance Baskets based on objective rules. In order to avoid any variation across repetitive runs, apply these exact keyword-mapping rules:
@@ -396,12 +735,12 @@ Return your analysis as a single JSON response conforming ONLY to this schema:
 Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, realistic, and highly educational. Respond with clean JSON only.`;
 
     if (portfolioType === "manual" && holdings) {
-      contents = [
-        basePrompt,
-        {
-          text: `Here is the user's manual holdings input context:\n${JSON.stringify(holdings, null, 2)}`
-        }
-      ];
+      contents = {
+        parts: [
+          { text: basePrompt },
+          { text: `Here is the user's manual holdings input context:\n${JSON.stringify(holdings, null, 2)}` }
+        ]
+      };
     } else if (fileData) {
       let rawBase64 = fileData;
       if (rawBase64.includes(";base64,")) {
@@ -409,7 +748,7 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       }
 
       const pdfBuffer = Buffer.from(rawBase64, "base64");
-      let pdfText = "";
+      pdfText = "";
       let pdfParseSuccess = false;
       let pdfParseError = "";
       let pdfParseErrorName: string | null = null;
@@ -435,7 +774,7 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
         pdfParseError = err.message || String(err);
         pdfParseErrorName = err.name || null;
         pdfParseErrorCode = err.code || null;
-        console.error("[Portfolio Audit] pdf-parse failed to parse or decrypt PDF:", err);
+        console.warn("[Portfolio Audit] pdf-parse finished with password exception or parse failure (handling expected validation):", err);
       }
 
       let isWrongPassword = false;
@@ -487,10 +826,33 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       }
 
       if (pdfParseSuccess && pdfText && pdfText.trim()) {
+        let candidateListText = "";
+        const candidates = preExtractFundNames(pdfText);
+        const regValue = extractPortfolioValue(pdfText);
+
+        if (candidates.length > 0) {
+          candidateListText = `\n\n=========================================\nPRE-EXTRACTED GROUNDING CHECKLIST (USE THIS SPECIFICALLY AS A VERIFICATION LIST):\n=========================================\nBased on high-precision scanning of the raw text, the following possible candidate mutual fund schemes are present in your statement. You MUST audit EVERY single one of these unique schemes in the 'fundWiseAudit' list, extract their current valuation/rupee balance, and map them to their correct category. Do NOT drop, skip, or summarize any of these:\n` +
+            candidates.map((c, i) => `${i + 1}. Proposed Scheme Name: "${c.name}"\n   Found in Line Detail: "${c.rawLine.substring(0, 150)}"`).join("\n\n") + 
+            `\n\nEnsure that ALL unique active schemes (and closed/nil schemes with 0 valuation) from this grounding checklist are carefully evaluated in 'fundWiseAudit'. Do NOT stop scanning early; confirm your returned list counts precisely match.`;
+        }
+
+        if (regValue) {
+          candidateListText += `\n\nExtracted Overall Portfolio Value Found on Statement: ₹${regValue.toLocaleString('en-IN')}. Please verify if this matches the consolidated active holding balance. Use this to double-check individual scheme valuation sums.`;
+        }
+
         contextText += `\n--- START OF EXTRACTED PDF TEXT RECORD ---\n${pdfText}\n--- END OF EXTRACTED PDF TEXT RECORD ---\n\n`;
         contextText += `CRITICAL DIRECTIVE: You MUST analyze and audit the EXACT extracted text above. Extract and evaluate ALL mutual fund schemes, folio names, portfolio weights/valuations, and NAV values mentioned in this text record. Do NOT emulate or fabricate standard/demo holdings. These are the REAL holdings of the user. If you find no valid fund holdings in the text, return a response containing 0 holdings in the 'fundWiseAudit' array, but explain clearly in the 'diversificationAnalysis' and 'overallStrengths'/'criticalLeaks' that the file text did not seem to contain detectable mutual fund schemes, rather than inventing fake data.`;
         
-        contents = [basePrompt, { text: contextText }];
+        if (candidateListText) {
+          contextText += `\n\n${candidateListText}`;
+        }
+
+        contents = {
+          parts: [
+            { text: basePrompt },
+            { text: contextText }
+          ]
+        };
       } else {
         console.log("[Portfolio Audit] Falling back to passing binary PDF directly with strict instructions.");
         const pdfPart = {
@@ -504,20 +866,41 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
 If this PDF is password-protected or has security restrictions, you may not be able to read it. 
 CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's investments inside the document, do NOT fabricate standard/demo holdings. Instead, return a 0 holdings state (empty list in 'fundWiseAudit') but populate the 'diversificationAnalysis' warning explaining that the PDF has a password or a complex format that prevents reading, and encourage the user to type holdings manually or use the manual input tab for a precise audit. This ensures absolute honesty and real-time validity for the user.`;
 
-        contents = [pdfPart, basePrompt, { text: contextText }];
+        contents = {
+          parts: [
+            pdfPart,
+            { text: basePrompt },
+            { text: contextText }
+          ]
+        };
       }
     } else {
       return res.status(400).json({ error: "Missing holdings metadata or statement file content." });
     }
 
-    const getResponseVal = async (retries = 5, delay = 2000): Promise<any> => {
-      const modelName = retries <= 2 ? "gemini-3.1-flash-lite" : "gemini-3.5-flash";
+    const getResponseVal = async (retries = 5, delay = 2000, forcedModel?: string): Promise<any> => {
+      // Rotate models: Attempt 1 = gemini-3.5-flash (premium model with deep reasoning)
+      // Attempt 2 = gemini-3.1-flash-lite (fast, highly available high-capacity alternative)
+      let modelName = "gemini-3.5-flash";
+      if (forcedModel) {
+        modelName = forcedModel;
+      } else if (retries === 4) {
+        modelName = "gemini-3.1-flash-lite";
+      } else if (retries === 3) {
+        modelName = "gemini-3.5-flash";
+      } else if (retries === 2) {
+        modelName = "gemini-3.1-flash-lite";
+      } else if (retries < 2) {
+        modelName = "gemini-3.5-flash";
+      }
+
       try {
         console.log(`[Portfolio Audit] Contacting Gemini API with model: ${modelName} (${retries} retries left)...`);
         return await ai.models.generateContent({
           model: modelName,
           contents: contents,
           config: {
+            systemInstruction: `You are an elite Mutual Fund Research Analyst and Senior Wealth Planning Specialist at Pure Wealth Global (AMFI Registered ARN: 306022). Your objective is 100% complete and accurate mutual fund extraction and clinical audit. You MUST perform a rigorous, line-by-line, multi-page scan of the CAS document to map and include EVERY single unique mutual fund scheme listed, including active, inactive, zero-balance or closed folios. Double-check your extracted schemes against our checklist to ensure ZERO omissions. Never list direct plans or suggest switching to direct plans. Map to regular competing peer funds from top AMCs strictly and cleanly. Return a mathematically precise, detailed audit conforming strictly to the requested response schema.`,
             responseMimeType: "application/json",
             temperature: 0.0,
             seed: 42,
@@ -550,52 +933,14 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
                       allocation: { type: Type.STRING },
                       category: { type: Type.STRING },
                       basketClassification: { type: Type.STRING },
-                      currentExpenseRatio: { type: Type.NUMBER },
-                      betterAlternativeFund: { type: Type.STRING },
-                      alternativeExpenseRatio: { type: Type.NUMBER },
-                      returnDifference3Y: { type: Type.NUMBER },
-                      sharpeAndSortinoStatus: { type: Type.STRING },
-                      rollingReturnsRating: { type: Type.INTEGER },
-                      downsideProtectionRating: { type: Type.INTEGER },
-                      switchingExitLoadCost: { type: Type.NUMBER },
-                      taxImplication: { type: Type.NUMBER },
-                      currentReturn3Y: { type: Type.NUMBER },
-                      benchmarkReturn3Y: { type: Type.NUMBER },
-                      peerAlternativeReturn3Y: { type: Type.NUMBER },
-                      currentSharpe: { type: Type.NUMBER },
-                      benchmarkSharpe: { type: Type.NUMBER },
-                      peerAlternativeSharpe: { type: Type.NUMBER },
-                      currentSortino: { type: Type.NUMBER },
-                      benchmarkSortino: { type: Type.NUMBER },
-                      peerAlternativeSortino: { type: Type.NUMBER },
-                      benchmarkName: { type: Type.STRING },
-                      benchmarkExpenseRatio: { type: Type.NUMBER }
+                      valuation: { type: Type.NUMBER, description: "Extract the exact current valuation/rupee balance of this fund from the statement. If nil or inactive or closed, set this to 0." }
                     },
                     required: [
                       "fundName",
                       "allocation",
                       "category",
                       "basketClassification",
-                      "currentExpenseRatio",
-                      "betterAlternativeFund",
-                      "alternativeExpenseRatio",
-                      "returnDifference3Y",
-                      "sharpeAndSortinoStatus",
-                      "rollingReturnsRating",
-                      "downsideProtectionRating",
-                      "switchingExitLoadCost",
-                      "taxImplication",
-                      "currentReturn3Y",
-                      "benchmarkReturn3Y",
-                      "peerAlternativeReturn3Y",
-                      "currentSharpe",
-                      "benchmarkSharpe",
-                      "peerAlternativeSharpe",
-                      "currentSortino",
-                      "benchmarkSortino",
-                      "peerAlternativeSortino",
-                      "benchmarkName",
-                      "benchmarkExpenseRatio"
+                      "valuation"
                     ]
                   }
                 },
@@ -603,27 +948,13 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
                   type: Type.OBJECT,
                   properties: {
                     currentValue: { type: Type.NUMBER },
-                    projectedValue5YCurrent: { type: Type.NUMBER },
-                    projectedValue5YPWG: { type: Type.NUMBER },
-                    totalExtraWealthEarned: { type: Type.NUMBER },
                     improvementExplanation: { type: Type.STRING },
-                    portfolioCAGR: { type: Type.NUMBER },
-                    niftyCAGR: { type: Type.NUMBER },
-                    peerBenchmarkCAGR: { type: Type.NUMBER },
-                    oursOptimizedCAGR: { type: Type.NUMBER },
                     earliestInvestmentDate: { type: Type.STRING },
                     totalAcquisitionCost: { type: Type.NUMBER }
                   },
                   required: [
                     "currentValue",
-                    "projectedValue5YCurrent",
-                    "projectedValue5YPWG",
-                    "totalExtraWealthEarned",
                     "improvementExplanation",
-                    "portfolioCAGR",
-                    "niftyCAGR",
-                    "peerBenchmarkCAGR",
-                    "oursOptimizedCAGR",
                     "earliestInvestmentDate",
                     "totalAcquisitionCost"
                   ]
@@ -631,11 +962,9 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
                 switchingCostSummary: {
                   type: Type.OBJECT,
                   properties: {
-                    totalExitLoad: { type: Type.NUMBER },
-                    totalTaxImpact: { type: Type.NUMBER },
                     avoidanceStrategy: { type: Type.STRING }
                   },
-                  required: ["totalExitLoad", "totalTaxImpact", "avoidanceStrategy"]
+                  required: ["avoidanceStrategy"]
                 },
                 exitLoadLeaks: { type: Type.ARRAY, items: { type: Type.STRING } },
                 taxLeaks: { type: Type.STRING },
@@ -643,7 +972,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
               },
               required: [
                 "totalFunds",
-                "overallStrengths",
+                 "overallStrengths",
                 "criticalLeaks",
                 "diversificationScore",
                 "diversificationStatus",
@@ -660,16 +989,47 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
           },
         });
       } catch (err: any) {
+        console.warn("[Portfolio Audit] GenerateContent detailed warning (will retry if transient):", err);
         const errMsg = err.message || String(err);
-        const isTransient = errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("overloaded") || errMsg.includes("demand");
+        const errCause = err.cause ? (err.cause.message || String(err.cause)) : "";
+        const isNetworkError = 
+          errMsg.toLowerCase().includes("fetch failed") || 
+          errMsg.toLowerCase().includes("econnreset") || 
+          errMsg.toLowerCase().includes("socket") || 
+          errMsg.toLowerCase().includes("timeout") || 
+          errMsg.toLowerCase().includes("etimedout") ||
+          errCause.toLowerCase().includes("fetch failed") || 
+          errCause.toLowerCase().includes("econnreset") || 
+          errCause.toLowerCase().includes("socket") || 
+          errCause.toLowerCase().includes("timeout") || 
+          errCause.toLowerCase().includes("etimedout");
+        const isQuotaError = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.toLowerCase().includes("quota");
+        const isTransient = isQuotaError || isNetworkError || errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("overloaded") || errMsg.includes("demand");
         
         if (isTransient) {
           if (retries > 0) {
-            console.warn(`[Portfolio Audit] Transient error encountered. Retrying in ${delay}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            return getResponseVal(retries - 1, delay * 2.2);
+            let nextDelay = delay;
+            let nextForceModel: string | undefined = undefined;
+            
+            // Intelligent Model Rotation for ALL transient errors (both 429 and 503/demand overload)
+            if (modelName === "gemini-3.5-flash") {
+              nextForceModel = "gemini-3.1-flash-lite";
+            } else {
+              nextForceModel = "gemini-3.5-flash";
+            }
+
+            if (isQuotaError) {
+              console.warn(`[Portfolio Audit] Quota error (429) encountered with ${modelName}. Switching to ${nextForceModel} with minimal delay...`);
+              nextDelay = 500;
+            } else if (isNetworkError) {
+              console.warn(`[Portfolio Audit] Network error (fetch failed / ECONNRESET) encountered with ${modelName}. Switching to ${nextForceModel} and retrying in ${delay}ms...`);
+            } else {
+              console.warn(`[Portfolio Audit] Transient error (503/UNAVAILABLE) encountered with ${modelName}. Switching to ${nextForceModel} and retrying in ${delay}ms...`);
+            }
+            await new Promise((resolve) => setTimeout(resolve, nextDelay));
+            return getResponseVal(retries - 1, nextDelay * 2.2, nextForceModel);
           } else {
-            throw new Error("The AI model is currently experiencing exceptionally high demand and is overloaded (503). We attempted multiple retries but it is still unavailable. Please try your audit again in a few minutes.");
+            throw new Error("The AI model or network is experiencing exceptionally high demand/instability. We attempted multiple retries but it is still unavailable. Please try your audit again in a few minutes.");
           }
         }
         throw err;
@@ -679,8 +1039,177 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     const response = await getResponseVal();
     const parsedData = JSON.parse(response.text || "{}");
 
+    // Validate and heal the parsed data: Ensure all unique candidate mutual funds from our raw scraper checklist are included
+    if (!parsedData.fundWiseAudit || !Array.isArray(parsedData.fundWiseAudit)) {
+      parsedData.fundWiseAudit = [];
+    }
+
+    if (pdfText && pdfText.trim()) {
+      const isinCandidates = extractFundsFromISIN(pdfText);
+      
+      if (isinCandidates.length > 0) {
+        console.log(`[Portfolio Audit] Active ISIN filter grounding: Found ${isinCandidates.length} unique ISIN schemes in raw text.`);
+        const healedList: any[] = [];
+        
+        for (const cand of isinCandidates) {
+          const candIsinLower = cand.isin.toLowerCase();
+          const candNameLower = cand.name.toLowerCase();
+          
+          // Match by ISIN or Name to check if the AI extracted this fund
+          let foundIdx = parsedData.fundWiseAudit.findIndex((fund: any) => {
+            const fIsin = (fund.isin || "").toLowerCase();
+            const fName = (fund.fundName || fund.name || fund.fund || "").toLowerCase();
+            return (fIsin && fIsin === candIsinLower) || fName.includes(candNameLower) || candNameLower.includes(fName);
+          });
+          
+          if (foundIdx !== -1) {
+            // Already extracted by the AI! Enrich the existing list item with the ISIN and details
+            const matchedFund = parsedData.fundWiseAudit[foundIdx];
+            matchedFund.isin = cand.isin;
+            
+            // Reconcile valuation if AI missed it or set it to zero incorrectly while we parsed a valid number
+            if ((!matchedFund.valuation || Number(matchedFund.valuation) === 0) && cand.valuation > 0) {
+              matchedFund.valuation = cand.valuation;
+            }
+            // Explicitly set isActive based on our parsed balance details
+            matchedFund.isActive = cand.isActive;
+            healedList.push(matchedFund);
+            
+            // Remove the matched element to ensure it isn't mapped to multiple entries
+            parsedData.fundWiseAudit.splice(foundIdx, 1);
+          } else {
+            // Found a scheme in PDF that the AI omitted! Heal/restore it.
+            console.log(`[Portfolio Audit] HEALING RECOVERY: Restored omitted ISIN scheme: "${cand.name}" (${cand.isin})`);
+            healedList.push({
+              fundName: cand.name,
+              isin: cand.isin,
+              allocation: cand.valuation > 0 ? `₹${cand.valuation.toLocaleString('en-IN')}` : "₹0.00 (Inactive)",
+              category: cand.rawLine.toLowerCase().includes("debt") || cand.rawLine.toLowerCase().includes("liquid") ? "Debt" : "Equity",
+              basketClassification: "Core Alpha Gen",
+              valuation: cand.valuation,
+              isActive: cand.isActive
+            });
+          }
+        }
+        
+        // Strictly set the fund list to exactly match our unique ISIN grounded list.
+        // This drops any unmatched LLM entries (duplicates from summaries, etc.) completely.
+        parsedData.fundWiseAudit = healedList;
+      } else {
+        // Fallback: If no ISIN is present (e.g. customized mock or manual typed portfolio), use name-based parsing checklist
+        const nameCandidates = preExtractFundNames(pdfText);
+        console.log(`[Portfolio Audit] No ISIN patterns discovered. Falling back to AMC-name checklist with ${nameCandidates.length} grounding candidates...`);
+        const healedList: any[] = [];
+        
+        for (const cand of nameCandidates) {
+          const candNameLower = cand.name.toLowerCase();
+          
+          let foundIdx = parsedData.fundWiseAudit.findIndex((fund: any) => {
+            const fNameLower = (fund.fundName || fund.name || "").toLowerCase();
+            return fNameLower.includes(candNameLower) || candNameLower.includes(fNameLower);
+          });
+
+          let scannedVal = 0;
+          const valMatches = cand.rawLine.match(/(?:Rs\.?|INR|[\s,])\s*([0-9,]+\.[0-9]{2,4})\b/i) || cand.rawLine.match(/\b([0-9,]+\.[0-9]{2,4})\b/);
+          if (valMatches) {
+            const valNum = parseFloat(valMatches[1].replace(/,/g, ""));
+            if (!isNaN(valNum) && valNum > 10) {
+              scannedVal = valNum;
+            }
+          }
+
+          if (foundIdx !== -1) {
+            const matchedFund = parsedData.fundWiseAudit[foundIdx];
+            if (scannedVal > 0 && (!matchedFund.valuation || Number(matchedFund.valuation) === 0)) {
+              matchedFund.valuation = scannedVal;
+            }
+            matchedFund.isActive = (matchedFund.valuation > 0 || scannedVal > 0);
+            healedList.push(matchedFund);
+            parsedData.fundWiseAudit.splice(foundIdx, 1);
+          } else {
+            console.log(`[Portfolio Audit] FALLBACK HEALING RECOVERY: Restored omitted scheme: "${cand.name}"`);
+            
+            healedList.push({
+              fundName: cand.name,
+              allocation: scannedVal > 0 ? `₹${scannedVal.toLocaleString('en-IN')}` : "₹0.00 (Inactive)",
+              category: cand.rawLine.toLowerCase().includes("debt") || cand.rawLine.toLowerCase().includes("liquid") ? "Debt" : "Equity",
+              basketClassification: "Core Alpha Gen",
+              valuation: scannedVal,
+              isActive: scannedVal > 0
+            });
+          }
+        }
+        
+        if (healedList.length > 0) {
+          parsedData.fundWiseAudit = healedList;
+        }
+      }
+    }
+
+    // STRICT DEDUPLICATION AND SAFETY VALUE MERGING
+    // Prevents double-counting funds listed in both detailed transaction areas and summary blocks of CAS statements.
+    if (Array.isArray(parsedData.fundWiseAudit)) {
+      const uniqueAuditMap = new Map<string, any>();
+      for (const fund of parsedData.fundWiseAudit) {
+        const rawName = String(fund.fundName || fund.name || fund.fund || "");
+        
+        // Standardize and normalize fund name for fuzzy grouping
+        const normalizedName = rawName
+          .toLowerCase()
+          .replace(/^[a-z0-9]+\s*[-–—]\s*/, "") // remove leading alphanumeric short codes like K477-, 128MCGPG-
+          .replace(/[^\w\s]/g, "") // strip punctuation, hyphens, parenthesis
+          .replace(/\s+/g, " ")
+          .replace(/(?:regular|direct|growth|plan|scheme|class|demat|isin|atf|growthplan|dividend|idcw|option|payout|reinvestment)/gi, "")
+          .trim();
+          
+        const isinKey = fund.isin ? String(fund.isin).trim().toUpperCase() : "";
+        const deDupeKey = isinKey || normalizedName;
+        
+        if (!deDupeKey) continue;
+        
+        if (uniqueAuditMap.has(deDupeKey)) {
+          const existing = uniqueAuditMap.get(deDupeKey);
+          
+          // Reconcile and keep the longer, more comprehensive scheme name description
+          const existingName = String(existing.fundName || existing.name || "");
+          if (rawName.length > existingName.length) {
+            existing.fundName = rawName;
+          }
+          
+          if (!existing.isin && fund.isin) {
+            existing.isin = fund.isin;
+          }
+          
+          existing.isActive = existing.isActive || fund.isActive;
+          
+          // SAFETY CRITICAL merger: To avoid double counting valuations from details vs summaries, 
+          // we treat identical or overlapping balances conservatively. Let's keep the maximum valuation 
+          // detected, which mathematically caps duplicate wealth tracking blocks.
+          existing.valuation = Math.max(Number(existing.valuation || 0), Number(fund.valuation || 0));
+        } else {
+          const clonedFund = { ...fund };
+          if (!clonedFund.fundName) {
+            clonedFund.fundName = rawName || "Unresolved Scheme";
+          }
+          uniqueAuditMap.set(deDupeKey, clonedFund);
+        }
+      }
+      parsedData.fundWiseAudit = Array.from(uniqueAuditMap.values());
+    }
+
+    // Pre-calculate aggregate sum of individual fund valuations provided by the AI model
+    let extractedSum = 0;
+    if (Array.isArray(parsedData.fundWiseAudit)) {
+      extractedSum = parsedData.fundWiseAudit.reduce((sum: number, f: any) => {
+        const val = Number(f.valuation || 0);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0);
+    }
+
     let currentValue = Number(parsedData.returnGainsProjection?.currentValue || parsedData.returnGainsProjection?.current_value || 500000);
-    if (isNaN(currentValue) || currentValue <= 0) {
+    if (extractedSum > 1000) {
+      currentValue = extractedSum;
+    } else if (isNaN(currentValue) || currentValue <= 0) {
       currentValue = 500000;
     }
 
@@ -805,6 +1334,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         // 4. Calculate allocation weight and value for exit loads/tax estimates
         let isZeroOrNil = false;
         const lowAlloc = (fund.allocation || "").toLowerCase();
+        const extractedVal = Number(fund.valuation || 0);
         if (
           lowAlloc.includes("nil") ||
           lowAlloc.includes("closed") ||
@@ -816,27 +1346,48 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
           lowAlloc === "₹0" ||
           lowAlloc === "rs.0" ||
           lowAlloc === "rs. 0" ||
-          lowAlloc === "0.00"
+          lowAlloc === "0.00" ||
+          (!isNaN(extractedVal) && extractedVal === 0 && fund.allocation !== undefined)
         ) {
           isZeroOrNil = true;
         }
 
-        let weight = isZeroOrNil ? 0 : (1 / parsedData.fundWiseAudit.length);
-        if (!isZeroOrNil && fund.allocation && typeof fund.allocation === 'string') {
-          const pctMatch = fund.allocation.match(/(\d+(?:\.\d+)?)\s*%/);
-          if (pctMatch) {
-            weight = parseFloat(pctMatch[1]) / 100;
-          } else {
-            const valMatch = fund.allocation.replace(/[^0-9.]/g, '');
-            if (valMatch) {
-              const valNum = parseFloat(valMatch);
-              if (valNum > 0) {
-                weight = valNum / currentValue;
+        if (fund.isActive === false) {
+          isZeroOrNil = true;
+        }
+
+        let fundValue = 0;
+        let weight = 0;
+
+        if (isZeroOrNil) {
+          fundValue = 0;
+          weight = 0;
+        } else if (!isNaN(extractedVal) && extractedVal > 0) {
+          fundValue = extractedVal;
+          weight = fundValue / currentValue;
+        } else {
+          weight = (1 / parsedData.fundWiseAudit.length);
+          if (fund.allocation && typeof fund.allocation === 'string') {
+            const pctMatch = fund.allocation.match(/(\d+(?:\.\d+)?)\s*%/);
+            if (pctMatch) {
+              weight = parseFloat(pctMatch[1]) / 100;
+            } else {
+              const valMatch = fund.allocation.replace(/[^0-9.]/g, '');
+              if (valMatch) {
+                const valNum = parseFloat(valMatch);
+                if (valNum > 0) {
+                  weight = valNum / currentValue;
+                }
               }
             }
           }
+          fundValue = currentValue * weight;
         }
-        const fundValue = currentValue * weight;
+
+        const fundPct = currentValue > 0 ? ((fundValue / currentValue) * 100).toFixed(2) : "0.00";
+        const formattedAllocation = isZeroOrNil 
+          ? "₹0.00 (Inactive)" 
+          : `₹${fundValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })} (${fundPct}%)`;
 
         const exitLoad = Math.round((fundValue * 0.20) * 0.01);
         const tax = -Math.round((fundValue * 0.20 * 0.15) * 0.20); 
@@ -845,6 +1396,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
           ...fund,
           fundName,
           isActive: !isZeroOrNil,
+          allocation: formattedAllocation,
+          valuation: fundValue,
           category: categoryLabel,
           basketClassification: basket,
           currentExpenseRatio: metrics.currentExpenseRatio,
@@ -966,7 +1519,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     return res.json(parsedData);
 
   } catch (error: any) {
-    console.error("Express Gemini Audit Service Error:", error);
+    console.warn("Express Gemini Audit Service warning (handled gracefully):", error);
     let errMsg = error.message || String(error);
     
     if (

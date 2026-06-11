@@ -169,7 +169,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
           </p>
         </div>
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
         {/* Tab Selection (Pristine minimalism sliders look) */}
         <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-md mx-auto mb-10 shadow-sm" id="calc-tab-headers">
@@ -554,7 +554,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
           </div>
         )}
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 
       </div>
     </div>

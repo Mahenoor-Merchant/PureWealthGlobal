@@ -32,7 +32,7 @@ export default function AboutView({ setCurrentPage }: AboutViewProps) {
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
       {/* 2. Core Corporate Mission Statement */}
       <section className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="corporate-purpose">
@@ -122,7 +122,7 @@ export default function AboutView({ setCurrentPage }: AboutViewProps) {
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={2} />
 
       {/* 3. The Regulatory Distributorship Status (AMFI) */}
       <section className="bg-white py-16 border-y border-slate-100" id="regulatory-distributorship">
@@ -207,28 +207,28 @@ export default function AboutView({ setCurrentPage }: AboutViewProps) {
             
             <div className="bg-white border border-slate-100 p-8 rounded-2xl space-y-4 shadow-sm hover:border-blue-100/50 transition-colors">
               <span className="text-[34px] font-display font-medium text-blue-600 block leading-none">01</span>
-              <h4 className="font-display font-bold text-[18px] text-slate-900">Dr. Habib Al-Sayed, Ph.D.</h4>
-              <p className="text-blue-600 text-[12.5px] font-semibold">Global Macro Strategist</p>
+              <h4 className="font-display font-bold text-[18px] text-slate-900">Zaid Merchant</h4>
+              <p className="text-blue-600 text-[12.5px] font-semibold">NISM Certified Research Analyst</p>
               <p className="text-[13px] text-slate-600 leading-relaxed">
-                Holding a Ph.D. in Macroeconomics from London, Dr. Habib consults with international asset managers on global capital flows, asset allocation guidelines, and high-net-worth portfolio structures in Dubai and Singapore.
+                An MBA from Mumbai University, Zaid is a NISM Certified Research Analyst with professional financial analyst experience at eClerx, serving Goldman Sachs International as a client. He has 10 years of personal finance management experience across investing, trading, options hedging, forex, commodities, and US global equities/indices.
               </p>
             </div>
 
             <div className="bg-white border border-slate-100 p-8 rounded-2xl space-y-4 shadow-sm hover:border-blue-100/50 transition-colors">
               <span className="text-[34px] font-display font-medium text-blue-600 block leading-none">02</span>
-              <h4 className="font-display font-bold text-[18px] text-slate-900">Siddharth Mehta, CA</h4>
-              <p className="text-blue-600 text-[12.5px] font-semibold">Valuation & Risk Auditor</p>
+              <h4 className="font-display font-bold text-[18px] text-slate-900">CA Noman Merchant</h4>
+              <p className="text-blue-600 text-[12.5px] font-semibold">IFRS & US Accounting Expert</p>
               <p className="text-[13px] text-slate-600 leading-relaxed">
-                Mehta directs the Indian valuation and corporate audit desk, checking corporate balance sheets, debt-to-equity structures, and cash flow margins of BSE and NSE listed entities.
+                A Chartered Accountant by profession, Noman possesses Big 4 experience with PwC and Protiviti as an IFRS and US accounting expert. He brings 8 years of stock market and investment product experience, with specialized expertise in investor profiling and financial product mapping for international clients across Riyadh, Dubai, Kuwait, and the UK.
               </p>
             </div>
 
             <div className="bg-white border border-slate-100 p-8 rounded-2xl space-y-4 shadow-sm hover:border-blue-100/50 transition-colors">
               <span className="text-[34px] font-display font-medium text-blue-600 block leading-none">03</span>
-              <h4 className="font-display font-bold text-[18px] text-slate-900">Prof. Imran Farooqui, CFA</h4>
-              <p className="text-blue-600 text-[12.5px] font-semibold">Strategic Portfolio Consultant, India Desk</p>
+              <h4 className="font-display font-bold text-[18px] text-slate-900">CA Ismail Holy</h4>
+              <p className="text-blue-600 text-[12.5px] font-semibold">Taxation & Compliance Specialist</p>
               <p className="text-[13px] text-slate-600 leading-relaxed">
-                As a chartered financial analyst in Mumbai, Imran governs domestic mutual fund clearances, designing tax-efficient capital strategies and guiding on rebalancing ratios.
+                Ismail is highly experienced in taxation and income-related compliance along with corporate setup auditing, bringing professional auditing experience from Big 6 firm Grant Thornton. He has 6 years of expertise in stock markets and investment-related products.
               </p>
             </div>
 
@@ -237,7 +237,7 @@ export default function AboutView({ setCurrentPage }: AboutViewProps) {
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 
     </div>
   );

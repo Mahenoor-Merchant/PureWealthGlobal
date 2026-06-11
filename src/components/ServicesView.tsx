@@ -52,7 +52,7 @@ export default function ServicesView({ setCurrentPage, activeServiceId, clearAct
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
       {/* 2. Bento Services Grid */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="services-grid">
@@ -166,7 +166,7 @@ export default function ServicesView({ setCurrentPage, activeServiceId, clearAct
 
                 </div>
                 {index === 1 && (
-                  <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
+                  <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={2} />
                 )}
               </React.Fragment>
             );
@@ -189,7 +189,7 @@ export default function ServicesView({ setCurrentPage, activeServiceId, clearAct
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 
     </div>
   );

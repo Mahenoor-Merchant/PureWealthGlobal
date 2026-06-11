@@ -261,7 +261,7 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
           </button>
         </div>
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage?.('find-fund')} boxIndex={2} />
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage?.('find-fund-type')} boxIndex={2} />
 
         {/* ==================== TAB 1: YOUR JOURNEY WITH US ==================== */}
         {activeTab === 'journey' && (
@@ -1681,7 +1681,7 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
           </div>
         )}
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage?.('find-fund')} boxIndex={3} />
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage?.('find-fund-type')} boxIndex={3} />
 
       </div>
     </div>

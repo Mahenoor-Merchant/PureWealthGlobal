@@ -355,7 +355,7 @@ const renderComparableTable = (f: any, savingPercent: number, actionPrefix: stri
 
       {/* Recommendation and Action call */}
       <div className="bg-slate-100 rounded-lg p-2.5 text-[9.5px] text-slate-600 font-medium leading-relaxed border border-slate-200">
-        {actionPrefix} <strong className="text-slate-800">Alternative recommendation:</strong> <span className="font-bold text-slate-800 block my-0.5">{f.betterAlternativeFund}</span> (saves <span className="font-extrabold text-slate-800">{savingPercent}% p.a.</span> in fees). Reclaiming this drag shields core compounding under MFD ARN-306022.
+        {actionPrefix} <strong className="text-slate-800">Alternative Option:</strong> <span className="font-bold text-slate-800 block my-0.5">{f.betterAlternativeFund}</span> (saves <span className="font-extrabold text-slate-800">{savingPercent}% p.a.</span> in fees). Reclaiming this drag shields core compounding under MFD ARN-306022.
       </div>
     </div>
   );
@@ -778,7 +778,9 @@ export default function PortfolioAuditor() {
         <!-- SEBI Regulatory Disclaimers -->
         <div style="font-size: 8px; color: #64748b; text-align: left; line-height: 1.5; border-top: 1px dashed #cbd5e1; padding-top: 15px; font-weight: 600; font-family: system-ui;">
           <strong>MUTUAL FUND INVESTMENT DISCLAIMER & STATUTORY RECORDS UNDER SEBI MFD STATUS:</strong><br />
-          Mutual Fund investments are subject to market risks, read all scheme related documents carefully before investing. Pure Wealth Global acts as an AMFI-Registered Mutual Fund Distributor (ARN Registered MFD) facilitation house. We strictly facilitate transactions and provide distribution assistance services in Mutual Fund Regular Schemes, receiving standard distribution commissions built directly into NAVs. We are NOT registered Investment Advisers (RIA) or fee-only advisors under SEBI regulations. Diagnostic analyses, projections, and estimations provided in this report are for complimentary, supplementary review with zero upfront direct advisory fee bills. Complete confidentiality policies are maintained in accordance with legal distributor mandates.
+          Mutual Fund investments are subject to market risks, read all scheme related documents carefully before investing. Pure Wealth Global acts as an AMFI-Registered Mutual Fund Distributor (ARN Registered MFD) facilitation house. We strictly facilitate transactions and provide distribution assistance services in Mutual Fund Regular Schemes, receiving standard distribution commissions built directly into NAVs. We are NOT registered Investment Advisers (RIA) or fee-only advisors under SEBI regulations. Diagnostic analyses, projections, and estimations provided in this report are for complimentary, supplementary review with zero upfront direct advisory fee bills. Complete confidentiality policies are maintained in accordance with legal distributor mandates.<br /><br />
+          <strong>RESULT ACCURACY & ESTIMATION NOTICE:</strong><br />
+          Result accuracy is near 95% and Not 100% accurate, this is not a Recommendation or Advice this is just a Analysis of the Portfolio uploaded by user. Their can be mistakes and error so kindly double check the analysis with your financial advisor.
         </div>
 
         <!-- Footnote Page 3 -->
@@ -2649,7 +2651,7 @@ export default function PortfolioAuditor() {
                         <tr className="bg-slate-55/40 text-slate-600 border-b border-slate-200/50 text-[10px]">
                           <th className="py-2.5 px-3 font-black">Current Holding Scheme</th>
                           <th className="py-2.5 px-2 font-black text-center">Expense</th>
-                          <th className="py-2.5 px-3 font-black">Recommended Peer Optimization</th>
+                          <th className="py-2.5 px-3 font-black">Matching Peer Optimization</th>
                           <th className="py-2.5 px-2 font-black text-center">Opt. Expense</th>
                           <th className="py-2.5 px-2 font-black text-center">3Y Acc. Return</th>
                         </tr>
@@ -2698,7 +2700,7 @@ export default function PortfolioAuditor() {
                         {/* Total Extra returns line */}
                         <tr className="bg-blue-50/40 text-[11px] font-bold border-t border-slate-200 font-sans">
                           <td className="py-3 px-3 text-[#1e3a8a] font-extrabold" colSpan={4}>
-                            Total extra returns you could have generated if you selected the recommended portfolio:
+                            Total extra returns you could have generated if you selected the Alternative Optimized portfolio:
                           </td>
                           <td className="py-3 px-2 text-center font-black text-blue-700 bg-blue-100/40 border-l border-blue-150">
                             +{result.fundWiseAudit.reduce((acc, f) => acc + (f.returnDifference3Y || 0), 0).toFixed(2)}%
@@ -2782,7 +2784,7 @@ export default function PortfolioAuditor() {
                       <p className="text-[11px] font-bold text-amber-705">
                         ⚙️ Current Active Fee Drag: {(result.fundWiseAudit.reduce((acc, f) => acc + (f.currentExpenseRatio || 0), 0) / (result.fundWiseAudit.length || 1)).toFixed(2)}%
                       </p>
-                      <span className="text-[10px] text-slate-500 font-semibold block leading-tight font-sans">Compares current expense structures with recommended direct AMC comparable peers.</span>
+                      <span className="text-[10px] text-slate-500 font-semibold block leading-tight font-sans">Compares current expense structures with Matching Alternative direct AMC comparable peers.</span>
                     </div>
                   </div>
                 </div>
@@ -2917,7 +2919,7 @@ export default function PortfolioAuditor() {
                         <div className="absolute -top-1 -right-8 bg-amber-400 text-slate-900 text-[6px] font-black py-0.5 px-8 uppercase tracking-widest font-sans rotate-12 shadow-sm select-none">
                           WINNER
                         </div>
-                        <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 RECOMMENDED CORE</span>
+                        <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 PWG CORE</span>
                         <div className="text-[19px] font-black text-white leading-none tracking-tight font-mono drop-shadow-md py-1">
                           {result.returnGainsProjection.oursOptimizedCAGR !== undefined
                             ? (result.returnGainsProjection.oursOptimizedCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
@@ -3187,8 +3189,13 @@ export default function PortfolioAuditor() {
                     </a>
                   </div>
 
-                  <div className="text-[8.5px] text-indigo-300 leading-relaxed border-t border-indigo-900 pt-3 select-none">
-                    <strong>Statutory MFD Record Clause:</strong> Mutual fund investments are subject to market risks. Disclosures on regular plan distribution commission structures are detailed in standard offer documents. We facilitate transactions and distribution assistance securely without direct advisory fee billing under SEBI distribution status guidelines.
+                  <div className="text-[8.5px] text-indigo-300 leading-relaxed border-t border-indigo-900 pt-3 select-none space-y-2 text-left">
+                    <p>
+                      <strong>Statutory MFD Record Clause:</strong> Mutual fund investments are subject to market risks. Disclosures on regular plan distribution commission structures are detailed in standard offer documents. We facilitate transactions and distribution assistance securely without direct advisory fee billing under SEBI distribution status guidelines.
+                    </p>
+                    <p>
+                      <strong>Result Accuracy & Disclaimer Notice:</strong> Result accuracy is near 95% and Not 100% accurate, this is not a Recommendation or Advice this is just a Analysis of the Portfolio uploaded by user. Their can be mistakes and error so kindly double check the analysis with your financial advisor. We are a Mutual Fund Distributor (MFD) and not a Registered Investment Advisor (RIA), and do not recommend or advise any specific funds or portfolios.
+                    </p>
                   </div>
                 </div>
 

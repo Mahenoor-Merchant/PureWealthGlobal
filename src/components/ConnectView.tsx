@@ -378,7 +378,7 @@ export default function ConnectView({ setCurrentPage }: ConnectViewProps) {
 
         </div>
 
-        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
+        <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 
       </div>
     </div>

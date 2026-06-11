@@ -350,7 +350,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund')} boxIndex={1} />
+      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund-type')} boxIndex={1} />
 
       {/* 2. Target Investor Audiences Grid */}
       <section className="py-20 bg-[#F8FAFC] border-b border-slate-100" id="target-audiences">
@@ -683,7 +683,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund')} boxIndex={2} />
+      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund-type')} boxIndex={2} />
 
       {/* How Pure Wealth Global can help you Header (Immersive Dark Banner) */}
       <section className="bg-slate-950 py-28 text-center relative overflow-hidden" id="pwg-help-banner">
@@ -1615,7 +1615,7 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund')} boxIndex={3} />
+      <FundFinderPromoBanner onActionClick={() => handlePageNavigation('find-fund-type')} boxIndex={3} />
 
       {/* Ethical Safeguards & Excluded Sectors Section */}
       <section className="py-16 bg-white border-b border-rose-50/40" id="excluded-sectors">

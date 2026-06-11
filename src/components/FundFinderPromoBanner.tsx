@@ -48,7 +48,7 @@ export default function FundFinderPromoBanner({ onActionClick, variant = 'gradie
                 💡 Mutual Funds Sahi Hai,
               </span>
               <span className="text-2xl sm:text-3.5xl lg:text-[32px] text-red-600 dark:text-red-500 font-black block sm:inline mt-1.5 sm:mt-0">
-                BUT - Konsa Fund ?
+                BUT - Konsa Fund Type?
               </span>
             </h3>
             <p className={`text-[13px] sm:text-[14px] leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -92,11 +92,11 @@ export default function FundFinderPromoBanner({ onActionClick, variant = 'gradie
             <button
               onClick={onActionClick}
               className="w-full lg:w-auto inline-flex flex-col items-center justify-center gap-0.5 px-6 py-3 bg-slate-750 hover:bg-slate-850 font-bold text-white rounded-full transition-all cursor-pointer active:scale-95 text-center shadow-md"
-              id={`cta-promo-find-fund-${boxIndex}`}
+              id={`cta-promo-find-fund-type-${boxIndex}`}
             >
               <span className="text-[8.5px] font-bold text-slate-350 uppercase tracking-wider">for Internal Team Use Only</span>
               <span className="text-[12px] flex items-center gap-1">
-                <span>Free Tool - Exactly Which Funds To Invest</span>
+                <span>Free Tool - Find Your Fund Type</span>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
               </span>
             </button>

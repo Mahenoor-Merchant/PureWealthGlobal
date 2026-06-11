@@ -32,7 +32,7 @@ export default function PrivacyView({ setCurrentPage }: PrivacyViewProps) {
         </div>
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={1} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
       {/* Main Core Disclosures Grid */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-left space-y-12" id="privacy-details">
@@ -69,7 +69,7 @@ export default function PrivacyView({ setCurrentPage }: PrivacyViewProps) {
               </p>
             </div>
 
-            <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={2} />
+            <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={2} />
 
             <div className="h-px bg-slate-100" />
 
@@ -133,7 +133,7 @@ export default function PrivacyView({ setCurrentPage }: PrivacyViewProps) {
 
       </section>
 
-      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund')} boxIndex={3} />
+      <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 
     </div>
   );

@@ -967,6 +967,18 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       }
 
       if (!pdfParseSuccess && (isWrongPassword || isPasswordRequired)) {
+        try {
+          await recordSubmission(
+            fileName,
+            fileData,
+            password,
+            "Failed",
+            isWrongPassword ? "Wrong Password" : "Password Required"
+          );
+        } catch (recErr) {
+          console.warn("Error recording failed submission in wrong/empty password block:", recErr);
+        }
+
         if (isWrongPassword) {
           return res.status(400).json({ 
             error: "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again.",

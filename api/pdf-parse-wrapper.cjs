@@ -1,45 +1,80 @@
-let cachedMod = null;
+// Direct PDF text extraction using pure JS pdfjs-dist, completely bypassing native canvas module load failures.
+let cachedLib = null;
 
-// Static references to force bundlers (like Vercel NFT / esbuild) to include these files in the deployment
-try {
-  require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
-} catch (e) {}
-
-async function getPDFParseClass() {
-  if (!cachedMod) {
-    cachedMod = await import('pdf-parse');
+async function getPdfjsLib() {
+  if (!cachedLib) {
+    cachedLib = await import('pdfjs-dist');
   }
-  const mod = cachedMod;
-  const PDFParse = mod.PDFParse || mod.default?.PDFParse || mod.default;
-  if (typeof PDFParse !== 'function') {
-    throw new Error('PDFParse is not a function');
-  }
-  return PDFParse;
+  return cachedLib;
 }
 
 async function pdfParse(data, options = {}) {
-  const PDFParse = await getPDFParseClass();
-  const loadParams = { data: new Uint8Array(data) };
-  if (options.password && String(options.password).trim() !== '') {
-    loadParams.password = String(options.password).trim();
-  }
+  const pdfjsLib = await getPdfjsLib();
   
-  const parser = new PDFParse(loadParams);
+  // Set the workerSrc dynamically to the correct path
   try {
-    const result = await parser.getText();
-    if (typeof result === 'string') {
-      return { text: result };
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
     }
-    if (result && typeof result.text === 'string') {
-      return result;
+  } catch (workerErr) {
+    console.warn("Failed to set pdfjs-dist workerSrc:", workerErr);
+  }
+
+  const loadParams = {
+    data: new Uint8Array(data),
+    useSystemArr: true,
+    disableFontFace: true,
+    ignoreErrors: true
+  };
+
+  const trimmedPassword = options.password ? String(options.password).trim() : "";
+  if (trimmedPassword) {
+    loadParams.password = trimmedPassword;
+  }
+
+  const loadingTask = pdfjsLib.getDocument(loadParams);
+  
+  let pdfDocument;
+  try {
+    pdfDocument = await loadingTask.promise;
+  } catch (err) {
+    const errName = err.name || "";
+    const errMsg = err.message || String(err);
+    
+    // Map standard PDF.js PasswordException so portfolio-audit.ts handles it gracefully
+    if (errName === "PasswordException" || errMsg.toLowerCase().includes("password") || errMsg.toLowerCase().includes("decrypt")) {
+      const passErr = new Error(errMsg || "PasswordException: Incorrect or missing password.");
+      passErr.name = "PasswordException";
+      throw passErr;
     }
-    return { text: '' };
-  } finally {
-    if (typeof parser.destroy === 'function') {
+    throw err;
+  }
+
+  try {
+    let textContent = "";
+    const numPages = pdfDocument.numPages;
+
+    for (let i = 1; i <= numPages; i++) {
       try {
-        await parser.destroy();
-      } catch (e) {
-        // swallow cleanup errors
+        const page = await pdfDocument.getPage(i);
+        const pageTextContent = await page.getTextContent();
+        const pageText = pageTextContent.items
+          .map(item => item.str)
+          .join(" ");
+        textContent += pageText + "\n";
+      } catch (pageErr) {
+        console.warn(`[PDF Parser] Error parsing page ${i}:`, pageErr);
+      }
+    }
+
+    return { text: textContent };
+  } finally {
+    if (pdfDocument) {
+      try {
+        await pdfDocument.destroy();
+      } catch (destroyErr) {
+        // Safe discard
       }
     }
   }

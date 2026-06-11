@@ -5,15 +5,27 @@ import pdfParse from "./pdf-parse-wrapper.cjs";
 import fs from "fs";
 import path from "path";
 
-// Ensure data/submissions persistence directory structure exists at runtime
-const DATA_DIR = path.join(process.cwd(), "data");
+// Ensure data/submissions directory located in writable `/tmp` for serverless environments (Vercel)
+const DATA_DIR = path.join("/tmp", "purewealth_data");
 const SUBMISSIONS_DIR = path.join(DATA_DIR, "submissions");
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+function ensureDirectories() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(SUBMISSIONS_DIR)) {
+      fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.warn("Could not create dynamic directories in serverless /tmp:", err);
+  }
 }
-if (!fs.existsSync(SUBMISSIONS_DIR)) {
-  fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true });
+
+try {
+  ensureDirectories();
+} catch (e) {
+  // Ignored during module load
 }
 
 // Function to save submission metadata and store raw statement PDF files securely on disk
@@ -25,6 +37,7 @@ async function recordSubmission(
   errorText?: string
 ) {
   try {
+    ensureDirectories();
     const timestamp = Date.now();
     const id = `sub_${timestamp}`;
     const sanitizedFileName = (fileName || "cas_statement.pdf").replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -609,8 +622,86 @@ function extractPortfolioValue(text: string): number | null {
   return null;
 }
 
-app.post(["/api/portfolio-audit", "/"], async (req, res) => {
+app.get("/api/portfolio-audit", (req, res) => {
   try {
+    const action = req.query.action;
+    
+    if (action === "submissions") {
+      const manifestPath = path.join(DATA_DIR, "manifest.json");
+      if (!fs.existsSync(manifestPath)) {
+        return res.json([]);
+      }
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      return res.json(manifest);
+    }
+    
+    if (action === "download") {
+      const fileName = req.query.file as string;
+      if (!fileName) {
+        return res.status(400).send("Missing file parameter");
+      }
+      // Prevent directory traversal
+      const safeFileName = path.basename(fileName);
+      const filePath = path.join(SUBMISSIONS_DIR, safeFileName);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send("File not found");
+      }
+
+      const originalName = safeFileName.substring(safeFileName.indexOf("_") + 1) || "cas_statement.pdf";
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${originalName}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      return fileStream.pipe(res);
+    }
+
+    // Default response for simple health checking on GET /api/portfolio-audit
+    return res.json({ status: "ready" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/portfolio-audit", async (req, res) => {
+  try {
+    const action = req.query.action || req.body?.action;
+    if (action === "delete") {
+      const id = req.query.id || req.body?.id;
+      if (!id) {
+        return res.status(400).json({ error: "Missing submission ID to delete" });
+      }
+      const manifestPath = path.join(DATA_DIR, "manifest.json");
+      if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({ error: "No manifest file found" });
+      }
+
+      let manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      const index = manifest.findIndex((item: any) => item.id === id);
+
+      if (index === -1) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const item = manifest[index];
+      const filePath = path.join(SUBMISSIONS_DIR, item.saveFileName);
+      
+      // Delete file if exists
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.warn("Could not delete physical file:", err);
+      }
+
+      // Remove from manifest
+      manifest.splice(index, 1);
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+
+      return res.json({ success: true });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ error: "GEMINI_API_KEY environment variable is not configured." });
@@ -1586,7 +1677,11 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     parsedData.overlappingPercentage = overlappingPercentage;
 
     if (portfolioType === "upload" && fileData) {
-      await recordSubmission(fileName, fileData, password, "Success");
+      try {
+        await recordSubmission(fileName, fileData, password, "Success");
+      } catch (errRecord) {
+        console.warn("Silent recordSubmission exception caught inside audit success block:", errRecord);
+      }
     }
     return res.json(parsedData);
 
@@ -1612,76 +1707,6 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     }
     
     return res.status(500).json({ error: errMsg });
-  }
-});
-
-// Admin Submissions Ledger API route
-app.get("/api/admin/submissions", (req, res) => {
-  try {
-    const manifestPath = path.join(process.cwd(), "data", "manifest.json");
-    if (!fs.existsSync(manifestPath)) {
-      return res.json([]);
-    }
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    return res.json(manifest);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Admin Submissions File Download API route
-app.get("/api/admin/submissions/download/:fileName", (req, res) => {
-  try {
-    const fileName = req.params.fileName;
-    // Prevent directory traversal
-    const safeFileName = path.basename(fileName);
-    const filePath = path.join(process.cwd(), "data", "submissions", safeFileName);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).send("File not found");
-    }
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeFileName.substring(safeFileName.indexOf("_") + 1)}"`);
-    
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-  } catch (error: any) {
-    return res.status(500).send("Error reading file");
-  }
-});
-
-// Admin Submissions Delete API route
-app.delete("/api/admin/submissions/:id", (req, res) => {
-  try {
-    const id = req.params.id;
-    const manifestPath = path.join(process.cwd(), "data", "manifest.json");
-    if (!fs.existsSync(manifestPath)) {
-      return res.status(404).json({ error: "No manifest file found" });
-    }
-
-    let manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    const index = manifest.findIndex((item: any) => item.id === id);
-
-    if (index === -1) {
-      return res.status(404).json({ error: "Item not found" });
-    }
-
-    const item = manifest[index];
-    const filePath = path.join(process.cwd(), "data", "submissions", item.saveFileName);
-    
-    // Delete file if exists
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // Remove from manifest
-    manifest.splice(index, 1);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
-
-    return res.json({ success: true });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
   }
 });
 

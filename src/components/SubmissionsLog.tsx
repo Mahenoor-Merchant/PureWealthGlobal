@@ -93,7 +93,7 @@ export default function SubmissionsLog() {
     setLoading(true);
     setActionError('');
     try {
-      const res = await fetch('/api/admin/submissions');
+      const res = await fetch('/api/portfolio-audit?action=submissions');
       if (res.ok) {
         const data = await res.json();
         setSubmissions(data);
@@ -112,8 +112,8 @@ export default function SubmissionsLog() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`/api/admin/submissions/${id}`, {
-        method: 'DELETE',
+      const res = await fetch(`/api/portfolio-audit?action=delete&id=${id}`, {
+        method: 'POST',
       });
       if (res.ok) {
         setSubmissions(prev => prev.filter(item => item.id !== id));
@@ -373,8 +373,8 @@ export default function SubmissionsLog() {
                       <td className="px-6 py-4.5 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2 text-right">
                           <a
-                            href={`/api/admin/submissions/download/${sub.saveFileName}`}
-                            className="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-205 text-slate-600 hover:text-indigo-600 rounded-xl transition-all cursor-pointer shadow-3xs"
+                            href={`/api/portfolio-audit?action=download&file=${sub.saveFileName}`}
+                            className="p-2.5 bg-slate-50 hover:bg-indigo-55/60 border border-slate-205 text-slate-650 hover:text-indigo-600 rounded-xl transition-all cursor-pointer shadow-3xs"
                             title="Download Statement PDF File"
                           >
                             <Download className="w-4 h-4" />

@@ -197,23 +197,6 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 </div>
                 {currentPage === 'find-fund' && <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />}
               </button>
-
-              <div className="my-1 border-t border-slate-100" />
-
-              <button
-                onClick={() => handleNavClick('submissions-log')}
-                className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-all flex items-center justify-between ${
-                  currentPage === 'submissions-log'
-                    ? 'bg-slate-100 text-slate-900 border-l-2 border-indigo-600'
-                    : 'text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-750'
-                }`}
-              >
-                <div className="flex flex-col gap-0.5 max-w-[90%]">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">for Internal Support</span>
-                  <span className="leading-tight break-words font-medium text-slate-650">CAS Submissions & Password Vault</span>
-                </div>
-                {currentPage === 'submissions-log' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-650" />}
-              </button>
             </div>
           </div>
         </nav>
@@ -362,20 +345,6 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     <div className="flex flex-col gap-0.5">
                       <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">for Internal Team Use Only</span>
                       <span>Free Tool - Exactly Which Funds To Invest</span>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleNavClick('submissions-log')}
-                    className={`w-full py-2.5 px-4 text-left text-[12.5px] font-medium rounded-lg transition-all mt-1.5 border ${
-                      currentPage === 'submissions-log'
-                        ? 'text-slate-800 bg-slate-100 border-indigo-300 shadow-sm'
-                        : 'text-slate-500 bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wider text-indigo-500 font-bold">for Internal Support</span>
-                      <span>CAS Submissions & Password Vault</span>
                     </div>
                   </button>
                 </div>

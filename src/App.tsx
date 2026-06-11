@@ -17,7 +17,6 @@ import FindYourFundView from './components/FindYourFundView';
 import FindFundTypeView from './components/FindFundTypeView';
 import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
 import PortfolioAuditor from './components/PortfolioAuditor';
-import SubmissionsLog from './components/SubmissionsLog';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
@@ -75,8 +74,6 @@ export default function App() {
         setCurrentPage('overlap-finder');
       } else if (hash === '#portfolio-audit') {
         setCurrentPage('portfolio-audit');
-      } else if (hash === '#submissions-log') {
-        setCurrentPage('submissions-log');
       } else if (hash === '#home') {
         setCurrentPage('home');
       }
@@ -231,8 +228,6 @@ export default function App() {
         return <PortfolioOverlapFinder />;
       case 'portfolio-audit':
         return <PortfolioAuditor />;
-      case 'submissions-log':
-        return <SubmissionsLog />;
       default:
         return (
           <HomeView 

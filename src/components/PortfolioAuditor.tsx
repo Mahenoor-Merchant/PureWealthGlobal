@@ -355,7 +355,7 @@ const renderComparableTable = (f: any, savingPercent: number, actionPrefix: stri
 
       {/* Recommendation and Action call */}
       <div className="bg-slate-100 rounded-lg p-2.5 text-[9.5px] text-slate-600 font-medium leading-relaxed border border-slate-200">
-        {actionPrefix} <strong className="text-slate-800">Alternative recommendation:</strong> <span className="font-bold text-slate-800 block my-0.5">{f.betterAlternativeFund}</span> (saves <span className="font-extrabold text-slate-800">{savingPercent}% p.a.</span> in fees). Reclaiming this drag shields core compounding under MFD ARN-306022.
+        {actionPrefix} <strong className="text-slate-800">Alternative Option:</strong> <span className="font-bold text-slate-800 block my-0.5">{f.betterAlternativeFund}</span> (saves <span className="font-extrabold text-slate-800">{savingPercent}% p.a.</span> in fees). Reclaiming this drag shields core compounding under MFD ARN-306022.
       </div>
     </div>
   );
@@ -372,6 +372,8 @@ export default function PortfolioAuditor() {
   const [whatsappEmail, setWhatsappEmail] = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [expandedFund, setExpandedFund] = useState<string | null>(null);
+  const [copiedBox, setCopiedBox] = useState(false);
+  const [showConsoleBox, setShowConsoleBox] = useState(false);
 
   const downloadPdfReport = () => {
     if (!result) return;
@@ -1005,7 +1007,7 @@ export default function PortfolioAuditor() {
               category: "Large Cap",
               basketClassification: "Defensive Anchor",
               currentExpenseRatio: 1.85,
-              betterAlternativeFund: "Parag Parikh Flexi Cap Regular",
+              betterAlternativeFund: "ICICI Prudential Bluechip Fund Regular Growth",
               alternativeExpenseRatio: 1.25,
               returnDifference3Y: 1.45,
               sharpeAndSortinoStatus: "Peer alternative exhibits superior Sharpe (1.45 vs 1.15) and Sortino, shielding downside volatility.",
@@ -1020,7 +1022,7 @@ export default function PortfolioAuditor() {
               category: "Large Cap",
               basketClassification: "Fee-Dragged Peer",
               currentExpenseRatio: 1.75,
-              betterAlternativeFund: "SBI Bluechip alternative (Optimized Series)",
+              betterAlternativeFund: "ICICI Prudential Bluechip Fund Regular Growth",
               alternativeExpenseRatio: 1.15,
               returnDifference3Y: 1.1,
               sharpeAndSortinoStatus: "Replacing with fee-optimized peer lifts annual compound interest with equal Sharpe ratio.",
@@ -1035,7 +1037,7 @@ export default function PortfolioAuditor() {
               category: "Small Cap",
               basketClassification: "Core Alpha Gen",
               currentExpenseRatio: 1.62,
-              betterAlternativeFund: "Nippon India Small Cap Scheme (Optimized Series)",
+              betterAlternativeFund: "SBI Small Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.12,
               returnDifference3Y: 1.8,
               sharpeAndSortinoStatus: "Excellent historical rolling return. Optimized fee plan preserves high-alpha compounding.",
@@ -1050,7 +1052,7 @@ export default function PortfolioAuditor() {
               category: "Multi Cap",
               basketClassification: "Defensive Anchor",
               currentExpenseRatio: 1.74,
-              betterAlternativeFund: "ICICI Prudential Multi-Asset (Optimized Fee Structure)",
+              betterAlternativeFund: "HDFC Multi Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.24,
               returnDifference3Y: 1.15,
               sharpeAndSortinoStatus: "Consistent downside defense during multi-asset rotations. Fee rebalancing improves retention.",
@@ -1065,7 +1067,7 @@ export default function PortfolioAuditor() {
               category: "Large & Midcap",
               basketClassification: "Fee-Dragged Peer",
               currentExpenseRatio: 1.65,
-              betterAlternativeFund: "Mirae Asset Large & Midcap (Optimized Series)",
+              betterAlternativeFund: "HDFC Large & Midcap Fund Regular Growth",
               alternativeExpenseRatio: 1.15,
               returnDifference3Y: 1.35,
               sharpeAndSortinoStatus: "Average risk metrics with higher fee drag relative to peers; reallocating saves cumulative drag.",
@@ -1080,7 +1082,7 @@ export default function PortfolioAuditor() {
               category: "Flexi Cap",
               basketClassification: "Core Alpha Gen",
               currentExpenseRatio: 1.35,
-              betterAlternativeFund: "Parag Parikh Flexi Cap (Optimized Fee Strategy)",
+              betterAlternativeFund: "HDFC Flexi Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.05,
               returnDifference3Y: 1.25,
               sharpeAndSortinoStatus: "Top tier global asset buffer. Compounding fee delta offers solid holding yield gains.",
@@ -1143,7 +1145,7 @@ export default function PortfolioAuditor() {
               category: "Small Cap",
               basketClassification: "Core Alpha Gen",
               currentExpenseRatio: 1.62,
-              betterAlternativeFund: "Nippon India Small Cap (Optimized Fee Structure)",
+              betterAlternativeFund: "SBI Small Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.12,
               returnDifference3Y: 1.8,
               sharpeAndSortinoStatus: "Great performance, but 1.62% carries heavy drag. Consolidating into optimized peer classes cuts cost.",
@@ -1158,7 +1160,7 @@ export default function PortfolioAuditor() {
               category: "Small Cap",
               basketClassification: "Rebalance/Churn Catalyst",
               currentExpenseRatio: 1.75,
-              betterAlternativeFund: "Parag Parikh Flexi Cap Regular",
+              betterAlternativeFund: "HDFC Small Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.05,
               returnDifference3Y: 2.1,
               sharpeAndSortinoStatus: "Replacing with a tactical Flexi-Cap improves Sortino to 2.15 and expands allocation safety.",
@@ -1173,7 +1175,7 @@ export default function PortfolioAuditor() {
               category: "Sectoral/Thematic",
               basketClassification: "Fee-Dragged Peer",
               currentExpenseRatio: 2.05,
-              betterAlternativeFund: "HDFC Large & Midcap Optimized Regular",
+              betterAlternativeFund: "SBI Technology Opportunities Fund Regular Growth",
               alternativeExpenseRatio: 1.25,
               returnDifference3Y: 1.5,
               sharpeAndSortinoStatus: "Heavy tech concentrations trigger extreme cyclical swings. Reallocating lifts Sharpe and consistency.",
@@ -1188,7 +1190,7 @@ export default function PortfolioAuditor() {
               category: "Sectoral/Thematic",
               basketClassification: "Rebalance/Churn Catalyst",
               currentExpenseRatio: 1.95,
-              betterAlternativeFund: "ICICI Multi-Asset Regular (Optimized Series)",
+              betterAlternativeFund: "SBI Technology Opportunities Fund Regular Growth",
               alternativeExpenseRatio: 1.15,
               returnDifference3Y: 1.9,
               sharpeAndSortinoStatus: "Replacing sectoral technology with diversified Multi-Asset shields capital while saving fees.",
@@ -1251,7 +1253,7 @@ export default function PortfolioAuditor() {
               category: "Mid Cap",
               basketClassification: "Core Alpha Gen",
               currentExpenseRatio: 1.75,
-              betterAlternativeFund: "HDFC Mid-Cap Opportunities (Optimized Peer)",
+              betterAlternativeFund: "Kotak Emerging Equity Fund Regular Growth",
               alternativeExpenseRatio: 1.15,
               returnDifference3Y: 1.1,
               sharpeAndSortinoStatus: "Highly resilient mid-cap compounder. Selecting optimized peer structure improves performance compounding.",
@@ -1266,7 +1268,7 @@ export default function PortfolioAuditor() {
               category: "Small Cap",
               basketClassification: "Defensive Anchor",
               currentExpenseRatio: 1.62,
-              betterAlternativeFund: "Axis Small Cap (Optimized series)",
+              betterAlternativeFund: "SBI Small Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.12,
               returnDifference3Y: 1.3,
               sharpeAndSortinoStatus: "Excellent downside insulation score. Retaining with lower cost fee plan boosts annual outcomes.",
@@ -1281,7 +1283,7 @@ export default function PortfolioAuditor() {
               category: "Mid Cap",
               basketClassification: "Fee-Dragged Peer",
               currentExpenseRatio: 1.84,
-              betterAlternativeFund: "Kotak Emerging Equity (Optimized alternative)",
+              betterAlternativeFund: "HDFC Mid-Cap Opportunities Fund Regular Growth",
               alternativeExpenseRatio: 1.24,
               returnDifference3Y: 1.45,
               sharpeAndSortinoStatus: "Average risk scoring relative to peer classes; optimization curbs high broker-fee drag.",
@@ -1296,7 +1298,7 @@ export default function PortfolioAuditor() {
               category: "Sectoral/Thematic",
               basketClassification: "Rebalance/Churn Catalyst",
               currentExpenseRatio: 2.15,
-              betterAlternativeFund: "Parag Parikh Flexi Cap Regular",
+              betterAlternativeFund: "Tata Digital India Fund Regular Growth",
               alternativeExpenseRatio: 1.05,
               returnDifference3Y: 2.22,
               sharpeAndSortinoStatus: "Volatile natural resource cycles. Consolidating into Flexi-Caps pushes Sortino up to 2.10.",
@@ -1311,7 +1313,7 @@ export default function PortfolioAuditor() {
               category: "Flexi Cap",
               basketClassification: "Defensive Anchor",
               currentExpenseRatio: 1.68,
-              betterAlternativeFund: "Invesco India Contra (Optimized plan)",
+              betterAlternativeFund: "Parag Parikh Flexi Cap Fund Regular Growth",
               alternativeExpenseRatio: 1.18,
               returnDifference3Y: 1.25,
               sharpeAndSortinoStatus: "Strong contrarian values, re-indexing fee levels boosts compound retention.",
@@ -1385,13 +1387,37 @@ export default function PortfolioAuditor() {
         const rolling = h.category === "Small Cap" ? 9 : 7;
         const downside = h.category === "Small Cap" ? 6 : 8;
 
+        let altFund = "SBI Bluechip Fund Regular Growth";
+        const catLower = (h.category || "").toLowerCase();
+        if (catLower.includes("small")) {
+          altFund = "SBI Small Cap Fund Regular Growth";
+        } else if (catLower.includes("mid")) {
+          altFund = "HDFC Mid-Cap Opportunities Fund Regular Growth";
+        } else if (catLower.includes("large") && catLower.includes("mid")) {
+          altFund = "Mirae Asset Large & Midcap Fund Regular Growth";
+        } else if (catLower.includes("large")) {
+          altFund = "ICICI Prudential Bluechip Fund Regular Growth";
+        } else if (catLower.includes("flexi")) {
+          altFund = "Parag Parikh Flexi Cap Fund Regular Growth";
+        } else if (catLower.includes("multi")) {
+          altFund = "ICICI Prudential Multi-Asset Fund Regular Growth";
+        } else if (catLower.includes("balanced") || catLower.includes("hybrid") || catLower.includes("baf")) {
+          altFund = "Kotak Balanced Advantage Fund Regular Growth";
+        } else if (catLower.includes("liquid") || catLower.includes("debt")) {
+          altFund = "ICICI Prudential Liquid Fund Regular Growth";
+        } else if (catLower.includes("sectoral") || catLower.includes("thematic") || catLower.includes("tech") || catLower.includes("digital")) {
+          altFund = "Tata Digital India Fund Regular Growth";
+        } else {
+          altFund = "Parag Parikh Flexi Cap Fund Regular Growth";
+        }
+
         return {
           fundName: h.fundName || "Equity Scheme Portfolio Holding",
           allocation: `${h.allocation}%`,
           category: h.category,
           basketClassification: basket,
           currentExpenseRatio: currER,
-          betterAlternativeFund: `${h.fundName ? h.fundName.replace("Regular Plan", "Optimized Regular Selection") : "Optimized Fee Peer Scheme"}`,
+          betterAlternativeFund: altFund,
           alternativeExpenseRatio: alternativeER,
           returnDifference3Y: h.category === "Small Cap" ? 1.6 : 1.15,
           sharpeAndSortinoStatus: `Saving fee drag improves Sharpe indexing from 1.15 to a robust 1.40.`,
@@ -2881,18 +2907,33 @@ export default function PortfolioAuditor() {
                     </div>
 
                     {result.returnGainsProjection.earliestInvestmentDate && (
-                      <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/60 rounded-xl p-3 border border-indigo-150/40 text-xs text-indigo-900 shadow-inner">
-                        <div>
-                          <span className="font-semibold text-indigo-950">Inception Date:</span>{" "}
-                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100">{result.returnGainsProjection.earliestInvestmentDate}</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 bg-indigo-50/60 rounded-xl p-3.5 border border-indigo-150/40 text-xs text-indigo-900 shadow-inner">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-black text-indigo-950 opacity-80 block font-sans">Inception Date</span>
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100 inline-block">{result.returnGainsProjection.earliestInvestmentDate}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold text-indigo-950">Net Acquisition Cost:</span>{" "}
-                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100">₹{Number(result.returnGainsProjection.totalAcquisitionCost || 0).toLocaleString('en-IN')}</span>
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-black text-indigo-950 opacity-80 block font-sans">Net Invested</span>
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100 inline-block">₹{Number(result.returnGainsProjection.totalInvested || result.returnGainsProjection.totalAcquisitionCost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold text-indigo-950">Current Evaluation:</span>{" "}
-                          <span className="font-mono font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-100">₹{Number(result.returnGainsProjection.currentValue || 0).toLocaleString('en-IN')}</span>
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-black text-indigo-950 opacity-80 block font-sans">Total Withdrawn</span>
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-100 inline-block">₹{Number(result.returnGainsProjection.totalWithdrawn || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-black text-indigo-950 opacity-80 block font-sans">Current Evaluation</span>
+                          <span className="font-mono font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-100 inline-block">₹{Number(result.returnGainsProjection.currentValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                        <div className="space-y-0.5 col-span-2 sm:col-span-1">
+                          <span className="text-[10px] uppercase font-black text-indigo-950 opacity-80 block font-sans">Net Gain & Return %</span>
+                          <span className={`font-mono font-extrabold px-2 py-0.5 rounded border inline-block ${
+                            (result.returnGainsProjection.netPnL ?? 0) >= 0 
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
+                              : 'bg-rose-50 text-rose-800 border-rose-100'
+                          }`}>
+                            ₹{Number(result.returnGainsProjection.netPnL || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })} 
+                            {" "}({Number(result.returnGainsProjection.returnPct || 0).toFixed(1)}%)
+                          </span>
                         </div>
                       </div>
                     )}
@@ -2932,7 +2973,7 @@ export default function PortfolioAuditor() {
                         <div className="absolute -top-1 -right-8 bg-amber-400 text-slate-900 text-[6px] font-black py-0.5 px-8 uppercase tracking-widest font-sans rotate-12 shadow-sm select-none">
                           WINNER
                         </div>
-                        <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 RECOMMENDED CORE</span>
+                        <span className="text-[7px] font-black text-emerald-100 uppercase tracking-widest block font-mono">🏆 PWG CORE</span>
                         <div className="text-[19px] font-black text-white leading-none tracking-tight font-mono drop-shadow-md py-1">
                           {result.returnGainsProjection.oursOptimizedCAGR !== undefined
                             ? (result.returnGainsProjection.oursOptimizedCAGR).toLocaleString('en-US', { style: 'percent', minimumFractionDigits: 2 })
@@ -2943,6 +2984,65 @@ export default function PortfolioAuditor() {
                         </span>
                       </div>
                     </div>
+
+                    {result.returnGainsProjection.cagrNote && (
+                      <div className="text-[10px] text-slate-500 bg-slate-50 border border-slate-150 p-2.5 rounded-lg leading-relaxed flex items-start gap-2 select-none mt-2">
+                        <span className="text-[12px] shrink-0">ℹ️</span>
+                        <span>
+                          <strong>Statement Calculation Note:</strong> {result.returnGainsProjection.cagrNote}
+                        </span>
+                      </div>
+                    )}
+
+                    {result.returnGainsProjection && (
+                      <div className="mt-3.5 space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowConsoleBox(!showConsoleBox)}
+                          className="w-full flex items-center justify-between text-[11px] font-black text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100/80 border border-indigo-150/45 rounded-xl px-4 py-2.5 transition-all shadow-inner select-none cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>MUTUAL FUND CAS CONTEXT DECODED BOX (PLAIN TEXT & JSON)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-black bg-white text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded uppercase">
+                              {showConsoleBox ? "HIDE BOX" : "VIEW BOX"}
+                            </span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-indigo-500 transform transition-transform ${showConsoleBox ? 'rotate-180' : ''}`} />
+                          </div>
+                        </button>
+
+                        {showConsoleBox && (
+                          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-inner relative overflow-hidden transition-all text-left">
+                            <div className="absolute top-2.5 right-3 flex items-center gap-2 z-10">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const text = generatePlainTextSummaryBox(result.returnGainsProjection);
+                                  navigator.clipboard.writeText(text);
+                                  setCopiedBox(true);
+                                  setTimeout(() => setCopiedBox(false), 2000);
+                                }}
+                                className={`text-[9px] font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all shadow-sm select-none cursor-pointer ${
+                                  copiedBox 
+                                    ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                    : 'bg-slate-800/80 hover:bg-slate-700 border-slate-750 text-slate-300'
+                                }`}
+                              >
+                                <span>{copiedBox ? "✓ COPIED CONSOLE BLOCK!" : "📋 COPY ENTIRE BLOCK"}</span>
+                              </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-bold mb-3 select-none flex items-center gap-1.5 uppercase tracking-wider font-sans">
+                              <span>✨ Plain Text Summary Box & JSON Payload:</span>
+                            </p>
+                            <pre className="text-[10.5px] text-emerald-400 font-mono leading-relaxed whitespace-pre overflow-x-auto bg-slate-950 p-3.5 rounded-lg border border-slate-800/60 select-all max-h-[420px] scrollbar-thin scrollbar-thumb-slate-800">
+                              {generatePlainTextSummaryBox(result.returnGainsProjection)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Compound Action Panel containing comparative visual stats and double-track actionable decisions */}
@@ -3218,4 +3318,73 @@ export default function PortfolioAuditor() {
 
     </div>
   );
+}
+
+/**
+ * Assembles a clean, monospace statement summary block in exact plain text matching regulatory formats.
+ */
+function generatePlainTextSummaryBox(projection: any) {
+  if (!projection) return "";
+  
+  const name = projection.investorName || "Valued Investor";
+  const start = projection.earliestInvestmentDate || "N/A";
+  const end = "11-Jun-2026"; // Consistent NAV as on valuation date
+  const years = typeof projection.investmentSpanYears === 'number' 
+    ? projection.investmentSpanYears.toFixed(1) 
+    : "5.0";
+  
+  const formattedInvested = "₹" + Math.round(projection.totalInvested || projection.totalAcquisitionCost || 0).toLocaleString('en-IN');
+  const formattedWithdrawn = "₹" + Math.round(projection.totalWithdrawn || 0).toLocaleString('en-IN');
+  const formattedCurrent = "₹" + Math.round(projection.currentValue || 0).toLocaleString('en-IN');
+  
+  const retVal = (projection.returnPct ?? 0);
+  const formattedReturn = (retVal >= 0 ? "+" : "") + retVal.toFixed(1) + "%";
+  
+  const cagrVal = (projection.cagrPct ?? (projection.portfolioCAGR * 100) ?? 0);
+  const formattedCagr = (cagrVal >= 0 ? "+" : "") + cagrVal.toFixed(1) + "%";
+  
+  const gainVal = Math.round(projection.netPnL || 0);
+  const formattedGain = (gainVal >= 0 ? "+" : "") + "₹" + gainVal.toLocaleString('en-IN');
+
+  const nameLine = `  ${name.padEnd(54)}`;
+  const periodLine = `  Investment Period: ${start} – ${end}`.padEnd(56);
+  const yearsLine = `  (${years} years)`.padEnd(56);
+  
+  const investedValStr = formattedInvested.padStart(20);
+  const withdrawnValStr = formattedWithdrawn.padStart(20);
+  const currentValStr = formattedCurrent.padStart(20);
+  
+  const returnValStr = formattedReturn.padStart(25);
+  const cagrValStr = formattedCagr.padStart(25);
+  const gainValStr = formattedGain.padStart(25);
+
+  const box = `┌─────────────────────────────────────────────────────────┐
+│${nameLine.slice(0, 56)} │
+│${periodLine.slice(0, 56)} │
+│${yearsLine.slice(0, 56)} │
+├─────────────────────────────────────────────────────────┤
+│  Total Invested        ${investedValStr.slice(-20).padEnd(20)}     │
+│  Total Withdrawn       ${withdrawnValStr.slice(-20).padEnd(20)}     │
+│  Current Value         ${currentValStr.slice(-20).padEnd(20)}     │
+├─────────────────────────────────────────────────────────┤
+│  Total Return          ${returnValStr.slice(-25).padEnd(25)} │
+│  CAGR (XIRR)            ${cagrValStr.slice(-25).padEnd(25)} │
+│  Net Gain               ${gainValStr.slice(-25).padEnd(25)} │
+└─────────────────────────────────────────────────────────┘`;
+
+  const jsonObj = {
+    name: name,
+    pan: projection.pan || "ABCDE1234F",
+    periodStart: start,
+    periodEnd: end,
+    investmentSpanYears: parseFloat(years),
+    totalInvested: Math.round(projection.totalInvested || projection.totalAcquisitionCost || 0),
+    totalWithdrawn: Math.round(projection.totalWithdrawn || 0),
+    currentValue: Math.round(projection.currentValue || 0),
+    netPnL: gainVal,
+    totalReturnPct: parseFloat(retVal.toFixed(1)),
+    cagrPct: parseFloat(cagrVal.toFixed(1))
+  };
+
+  return `${box}\n\n${JSON.stringify(jsonObj, null, 2)}`;
 }

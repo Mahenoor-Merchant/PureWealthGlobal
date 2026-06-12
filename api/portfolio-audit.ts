@@ -817,32 +817,91 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
   
   const lines = text.split("\n");
   
-  // Specific high-precision checks for target values (Rashid's actual folio details)
-  const cleanFlatText = text.replace(/[\s,₹\-]+/g, "");
-  const lowerFlatText = cleanFlatText.toLowerCase();
-  
-  const isRashidFolio = 
-    lowerFlatText.includes("134631") || 
-    lowerFlatText.includes("154981") || 
-    lowerFlatText.includes("111236") || 
-    lowerFlatText.includes("111235") || 
-    lowerFlatText.includes("rashid") || 
-    lowerFlatText.includes("merchant0710");
+  // 1. Scan lines for Cost Value (Invested Value) dynamically
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (
+      lower.includes("cost value") || 
+      lower.includes("total cost") || 
+      lower.includes("acquisition cost") || 
+      lower.includes("purchase cost") ||
+      lower.includes("investment cost") ||
+      lower.includes("invested value") ||
+      lower.includes("cost of acquisition") ||
+      lower.includes("total investment") ||
+      lower.includes("amount invested")
+    ) {
+      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
+      if (match) {
+        for (const m of match) {
+          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
+          if (val > 1000 && val < 500000000) {
+            result.costValue = val;
+            console.log(`[Dynamic Extraction] Cost Value located: ${val} from line "${line.trim()}"`);
+            break;
+          }
+        }
+        if (result.costValue) break;
+      }
+    }
+  }
 
-  if (isRashidFolio) {
-    result.costValue = 154981;
-    result.withdrawnValue = 111236;
-    result.marketValue = 134631;
-    console.log(`[High-Precision Extraction] Consolidated portfolio signatures triggered. Locked Rashid's exact values: Cost=154981, Withdrawn=111236, Market=134631`);
-  } else {
-    if (cleanFlatText.includes("154981")) {
-      result.costValue = 154981;
+  // 2. Scan lines for Market Value (Current Evaluation) dynamically
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (
+      lower.includes("market value") || 
+      lower.includes("current value") || 
+      lower.includes("current valuation") || 
+      lower.includes("valuation as on") || 
+      lower.includes("valuation as of") || 
+      lower.includes("present value") || 
+      lower.includes("total valuation") || 
+      lower.includes("evaluation value") ||
+      lower.includes("holding value")
+    ) {
+      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
+      if (match) {
+        for (const m of match) {
+          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
+          if (val > 1000 && val < 500000000) {
+            result.marketValue = val;
+            console.log(`[Dynamic Extraction] Market Value located: ${val} from line "${line.trim()}"`);
+            break;
+          }
+        }
+        if (result.marketValue) break;
+      }
     }
-    if (cleanFlatText.includes("111236")) {
-      result.withdrawnValue = 111236;
-    }
-    if (cleanFlatText.includes("134631")) {
-      result.marketValue = 134631;
+  }
+
+  // 3. Scan lines for Withdrawn / Redeemed / Switch-out dynamically
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (
+      lower.includes("withdrawn") || 
+      lower.includes("redemption") || 
+      lower.includes("redemptions") || 
+      lower.includes("withdrawal") || 
+      lower.includes("switch-out") || 
+      lower.includes("switchout") || 
+      lower.includes("repurchase") || 
+      lower.includes("redeemed") ||
+      lower.includes("payout") ||
+      lower.includes("switched out")
+    ) {
+      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
+      if (match) {
+        for (const m of match) {
+          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
+          if (val > 10 && val < 500000000) {
+            result.withdrawnValue = val;
+            console.log(`[Dynamic Extraction] Withdrawn Value located: ${val} from line "${line.trim()}"`);
+            break;
+          }
+        }
+        if (result.withdrawnValue) break;
+      }
     }
   }
 
@@ -950,26 +1009,92 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
     }
   }
 
-  // Earliest date search across transactions
+  // Earliest date search across transactions (strict transaction-only rules to avoid header dates)
   let earliestMs = Date.now();
   let earliestDateStr: string | null = null;
-  const datePatterns = [
-    /\b([0-2]?\d|3[01])[-/]([01]?\d|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-/]((?:19|20)?\d{2})\b/i,
-    /\b([12]\d{3}|(?:\d{2}))[-/]([01]?\d)[-/]([0-3]?\d)\b/
-  ];
+  
+  // Custom precise pattern matching DD-MMM-YYYY or DD-MMM-YY (supporting spaces, hyphens, and slashes, e.g., 28-jan-2021 or 28 Jan 2021)
+  const mmmPattern = /\b([0-2]?\d|3[01])[-\s/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\s/]+((?:19|20)?\d{2})\b/gi;
 
   for (const line of lines) {
-    if (line.toLowerCase().includes("transaction") || line.toLowerCase().includes("purchase") || line.toLowerCase().includes("opening") || line.toLowerCase().includes("sip") || line.toLowerCase().includes("allot")) {
-      for (const pattern of datePatterns) {
-        const matches = line.match(pattern);
-        if (matches) {
-          const dateVal = parseIndianDate(matches[0]);
-          const parsedMs = dateVal.getTime();
-          if (!isNaN(parsedMs) && parsedMs > Date.parse("1994-01-01") && parsedMs < Date.parse("2026-06-15")) {
-            if (parsedMs < earliestMs) {
-              earliestMs = parsedMs;
-              earliestDateStr = matches[0];
-            }
+    const trimmed = line.trim();
+    if (trimmed.length < 10) continue;
+
+    const lowerLineText = trimmed.toLowerCase();
+
+    // Skip lines indicating period/statement/valuation headers so we perfectly avoid "from" and "to" date statement limits
+    const isHeaderLine = 
+      lowerLineText.includes("statement") ||
+      lowerLineText.includes("period") ||
+      lowerLineText.includes("report") ||
+      lowerLineText.includes("valuation") ||
+      lowerLineText.includes("as on") ||
+      lowerLineText.includes("as of") ||
+      lowerLineText.includes("from ") ||
+      lowerLineText.includes(" to ") ||
+      lowerLineText.includes("date of birth") ||
+      lowerLineText.includes("opening balance") ||
+      lowerLineText.includes("folio summary") ||
+      lowerLineText.includes("account summary") ||
+      lowerLineText.includes("permanent account") ||
+      lowerLineText.includes("pan:") ||
+      lowerLineText.includes("email:") ||
+      lowerLineText.includes("mobile:") ||
+      lowerLineText.includes("address");
+
+    if (isHeaderLine) {
+      continue;
+    }
+
+    // Reset regex matching index
+    mmmPattern.lastIndex = 0;
+    let match;
+    while ((match = mmmPattern.exec(trimmed)) !== null) {
+      const dateStr = match[0];
+      const matchIndex = match.index;
+
+      // Extract the transaction details to the right side of the date
+      const rightSideText = trimmed.substring(matchIndex + dateStr.length).toLowerCase();
+
+      // Look for indicators that make it a legitimate purchase transaction inside an invested fund
+      const isInvestmentTransaction = 
+        rightSideText.includes("purchased") ||
+        rightSideText.includes("systematic investment") ||
+        rightSideText.includes("sip purchase") ||
+        rightSideText.includes("purchase systematic") ||
+        rightSideText.includes("purchase") ||
+        rightSideText.includes("systematic") ||
+        rightSideText.includes("sip") ||
+        rightSideText.includes("subscription") ||
+        rightSideText.includes("allotment") ||
+        rightSideText.includes("allot") ||
+        rightSideText.includes("reinvestment") ||
+        rightSideText.includes("switch-in") ||
+        rightSideText.includes("switchin") ||
+        rightSideText.includes("stpi") ||
+        rightSideText.includes("swin");
+
+      // Skip redemptions, switches-out, or systematic withdrawals on this line
+      const isWithdrawalOrSwitchOut = 
+        rightSideText.includes("redemption") ||
+        rightSideText.includes("redeem") ||
+        rightSideText.includes("withdrawn") ||
+        rightSideText.includes("withdrawal") ||
+        rightSideText.includes("switch-out") ||
+        rightSideText.includes("switchout") ||
+        rightSideText.includes("swo") ||
+        rightSideText.includes("stp-out") ||
+        rightSideText.includes("swp");
+
+      if (isInvestmentTransaction && !isWithdrawalOrSwitchOut) {
+        const parsedDate = parseIndianDate(dateStr);
+        const parsedMs = parsedDate.getTime();
+
+        if (!isNaN(parsedMs) && parsedMs > Date.parse("1995-01-01") && parsedMs < Date.parse("2026-06-15")) {
+          if (parsedMs < earliestMs) {
+            earliestMs = parsedMs;
+            earliestDateStr = dateStr;
+            console.log(`[High-Precision Inception Date Candidates] Selected oldest valid investment date: ${dateStr} on transaction line: "${trimmed}"`);
           }
         }
       }
@@ -978,6 +1103,24 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
   
   if (earliestDateStr) {
     result.earliestDate = earliestDateStr;
+  } else {
+    // Ultimate fallback search only if absolutely nothing parsed
+    const fallbackPattern = /\b([0-2]?\d|3[01])[-\s/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\s/]+((?:19|20)?\d{2})\b/i;
+    for (const line of lines) {
+      if (line.toLowerCase().includes("purchase") || line.toLowerCase().includes("sip")) {
+        const match = line.match(fallbackPattern);
+        if (match) {
+          const parsedMs = parseIndianDate(match[0]).getTime();
+          if (!isNaN(parsedMs) && parsedMs < earliestMs) {
+            earliestMs = parsedMs;
+            earliestDateStr = match[0];
+          }
+        }
+      }
+    }
+    if (earliestDateStr) {
+      result.earliestDate = earliestDateStr;
+    }
   }
 
   return result;
@@ -989,8 +1132,8 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
 function parseIndianDate(dateStr: string): Date {
   const cleaned = dateStr.trim().replace(/\s+/g, " ");
   
-  // Match DD-MMM-YY or DD-MMM-YYYY (e.g. 12-Sep-19 or 12-Sep-2019)
-  const mmmMatch = cleaned.match(/^([0-3]?\d)[-/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-/](\d{2,4})$/i);
+  // Match DD-MMM-YY or DD-MMM-YYYY (e.g. 12-Sep-19 or 12-Sep-2019 or 12 Sep 2019)
+  const mmmMatch = cleaned.match(/^([0-3]?\d)[-\s/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\s/]+(\d{2,4})$/i);
   if (mmmMatch) {
     const day = parseInt(mmmMatch[1], 10);
     const monthStr = mmmMatch[2].toLowerCase();
@@ -1006,8 +1149,8 @@ function parseIndianDate(dateStr: string): Date {
     return new Date(year, month, day);
   }
 
-  // Match DD-MM-YY or DD-MM-YYYY (e.g. 12-09-19 or 12-09-2019)
-  const numMatch = cleaned.match(/^([0-3]?\d)[-/](0?[1-9]|1[012])[-/](\d{2,4})$/);
+  // Match DD-MM-YY or DD-MM-YYYY (e.g. 12-09-19 or 12 09 2019)
+  const numMatch = cleaned.match(/^([0-3]?\d)[-\s/]+(0?[1-9]|1[012])[-\s/]+(\d{2,4})$/);
   if (numMatch) {
     const day = parseInt(numMatch[1], 10);
     const month = parseInt(numMatch[2], 10) - 1;
@@ -1019,7 +1162,7 @@ function parseIndianDate(dateStr: string): Date {
   }
 
   // Match YYYY-MM-DD
-  const ymdMatch = cleaned.match(/^(\d{4})[-/](0?[1-9]|1[012])[-/]([0-3]?\d)$/);
+  const ymdMatch = cleaned.match(/^(\d{4})[-\s/]+(0?[1-9]|1[012])[-\s/]+([0-3]?\d)$/);
   if (ymdMatch) {
     const year = parseInt(ymdMatch[1], 10);
     const month = parseInt(ymdMatch[2], 10) - 1;
@@ -1212,7 +1355,7 @@ function calculateCasAdvancedMetrics(
     }
     
     if (currentSchemeIndex !== -1) {
-      const dateRegex = /\b([0-2]?\d|3[01])[-/]([01]?\d|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-/]((?:19|20)?\d{2})\b/i;
+      const dateRegex = /\b([0-2]?\d|3[01])[-\s/]+([01]?\d|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\s/]+((?:19|20)?\d{2})\b/i;
       
       // Let's implement line-wrapping adjacent-peeking logic
       let targetLine = line;
@@ -2491,22 +2634,6 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     // Retain exact CAGR unless it is highly anomalous or negative/excessive
     if (isNaN(portfolioCAGR) || portfolioCAGR < -0.30 || portfolioCAGR > 1.80) {
       portfolioCAGR = 0.1245;
-    }
-
-    const cleanFlatTextForCagr = pdfText ? pdfText.replace(/[\s,₹\-]+/g, "").toLowerCase() : "";
-    const isCagrRashidFolio = 
-      cleanFlatTextForCagr.includes("134631") || 
-      cleanFlatTextForCagr.includes("154981") || 
-      cleanFlatTextForCagr.includes("111236") || 
-      cleanFlatTextForCagr.includes("111235") || 
-      cleanFlatTextForCagr.includes("rashid") || 
-      cleanFlatTextForCagr.includes("merchant0710");
-
-    if (isCagrRashidFolio) {
-      portfolioCAGR = 0.2690;
-      xirrResults.cagrPct = 26.90;
-      xirrResults.cagrNote = "Calculated live cash-flow-based portfolio CAGR/XIRR is 26.90% from inception 11-Sep-2021.";
-      console.log(`[High-Precision CAGR Override] Rashid's folio detected. Set Portfolio CAGR/XIRR to 26.90%`);
     }
 
     // Dynamic, realistic Nifty 50 historical CAGR corresponding to the actual inception year to avoid illustrative defaults

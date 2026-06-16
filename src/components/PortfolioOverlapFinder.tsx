@@ -27,13 +27,16 @@ import {
   Award
 } from 'lucide-react';
 
+import MF_NAMES from '../funds/master_list';
+import { generateOverlapFundHolding } from '../funds/master_generator';
+
 // ==========================================
 // Types & Interfaces
 // ==========================================
 export interface FundHolding {
   ticker: string;
   name: string;
-  category: 'Large Cap' | 'Mid Cap' | 'Small Cap' | 'Flexi Cap' | 'Multi Cap' | 'Large & Midcap' | 'International';
+  category: 'Large Cap' | 'Mid Cap' | 'Small Cap' | 'Flexi Cap' | 'Multi Cap' | 'Large & Midcap' | 'International' | 'Debt' | 'Hybrid' | 'Arbitrage' | 'Liquid';
   ter: number; // Total Expense Ratio (%)
   sharpe: number; // Sharpe ratio (3 Yr)
   sortino: number; // Sortino ratio (3 Yr)
@@ -50,7 +53,7 @@ export interface FundHolding {
 // ==========================================
 // Comprehensive Fund Database (Realistic)
 // ==========================================
-const INITIAL_FUNDS_DB: FundHolding[] = [
+const STATIC_FUNDS_DB: FundHolding[] = [
   {
     ticker: 'HDFC-T100',
     name: 'HDFC Top 100 Fund',
@@ -424,6 +427,17 @@ const INITIAL_FUNDS_DB: FundHolding[] = [
     ],
     description: 'A feeder fund tracking of Nasdaq 100 US technology giants. Ideal for geographic hedge.'
   }
+];
+
+// Map our 1,287 funds dynamically while avoiding duplication with preseeded/static list
+const DYNAMIC_EXTERNAL_FUNDS: FundHolding[] = MF_NAMES.map(name => {
+  return generateOverlapFundHolding(name);
+}).filter(fund => !STATIC_FUNDS_DB.some(staticFund => staticFund.name.toLowerCase() === fund.name.toLowerCase()));
+
+// COMBINE STATIC AND DYNAMIC EXTERNAL MULTIPLE FUNDS FOR DISCOVERABILITY IN OVERLAP TOOL
+const INITIAL_FUNDS_DB: FundHolding[] = [
+  ...STATIC_FUNDS_DB,
+  ...DYNAMIC_EXTERNAL_FUNDS
 ];
 
 // ==========================================

@@ -17,6 +17,8 @@ import { AMFI_ARN_DETAILS } from '../data';
 import { SharedSurveyData } from '../types';
 import PasswordDialog from './PasswordDialog';
 
+import { generateRealFundDetails } from '../funds/master_generator';
+
 // Real Mutual Funds Database matching various criteria under Regular Plans
 interface RealFund {
   name: string;
@@ -2279,6 +2281,13 @@ export default function FindYourFundView({
           { name: 'Cash equivalents', value: 10, color: '#10b981' }
         ]
       };
+    }
+
+    // Try to resolve from master dynamic generator
+    try {
+      return generateRealFundDetails(targetFundName);
+    } catch (e) {
+      // Fallback
     }
 
     // Default or other equity (small, mid, contra, bluechip, multi cap, nifty, etc.)

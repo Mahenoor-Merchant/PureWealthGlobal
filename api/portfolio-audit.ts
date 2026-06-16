@@ -805,6 +805,32 @@ function extractPortfolioValue(text: string): number | null {
  * High-precision extraction of Cost Value (Purchase value), Market Value (Current evaluation value), and Withdrawn values
  * typically written on the first page or summary sections.
  */
+function extractNumberForKeywords(text: string, keywords: string[], minVal = 100, maxVal = 500000000): number | null {
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    for (const kw of keywords) {
+      const idx = lowerLine.indexOf(kw.toLowerCase());
+      if (idx !== -1) {
+        // Extract substring after the keyword
+        const sub = line.substring(idx + kw.length);
+        // Look for the first valid monetary amount/number in that substring
+        const match = sub.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/i);
+        if (match) {
+          // Use capture group 1 to clean out currency characters and avoid dot corruption (e.g. "rs. 1,54,981")
+          const numStr = match[1] || match[0];
+          const val = parseFloat(numStr.replace(/[^0-9.]/g, ""));
+          if (!isNaN(val) && val >= minVal && val <= maxVal) {
+            console.log(`[Keyword Extraction] Located "${kw}" on line "${line.trim()}". Extracted value: ${val}`);
+            return val;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function extractConsolidatedCostsAndValuations(text: string): { costValue: number | null, marketValue: number | null, withdrawnValue: number | null, earliestDate: string | null } {
   const result: { costValue: number | null, marketValue: number | null, withdrawnValue: number | null, earliestDate: string | null } = {
     costValue: null,
@@ -817,95 +843,7 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
   
   const lines = text.split("\n");
   
-  // 1. Scan lines for Cost Value (Invested Value) dynamically
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (
-      lower.includes("cost value") || 
-      lower.includes("total cost") || 
-      lower.includes("acquisition cost") || 
-      lower.includes("purchase cost") ||
-      lower.includes("investment cost") ||
-      lower.includes("invested value") ||
-      lower.includes("cost of acquisition") ||
-      lower.includes("total investment") ||
-      lower.includes("amount invested")
-    ) {
-      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
-      if (match) {
-        for (const m of match) {
-          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
-          if (val > 1000 && val < 500000000) {
-            result.costValue = val;
-            console.log(`[Dynamic Extraction] Cost Value located: ${val} from line "${line.trim()}"`);
-            break;
-          }
-        }
-        if (result.costValue) break;
-      }
-    }
-  }
-
-  // 2. Scan lines for Market Value (Current Evaluation) dynamically
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (
-      lower.includes("market value") || 
-      lower.includes("current value") || 
-      lower.includes("current valuation") || 
-      lower.includes("valuation as on") || 
-      lower.includes("valuation as of") || 
-      lower.includes("present value") || 
-      lower.includes("total valuation") || 
-      lower.includes("evaluation value") ||
-      lower.includes("holding value")
-    ) {
-      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
-      if (match) {
-        for (const m of match) {
-          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
-          if (val > 1000 && val < 500000000) {
-            result.marketValue = val;
-            console.log(`[Dynamic Extraction] Market Value located: ${val} from line "${line.trim()}"`);
-            break;
-          }
-        }
-        if (result.marketValue) break;
-      }
-    }
-  }
-
-  // 3. Scan lines for Withdrawn / Redeemed / Switch-out dynamically
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (
-      lower.includes("withdrawn") || 
-      lower.includes("redemption") || 
-      lower.includes("redemptions") || 
-      lower.includes("withdrawal") || 
-      lower.includes("switch-out") || 
-      lower.includes("switchout") || 
-      lower.includes("repurchase") || 
-      lower.includes("redeemed") ||
-      lower.includes("payout") ||
-      lower.includes("switched out")
-    ) {
-      const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
-      if (match) {
-        for (const m of match) {
-          const val = parseFloat(m.replace(/[^0-9.]/g, ""));
-          if (val > 10 && val < 500000000) {
-            result.withdrawnValue = val;
-            console.log(`[Dynamic Extraction] Withdrawn Value located: ${val} from line "${line.trim()}"`);
-            break;
-          }
-        }
-        if (result.withdrawnValue) break;
-      }
-    }
-  }
-
-  // Find Portfolio Summary block index
+  // 1. Scan dynamically for Portfolio Summary / Holdings Summary block index first (Level 2)
   let summaryIdx = -1;
   for (let i = 0; i < lines.length; i++) {
     const term = lines[i].toLowerCase();
@@ -915,21 +853,21 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
     }
   }
 
-  // Look for total rows in or near the portfolio summary
+  // Look for total rows in or near the portfolio summary block with high priority
   if (summaryIdx !== -1) {
-    const end = Math.min(lines.length, summaryIdx + 25);
+    const end = Math.min(lines.length, summaryIdx + 30);
     for (let j = summaryIdx; j < end; j++) {
       const line = lines[j];
       const lower = line.toLowerCase();
-      if (lower.includes("total") || lower.includes("consol") || lower.includes("grand") || lower.includes("all asset")) {
+      if (lower.includes("total") || lower.includes("consol") || lower.includes("grand") || lower.includes("all asset") || lower.includes("net worth")) {
         const numbers = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
         if (numbers && numbers.length >= 2) {
           const num1 = parseFloat(numbers[0].replace(/[^0-9.]/g, ""));
           const num2 = parseFloat(numbers[1].replace(/[^0-9.]/g, ""));
           if (num1 > 100 && num2 > 100) {
-            if (!result.costValue) result.costValue = num1;
-            if (!result.marketValue) result.marketValue = num2;
-            console.log(`[Consolidated Extraction exact] Cost: ${num1}, Market: ${num2}`);
+            result.costValue = num1;
+            result.marketValue = num2;
+            console.log(`[Consolidated Extraction exact from summary block] Cost: ${num1}, Market: ${num2} on line: "${line.trim()}"`);
             break;
           }
         }
@@ -937,31 +875,74 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
     }
   }
 
-  // Extract total withdrawn / redemptions / switches-out from summary rows
+  // 2. Extract total withdrawn / redemptions / switches-out from summary rows (Level 2)
   for (const line of lines) {
     const lower = line.toLowerCase();
     if (
       (lower.includes("total") || lower.includes("summary")) && 
-      (lower.includes("withdrawn") || lower.includes("redemption") || lower.includes("repurchase") || lower.includes("withdrawal") || lower.includes("switch-out") || lower.includes("switchout") || lower.includes("swo"))
+      (lower.includes("withdrawn") || lower.includes("redemption") || lower.includes("repurchase") || lower.includes("withdrawal") || lower.includes("switch-out") || lower.includes("switchout") || lower.includes("swo") || lower.includes("redeemed"))
     ) {
       const match = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
       if (match) {
         const val = parseFloat(match[match.length - 1].replace(/[^0-9.]/g, ""));
-        if (val > 1000 && !result.withdrawnValue) {
+        if (val > 1000) {
           result.withdrawnValue = val;
-          console.log(`[Consolidated Extraction withdrawn] Total Withdrawn: ${val}`);
+          console.log(`[Consolidated Extraction withdrawn from summary rows] Total Withdrawn: ${val} on line: "${line.trim()}"`);
           break;
         }
       }
     }
   }
 
-  // Global search fallback for lines containing "Total" and multiple values (representing Cost and Market)
+  // 3. LEVEL 1: HIGH-PRECISION PORTFOLIO-WIDE SPECIFIC CONSOLIDATED KEYWORDS
+  if (!result.costValue) {
+    result.costValue = extractNumberForKeywords(text, [
+      "total cost value",
+      "total acquisition cost",
+      "total purchase cost",
+      "total investment cost",
+      "portfolio total investment",
+      "portfolio cost value",
+      "net invested amount",
+      "total amount invested",
+      "total units cost"
+    ], 100);
+  }
+
+  if (!result.marketValue) {
+    result.marketValue = extractNumberForKeywords(text, [
+      "total market value",
+      "total current value",
+      "total current valuation",
+      "total present value",
+      "total valuation",
+      "total evaluation value",
+      "grand total valuation",
+      "portfolio market value",
+      "current valuation total",
+      "market value total"
+    ], 100);
+  }
+
+  if (!result.withdrawnValue) {
+    result.withdrawnValue = extractNumberForKeywords(text, [
+      "total withdrawn",
+      "total redemptions",
+      "total withdrawals",
+      "total switch-out",
+      "total switchout",
+      "total repurchase",
+      "total redeemed",
+      "total payout"
+    ], 10);
+  }
+
+  // 4. Global search fallback for lines containing "Total" and multiple values (representing Cost and Market) (Level 3)
   if (!result.costValue || !result.marketValue) {
     for (const line of lines) {
       const lower = line.toLowerCase();
-      if ((lower.includes("total") || lower.includes("all funds") || lower.includes("consol")) &&
-          (lower.includes("cost") || lower.includes("market") || lower.includes("purchase") || lower.includes("value"))) {
+      if ((lower.includes("total") || lower.includes("all funds") || lower.includes("consol") || lower.includes("grand")) &&
+          (lower.includes("cost") || lower.includes("market") || lower.includes("purchase") || lower.includes("value") || lower.includes("valuation"))) {
         const numbers = line.match(/(?:\₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?)/gi);
         if (numbers && numbers.length >= 2) {
           const num1 = parseFloat(numbers[0].replace(/[^0-9.]/g, ""));
@@ -969,7 +950,7 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
           if (num1 > 100 && num2 > 100) {
             if (!result.costValue) result.costValue = num1;
             if (!result.marketValue) result.marketValue = num2;
-            console.log(`[Consolidated Extraction global] Cost: ${num1}, Market: ${num2}`);
+            console.log(`[Consolidated Extraction global fallback] Cost: ${num1}, Market: ${num2} on line: "${line.trim()}"`);
             break;
           }
         }
@@ -977,7 +958,7 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
     }
   }
 
-  // Direct line fallback search for Cost Value
+  // 5. Direct line fallback search for Cost Value (Level 4 - Generic fallbacks)
   if (!result.costValue) {
     for (const line of lines) {
       if (/cost\s+value/i.test(line) || /total\s+cost/i.test(line) || /acquisition\s+cost/i.test(line) || /total\s+purchase/i.test(line)) {
@@ -986,6 +967,7 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
           const val = parseFloat(match[0].replace(/[^0-9.]/g, ""));
           if (val > 1000) {
             result.costValue = val;
+            console.log(`[Direct Fallback Cost] Extracted: ${val} from line "${line.trim()}"`);
             break;
           }
         }
@@ -993,7 +975,7 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
     }
   }
 
-  // Direct line fallback search for Market Value
+  // Direct line fallback search for Market Value (Level 4 - Generic fallbacks)
   if (!result.marketValue) {
     for (const line of lines) {
       if (/market\s+value/i.test(line) || /current\s+value/i.test(line) || /current\s+valuation/i.test(line) || /evaluation\s+value/i.test(line) || /total\s+valuation/i.test(line)) {
@@ -1002,11 +984,63 @@ function extractConsolidatedCostsAndValuations(text: string): { costValue: numbe
           const val = parseFloat(match[0].replace(/[^0-9.]/g, ""));
           if (val > 1000) {
             result.marketValue = val;
+            console.log(`[Direct Fallback Market] Extracted: ${val} from line "${line.trim()}"`);
             break;
           }
         }
       }
     }
+  }
+
+  // Level 4 fallback using lower-conf keywords
+  if (!result.costValue) {
+    result.costValue = extractNumberForKeywords(text, [
+      "cost value",
+      "total cost",
+      "acquisition cost",
+      "purchase cost",
+      "investment cost",
+      "invested value",
+      "cost of acquisition",
+      "total investment",
+      "amount invested",
+      "net invested",
+      "invested amt",
+      "invested amount"
+    ], 100);
+  }
+
+  if (!result.marketValue) {
+    result.marketValue = extractNumberForKeywords(text, [
+      "market value",
+      "current value",
+      "current valuation",
+      "valuation as on",
+      "valuation as of",
+      "present value",
+      "total valuation",
+      "evaluation value",
+      "holding value",
+      "portfolio valuation",
+      "current evaluation",
+      "valuation"
+    ], 100);
+  }
+
+  if (!result.withdrawnValue) {
+    result.withdrawnValue = extractNumberForKeywords(text, [
+      "withdrawn",
+      "redemption",
+      "redemptions",
+      "withdrawal",
+      "switch-out",
+      "switchout",
+      "repurchase",
+      "redeemed",
+      "payout",
+      "switched out",
+      "swo"
+    ], 10);
   }
 
   // Earliest date search across transactions (strict transaction-only rules to avoid header dates)
@@ -1397,7 +1431,25 @@ function calculateCasAdvancedMetrics(
           lowerLine.includes("address") ||
           lowerLine.includes("nominee") ||
           lowerLine.includes("reversal") ||
-          lowerLine.includes("invalid");
+          lowerLine.includes("invalid") ||
+          lowerLine.includes("exit load") ||
+          lowerLine.includes("load structure") ||
+          lowerLine.includes("lock-in") ||
+          lowerLine.includes("disclaimer") ||
+          lowerLine.includes("terms & conditions") ||
+          lowerLine.includes("nominal value") ||
+          lowerLine.includes("face value") ||
+          lowerLine.includes("minimum investment") ||
+          lowerLine.includes("minimum redemption") ||
+          lowerLine.includes("redemption of this") ||
+          lowerLine.includes("subject to exit") ||
+          lowerLine.includes("demat") ||
+          lowerLine.includes("kyc status") ||
+          lowerLine.includes("this statement represents") ||
+          lowerLine.includes("calculated dynamically") ||
+          lowerLine.includes("illustrative guide") ||
+          lowerLine.includes("note:") ||
+          lowerLine.includes("notes:");
           
         if (isExcludedLine) continue;
         
@@ -1580,7 +1632,7 @@ function calculateCasAdvancedMetrics(
       const gap = consolidated.costValue - evaluatedTotalInvested;
       evaluatedTotalInvested = consolidated.costValue;
       
-      const reconcileMs = Date.parse(earliestDateStr || "2021-01-01") + 1000 * 60 * 60 * 24 * 60; // 60 days after start
+      const reconcileMs = parseIndianDate(earliestDateStr || "2021-01-01").getTime() + 1000 * 60 * 60 * 24 * 60; // 60 days after start
       allPortfolioCashFlows.push({ date: new Date(reconcileMs), amount: -gap });
     }
   }
@@ -1590,7 +1642,7 @@ function calculateCasAdvancedMetrics(
       const gap = consolidated.withdrawnValue - evaluatedTotalWithdrawn;
       evaluatedTotalWithdrawn = consolidated.withdrawnValue;
       
-      const reconcileMs = Date.parse(earliestDateStr || "2021-01-01") + 1000 * 60 * 60 * 24 * 180; // 180 days after start
+      const reconcileMs = parseIndianDate(earliestDateStr || "2021-01-01").getTime() + 1000 * 60 * 60 * 24 * 180; // 180 days after start
       allPortfolioCashFlows.push({ date: new Date(reconcileMs), amount: gap });
     }
   }
@@ -1598,7 +1650,7 @@ function calculateCasAdvancedMetrics(
   allPortfolioCashFlows.push({ date: finalNavDate, amount: finalValuation });
 
   if (allPortfolioCashFlows.length <= 1) {
-    const startMs = Date.parse(earliestDateStr || "2021-01-01");
+    const startMs = parseIndianDate(earliestDateStr || "2021-01-01").getTime();
     allPortfolioCashFlows.push({ date: new Date(startMs), amount: -(finalValuation * 0.8125) });
     allPortfolioCashFlows.push({ date: finalNavDate, amount: finalValuation });
   }
@@ -1621,13 +1673,13 @@ function calculateCasAdvancedMetrics(
   } else {
     let years = 5.0;
     try {
-      const msStart = Date.parse(earliestDateStr || "2021-01-01");
+      const msStart = parseIndianDate(earliestDateStr || "2021-01-01").getTime();
       const msDiff = finalNavMs - msStart;
       years = msDiff / (1000 * 60 * 60 * 24 * 365.25);
       if (years <= 0.05 || years > 35) years = 5.0;
     } catch (e) {}
     
-    const p2pCagr = Math.pow(finalValuation / evaluatedTotalInvested, 1 / years) - 1;
+    const p2pCagr = Math.pow((finalValuation + evaluatedTotalWithdrawn) / evaluatedTotalInvested, 1 / years) - 1;
     if (!isNaN(p2pCagr) && p2pCagr > -0.50 && p2pCagr < 5.00) {
       cagrPct = parseFloat((p2pCagr * 100).toFixed(2));
       cagrNote = "XIRR solver could not resolve directly using raw transactions cash flow logs. Point-to-point annualized CAGR fallback is computed instead.";
@@ -2614,7 +2666,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     let yearsElapsed = 5.0;
     try {
       const msToday = Date.parse("2026-06-11");
-      const msStart = Date.parse(earliestInvestmentDate);
+      const msStart = parseIndianDate(earliestInvestmentDate).getTime();
       if (!isNaN(msStart)) {
         const msDiff = msToday - msStart;
         const calcYears = msDiff / (1000 * 60 * 60 * 24 * 365.25);
@@ -2630,7 +2682,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     totalAcquisitionCost = xirrResults.totalInvested;
     currentValue = xirrResults.currentValue;
 
-    let portfolioCAGR = xirrResults.cagrPct !== null ? (xirrResults.cagrPct / 100) : (Math.pow(currentValue / totalAcquisitionCost, 1 / yearsElapsed) - 1);
+    let portfolioCAGR = xirrResults.cagrPct !== null ? (xirrResults.cagrPct / 100) : (Math.pow((currentValue + (xirrResults.totalWithdrawn || 0)) / totalAcquisitionCost, 1 / yearsElapsed) - 1);
     // Retain exact CAGR unless it is highly anomalous or negative/excessive
     if (isNaN(portfolioCAGR) || portfolioCAGR < -0.30 || portfolioCAGR > 1.80) {
       portfolioCAGR = 0.1245;
@@ -2639,7 +2691,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
     // Dynamic, realistic Nifty 50 historical CAGR corresponding to the actual inception year to avoid illustrative defaults
     const startYear = (() => {
       try {
-        const ms = Date.parse(earliestInvestmentDate);
+        const ms = parseIndianDate(earliestInvestmentDate).getTime();
         if (!isNaN(ms)) {
           return new Date(ms).getFullYear();
         }

@@ -115,6 +115,8 @@ export function generateOverlapFundHolding(name: string): FundHolding {
   let sortino = sharpe + 0.15 + (hash % 20) / 100;
   let rolling3Y = 14.5 + (hash % 110) / 10; // 14.5% to 25.5%
   let rolling5Y = rolling3Y - 1.5 - (hash % 30) / 10;
+  let rolling7Y = rolling5Y + 0.5 - (hash % 11) / 10;
+  let rolling10Y = rolling7Y - 0.3 + (hash % 9) / 10;
 
   let exitLoad = '1.0% if redeemed within 365 days';
   let exitLoadPercent = 0.01;
@@ -125,6 +127,8 @@ export function generateOverlapFundHolding(name: string): FundHolding {
     sortino = sharpe + 0.1;
     rolling3Y = 6.2 + (hash % 15) / 10; // 6.2% to 7.7%
     rolling5Y = rolling3Y - 0.2;
+    rolling7Y = rolling5Y - 0.1;
+    rolling10Y = rolling7Y - 0.1;
     exitLoad = 'Nil exit load';
     exitLoadPercent = 0.0;
   } else if (category === 'Debt') {
@@ -133,6 +137,8 @@ export function generateOverlapFundHolding(name: string): FundHolding {
     sortino = sharpe + 0.15;
     rolling3Y = 7.1 + (hash % 25) / 10; // 7.1% to 9.6%
     rolling5Y = rolling3Y - 0.3;
+    rolling7Y = rolling5Y + 0.1 - (hash % 10) / 20;
+    rolling10Y = rolling7Y + 0.05 + (hash % 5) / 20;
     exitLoad = hash % 2 === 0 ? 'Nil' : '0.5% if redeemed within 30 days';
     exitLoadPercent = hash % 2 === 0 ? 0.0 : 0.005;
   } else if (category === 'Arbitrage') {
@@ -141,11 +147,15 @@ export function generateOverlapFundHolding(name: string): FundHolding {
     sortino = sharpe + 0.15;
     rolling3Y = 7.2 + (hash % 18) / 10; // 7.2% to 9.0%
     rolling5Y = rolling3Y - 0.5;
+    rolling7Y = rolling5Y + 0.15 - (hash % 8) / 20;
+    rolling10Y = rolling7Y + 0.1 + (hash % 5) / 20;
     exitLoad = '0.25% if redeemed within 30 days';
     exitLoadPercent = 0.0025;
   } else if (category === 'Small Cap') {
     rolling3Y = 22.5 + (hash % 150) / 10; // 22.5% to 37.5%
     rolling5Y = rolling3Y - 3.0 - (hash % 40) / 10;
+    rolling7Y = rolling5Y + 0.8 - (hash % 11) / 10;
+    rolling10Y = rolling7Y - 0.2 + (hash % 9) / 10;
   }
 
   // Holdings selection
@@ -219,6 +229,8 @@ export function generateOverlapFundHolding(name: string): FundHolding {
     sortino: Math.round(sortino * 100) / 100,
     rolling3Y: Math.round(rolling3Y * 10) / 10,
     rolling5Y: Math.round(rolling5Y * 10) / 10,
+    rolling7Y: Math.round(rolling7Y * 10) / 10,
+    rolling10Y: Math.round(rolling10Y * 10) / 10,
     exitLoad,
     exitLoadPercent,
     taxType,

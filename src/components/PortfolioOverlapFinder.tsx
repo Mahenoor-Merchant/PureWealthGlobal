@@ -63,11 +63,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'HDFC-T100',
     name: 'HDFC Top 100 Fund',
     category: 'Large Cap',
-    ter: 1.15,
-    sharpe: 1.35,
-    sortino: 1.45,
-    rolling3Y: 16.8,
-    rolling5Y: 15.2,
+    ter: 1.61,
+    sharpe: 1.28,
+    sortino: 1.34,
+    rolling3Y: 17.5,
+    rolling5Y: 16.8,
+    rolling7Y: 14.5,
+    rolling10Y: 13.9,
     exitLoad: '1.0% if redeemed within 30 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -77,7 +79,7 @@ const STATIC_FUNDS_DB: FundHolding[] = [
       { name: 'Reliance Industries', weight: 7.8 },
       { name: 'Infosys', weight: 6.5 },
       { name: 'Larsen & Toubro', weight: 5.2 },
-      { name: 'ITC', weight: 4.8 },
+      { name: 'ITC Ltd', weight: 4.8 },
       { name: 'Axis Bank', weight: 4.2 },
       { name: 'State Bank of India', weight: 3.9 },
       { name: 'TCS', weight: 3.5 },
@@ -97,11 +99,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'SBI-BC',
     name: 'SBI Bluechip Fund',
     category: 'Large Cap',
-    ter: 1.55,
-    sharpe: 1.28,
-    sortino: 1.38,
-    rolling3Y: 15.6,
-    rolling5Y: 14.1,
+    ter: 1.56,
+    sharpe: 1.18,
+    sortino: 1.24,
+    rolling3Y: 16.2,
+    rolling5Y: 15.1,
+    rolling7Y: 13.5,
+    rolling10Y: 13.1,
     exitLoad: '1.0% if redeemed within 365 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -111,7 +115,7 @@ const STATIC_FUNDS_DB: FundHolding[] = [
       { name: 'Reliance Industries', weight: 7.2 },
       { name: 'Infosys', weight: 5.9 },
       { name: 'Larsen & Toubro', weight: 4.8 },
-      { name: 'ITC', weight: 4.5 },
+      { name: 'ITC Ltd', weight: 4.5 },
       { name: 'Axis Bank', weight: 3.8 },
       { name: 'State Bank of India', weight: 3.5 },
       { name: 'TCS', weight: 3.2 },
@@ -131,11 +135,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'ICICI-BC',
     name: 'ICICI Prudential Bluechip Fund',
     category: 'Large Cap',
-    ter: 1.08,
-    sharpe: 1.30,
+    ter: 1.51,
+    sharpe: 1.32,
     sortino: 1.40,
-    rolling3Y: 15.9,
-    rolling5Y: 14.8,
+    rolling3Y: 18.1,
+    rolling5Y: 17.2,
+    rolling7Y: 14.8,
+    rolling10Y: 14.2,
     exitLoad: '1.0% if redeemed within 365 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -145,7 +151,7 @@ const STATIC_FUNDS_DB: FundHolding[] = [
       { name: 'Reliance Industries', weight: 7.5 },
       { name: 'Infosys', weight: 6.2 },
       { name: 'Larsen & Toubro', weight: 5.1 },
-      { name: 'ITC', weight: 4.3 },
+      { name: 'ITC Ltd', weight: 4.3 },
       { name: 'Axis Bank', weight: 4.0 },
       { name: 'State Bank of India', weight: 3.6 },
       { name: 'TCS', weight: 3.1 },
@@ -165,17 +171,19 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'PP-FC',
     name: 'Parag Parikh Flexi Cap Fund',
     category: 'Flexi Cap',
-    ter: 0.62,
-    sharpe: 1.58,
-    sortino: 1.72,
-    rolling3Y: 19.5,
-    rolling5Y: 21.2,
+    ter: 1.34,
+    sharpe: 1.54,
+    sortino: 1.65,
+    rolling3Y: 20.2,
+    rolling5Y: 22.4,
+    rolling7Y: 19.8,
+    rolling10Y: 18.2,
     exitLoad: '2.0% within 365 days, 1.0% between 366-730 days',
     exitLoadPercent: 0.02,
     taxType: 'Equity',
     topHoldings: [
       { name: 'HDFC Bank', weight: 8.0 },
-      { name: 'ITC', weight: 6.0 },
+      { name: 'ITC Ltd', weight: 6.0 },
       { name: 'Bajaj Holdings', weight: 5.0 },
       { name: 'Alphabet Inc C', weight: 5.5 },
       { name: 'Microsoft Corp', weight: 4.5 },
@@ -199,11 +207,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'QUANT-ACT',
     name: 'Quant Active Fund',
     category: 'Multi Cap',
-    ter: 0.75,
-    sharpe: 1.72,
-    sortino: 1.95,
-    rolling3Y: 24.5,
-    rolling5Y: 25.8,
+    ter: 1.65,
+    sharpe: 1.59,
+    sortino: 1.82,
+    rolling3Y: 23.8,
+    rolling5Y: 24.9,
+    rolling7Y: 22.1,
+    rolling10Y: 21.0,
     exitLoad: '1.0% if redeemed within 15 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -233,11 +243,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'MIRAE-LM',
     name: 'Mirae Asset Large & Midcap Fund',
     category: 'Large & Midcap',
-    ter: 0.95,
-    sharpe: 1.42,
-    sortino: 1.51,
-    rolling3Y: 18.2,
-    rolling5Y: 17.6,
+    ter: 1.56,
+    sharpe: 1.35,
+    sortino: 1.45,
+    rolling3Y: 18.9,
+    rolling5Y: 18.2,
+    rolling7Y: 16.1,
+    rolling10Y: 15.5,
     exitLoad: '1.0% if redeemed within 365 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -267,11 +279,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'NIPPON-SM',
     name: 'Nippon India Small Cap Fund',
     category: 'Small Cap',
-    ter: 0.82,
-    sharpe: 1.82,
-    sortino: 2.10,
-    rolling3Y: 28.6,
-    rolling5Y: 31.4,
+    ter: 1.48,
+    sharpe: 1.72,
+    sortino: 1.95,
+    rolling3Y: 29.1,
+    rolling5Y: 31.8,
+    rolling7Y: 25.1,
+    rolling10Y: 23.4,
     exitLoad: '1.0% if redeemed within 30 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -301,11 +315,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'AXIS-SM',
     name: 'Axis Small Cap Fund',
     category: 'Small Cap',
-    ter: 0.55,
-    sharpe: 1.68,
-    sortino: 1.85,
-    rolling3Y: 22.4,
-    rolling5Y: 23.1,
+    ter: 1.62,
+    sharpe: 1.48,
+    sortino: 1.62,
+    rolling3Y: 22.6,
+    rolling5Y: 23.8,
+    rolling7Y: 20.4,
+    rolling10Y: 19.5,
     exitLoad: '1.0% if redeemed within 365 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -335,11 +351,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'KOTAK-EE',
     name: 'Kotak Emerging Equity Fund',
     category: 'Mid Cap',
-    ter: 0.48,
-    sharpe: 1.55,
-    sortino: 1.78,
-    rolling3Y: 21.4,
-    rolling5Y: 22.8,
+    ter: 1.44,
+    sharpe: 1.42,
+    sortino: 1.58,
+    rolling3Y: 21.5,
+    rolling5Y: 22.1,
+    rolling7Y: 18.9,
+    rolling10Y: 18.5,
     exitLoad: '1.0% if redeemed within 365 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -369,11 +387,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'NIPPON-GR',
     name: 'Nippon India Growth Fund',
     category: 'Mid Cap',
-    ter: 0.88,
-    sharpe: 1.62,
-    sortino: 1.84,
-    rolling3Y: 24.3,
-    rolling5Y: 23.5,
+    ter: 1.64,
+    sharpe: 1.54,
+    sortino: 1.76,
+    rolling3Y: 25.2,
+    rolling5Y: 24.1,
+    rolling7Y: 21.0,
+    rolling10Y: 19.8,
     exitLoad: '1.0% if redeemed within 30 days',
     exitLoadPercent: 0.01,
     taxType: 'Equity',
@@ -403,11 +423,13 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     ticker: 'MOTILAL-NQ100',
     name: 'Motilal Oswal Nasdaq 100 FoF',
     category: 'International',
-    ter: 0.58,
-    sharpe: 1.15,
-    sortino: 1.25,
-    rolling3Y: 14.8,
-    rolling5Y: 18.5,
+    ter: 0.61,
+    sharpe: 1.05,
+    sortino: 1.15,
+    rolling3Y: 15.2,
+    rolling5Y: 19.1,
+    rolling7Y: 17.5,
+    rolling10Y: 16.8,
     exitLoad: 'Nil exit load',
     exitLoadPercent: 0.00,
     taxType: 'International',
@@ -448,6 +470,34 @@ const INITIAL_FUNDS_DB: FundHolding[] = [
 // ==========================================
 // Helper calculation functions
 // ==========================================
+/**
+ * Helper to determine if a fund is an index/passive fund or regular active fund
+ */
+function isPassiveFund(fund: FundHolding): boolean {
+  const nameLower = fund.name.toLowerCase();
+  return nameLower.includes('index') || 
+         nameLower.includes('nifty') || 
+         nameLower.includes('sensex') || 
+         nameLower.includes('etf') || 
+         nameLower.includes('fof') || 
+         nameLower.includes('equal weight') ||
+         nameLower.includes('bse 500') ||
+         nameLower.includes('spdr') ||
+         nameLower.includes('nasdaq 100');
+}
+
+/**
+ * Helper to determine if a fund is an ELSS / Tax saver mutual fund
+ */
+function isELSSFund(fund: FundHolding): boolean {
+  const nameLower = fund.name.toLowerCase();
+  return nameLower.includes('elss') || 
+         nameLower.includes('tax saver') || 
+         nameLower.includes('tax-saving') || 
+         nameLower.includes('tax saving') || 
+         nameLower.includes('long term equity');
+}
+
 /**
  * Calculates raw overlap percentage between single pairs based on shared underlying stock holdings
  * Formula: sum of minimum weight of shared stocks in both funds, normalized to the combined top exposure.
@@ -523,10 +573,7 @@ export default function PortfolioOverlapFinder() {
   // Simulation Active Toggle
   const [isSimulationActive, setIsSimulationActive] = useState(false);
 
-  // States for Capital Gains Tax Calculator
-  const [holdingPeriod, setHoldingPeriod] = useState<'Short' | 'Long'>('Long');
-  const [customGain, setCustomGain] = useState<number>(150000);
-  const [customTotalValue, setCustomTotalValue] = useState<number>(500000);
+
 
   // Filter DB based on queries
   const filteredFunds = useMemo(() => {
@@ -768,9 +815,12 @@ export default function PortfolioOverlapFinder() {
 
       const currentCategory = currentFund.category;
 
-      // Filter other candidates in the same category that are NOT currently in the portfolio
+      // Filter other candidates in the same category and type that are NOT currently in the portfolio (similar active/passive/ELSS)
       const candidates = INITIAL_FUNDS_DB.filter(dbFund => {
         if (dbFund.category !== currentCategory) return false;
+        if (dbFund.taxType !== currentFund.taxType) return false;
+        if (isPassiveFund(dbFund) !== isPassiveFund(currentFund)) return false;
+        if (isELSSFund(dbFund) !== isELSSFund(currentFund)) return false;
         if (dbFund.ticker === currentFund.ticker) return false;
         
         // Ensure not already in active portfolio
@@ -866,9 +916,13 @@ export default function PortfolioOverlapFinder() {
   // Find superior active alternatives for overlapping funds based on rolling returns, Sharpe, and Sortino ratios
   const recommendedAlternatives = useMemo(() => {
     return INITIAL_FUNDS_DB.map(f => {
-      // Find what other funds in the database match are superior
+      // Find what other funds in the database match are superior (same category, active/passive, and ELSS status)
       const matches = INITIAL_FUNDS_DB.filter(other => {
         if (other.ticker === f.ticker) return false;
+        if (other.category !== f.category) return false;
+        if (other.taxType !== f.taxType) return false;
+        if (isPassiveFund(other) !== isPassiveFund(f)) return false;
+        if (isELSSFund(other) !== isELSSFund(f)) return false;
         
         // Superior metrics conditions: Better Returns + Better Sharpe/Sortino + Lower/competitive Expense Ratio
         return (
@@ -885,36 +939,7 @@ export default function PortfolioOverlapFinder() {
     });
   }, []);
 
-  // Compute estimated switching friction fees and capital gains taxes
-  const calculatedSwitchTax = useMemo(() => {
-    // Standard Tax Rates (India Finance Act 2024 amendments)
-    // Equity: STCG = 20%, LTCG = 12.5% (with first 1.25 Lakh gains exempt across all holdings per financial year)
-    // International: STCG = Tax Slab (assumed average 30%), LTCG = 12.5% if held over 24 months
-    const exitLoadRate = 0.01; // Average exit load for short-term redemptions (1%)
-    const exitLoadCost = customTotalValue * exitLoadRate;
-    
-    let taxRate = 0;
-    let exemption = 0;
-    
-    if (holdingPeriod === 'Short') {
-      taxRate = 0.20; // 20% Short term gains
-    } else {
-      taxRate = 0.125; // 12.5% Long term gains
-      exemption = 125000; // ₹1.25L exempt
-    }
 
-    const taxableGain = Math.max(0, customGain - exemption);
-    const estTax = taxableGain * taxRate;
-    const totalFriction = exitLoadCost + estTax;
-
-    return {
-      exitLoadCost,
-      taxRatePercent: taxRate * 100,
-      taxableGain,
-      estTax,
-      totalFriction
-    };
-  }, [holdingPeriod, customGain, customTotalValue]);
 
   // Switcher Interactive Simulation action
   const handleApplySimulation = (pruneTicker: string, addTicker: string) => {
@@ -1015,40 +1040,58 @@ export default function PortfolioOverlapFinder() {
 
             {/* Empty state if nothing added */}
             {normalizedWeightedFunds.length === 0 ? (
-              <div className="text-center py-10 px-4 border-2 border-dashed border-slate-100 rounded-2xl">
-                <TrendingUp className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs text-slate-500 font-medium">No funds added yet</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Use the search directory below to start building your portfolio.</p>
+              <div className="text-center py-12 px-6 border-2 border-dashed border-slate-100 rounded-3xl">
+                <TrendingUp className="w-9 h-9 text-slate-300 mx-auto mb-2.5" />
+                <p className="text-xs font-bold text-slate-600 font-sans">No active funds added yet</p>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px] mx-auto leading-relaxed">
+                  Search and add regular plan mutual funds from the master catalog below to analyze.
+                </p>
               </div>
             ) : (
               /* Hold items list */
-              <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
                 {normalizedWeightedFunds.map((item, idx) => {
-                  // Determine premium colors for badges
-                  let badgeStyle = 'text-blue-700 bg-blue-50 border-blue-100';
-                  if (item.fundDetails.category === 'Debt') badgeStyle = 'text-amber-700 bg-amber-50 border-amber-100';
-                  else if (item.fundDetails.category === 'Index') badgeStyle = 'text-purple-700 bg-purple-50 border-purple-100';
-                  else if (item.fundDetails.category === 'Liquid') badgeStyle = 'text-teal-700 bg-teal-50 border-teal-100';
-                  else if (item.fundDetails.category === 'Arbitrage') badgeStyle = 'text-slate-700 bg-slate-100 border-slate-200';
-                  else if (item.fundDetails.category === 'Small Cap') badgeStyle = 'text-rose-700 bg-rose-50 border-rose-100';
+                  // Determine status category-specific vertical border color coding for a visual anchor
+                  let leftBorderBar = 'border-l-indigo-500';
+                  let categoryBadgeStyle = 'text-indigo-700 bg-indigo-50/70 border-indigo-100';
+                  
+                  if (item.fundDetails.category === 'Debt') {
+                    leftBorderBar = 'border-l-amber-500';
+                    categoryBadgeStyle = 'text-amber-700 bg-amber-50/70 border-amber-100';
+                  } else if (item.fundDetails.category === 'Index') {
+                    leftBorderBar = 'border-l-purple-500';
+                    categoryBadgeStyle = 'text-purple-700 bg-purple-50/70 border-purple-100';
+                  } else if (item.fundDetails.category === 'Mid Cap') {
+                    leftBorderBar = 'border-l-sky-500';
+                    categoryBadgeStyle = 'text-sky-700 bg-sky-50/70 border-sky-100';
+                  } else if (item.fundDetails.category === 'Small Cap') {
+                    leftBorderBar = 'border-l-rose-500';
+                    categoryBadgeStyle = 'text-rose-700 bg-rose-50/70 border-rose-100';
+                  } else if (item.fundDetails.category === 'Flexi Cap') {
+                    leftBorderBar = 'border-l-emerald-500';
+                    categoryBadgeStyle = 'text-emerald-700 bg-emerald-50/70 border-emerald-100';
+                  } else if (item.fundDetails.category === 'International') {
+                    leftBorderBar = 'border-l-violet-500';
+                    categoryBadgeStyle = 'text-violet-700 bg-violet-50/70 border-violet-100';
+                  }
 
                   const allocationPercent = Math.round(item.weightPercent);
 
                   return (
                     <div 
                       key={item.ticker} 
-                      className="p-4 bg-slate-50/50 hover:bg-white rounded-2xl transition-all duration-300 border border-slate-150 hover:border-slate-300 hover:shadow-md hover:shadow-slate-100/50 relative group"
+                      className={`ps-4 pe-3 py-3.5 bg-white rounded-2xl transition-all duration-300 border-y border-e border-slate-200/80 border-l-4 ${leftBorderBar} hover:shadow-sm hover:border-slate-300 relative group flex flex-col justify-between`}
                     >
                       {/* Top Row: Category badge & Delete action */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border font-mono tracking-wide ${badgeStyle}`}>
+                      <div className="flex items-center justify-between gap-2 mb-2 bg-slate-50/30 -mx-1 -mt-1 p-1 rounded-lg">
+                        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md border font-mono tracking-wide ${categoryBadgeStyle}`}>
                           {item.fundDetails.category}
                         </span>
                         
                         <button 
                           onClick={() => handleRemoveFund(item.ticker)}
                           disabled={isSimulationActive}
-                          className={`text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition-all ${
+                          className={`text-slate-400 hover:text-rose-600 hover:bg-rose-50/80 p-1.5 rounded-lg transition-all ${
                             isSimulationActive ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
                           }`}
                           title="Remove from portfolio"
@@ -1059,20 +1102,19 @@ export default function PortfolioOverlapFinder() {
 
                       {/* Fund Title Area */}
                       <div>
-                        <h4 className="text-[13px] font-black text-slate-800 tracking-tight leading-snug group-hover:text-indigo-950 transition-colors">
+                        <h4 className="text-[12.5px] font-extrabold text-slate-800 tracking-tight leading-snug group-hover:text-slate-950 transition-colors">
                           {item.fundDetails.name}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1.5 font-mono text-[9.5px] text-slate-400">
-                          <span>Ticker: <strong className="text-slate-600">{item.ticker}</strong></span>
-                          <span>•</span>
-                          <span>Expense (TER): <strong className="text-slate-600">{item.fundDetails.ter}%</strong></span>
+                        <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-[9px] text-slate-450 border-t border-slate-50 pt-2">
+                          <div>Ticker: <strong className="text-slate-650">{item.ticker}</strong></div>
+                          <div className="text-right">TER: <strong className="text-slate-650">{item.fundDetails.ter}%</strong></div>
                         </div>
                       </div>
 
                       {/* Weighted Alloc Progress Bar */}
-                      <div className="mt-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-[10px] font-mono">
-                          <span className="text-slate-400 font-medium">Estimated Weight:</span>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-center justify-between text-[9.5px] font-mono">
+                          <span className="text-slate-400 font-medium">Portfolio Weight:</span>
                           <span className="font-extrabold text-indigo-700">{allocationPercent}%</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -1085,21 +1127,21 @@ export default function PortfolioOverlapFinder() {
 
                       {/* Allocation adjustment input */}
                       <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-sans font-bold text-slate-500 flex items-center gap-1.5">
-                          <Settings className="w-3.5 h-3.5 text-slate-400" />
-                          {allocationMode === 'Amount' ? 'Monthly SIP Amount' : 'Target Allocation'}
+                        <span className="text-[9.5px] font-sans font-bold text-slate-450 flex items-center gap-1">
+                          <Settings className="w-3 h-3 text-slate-400" />
+                          {allocationMode === 'Amount' ? 'Monthly SIP (₹)' : 'Target Share (%)'}
                         </span>
                         
-                        <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-2.5 py-1 bg-white">
-                          {allocationMode === 'Amount' && <span className="text-[11px] font-black text-slate-400 font-mono">₹</span>}
+                        <div className="flex items-center gap-1 border border-slate-200 focus-within:border-slate-400 rounded-xl px-2.5 py-1 bg-slate-50/50">
+                          {allocationMode === 'Amount' && <span className="text-[10px] font-black text-slate-400 font-mono">₹</span>}
                           <input 
                             type="number" 
                             value={Math.round(item.allocation)}
                             disabled={isSimulationActive}
                             onChange={(e) => handleUpdateAllocation(item.ticker, parseFloat(e.target.value) || 0)}
-                            className="w-16 bg-transparent border-0 focus:ring-0 p-0 text-xs font-black text-right text-slate-800 focus:outline-none font-mono disabled:opacity-50"
+                            className="w-14 bg-transparent border-0 focus:ring-0 p-0 text-[11px] font-bold text-right text-slate-800 focus:outline-none font-mono disabled:opacity-50"
                           />
-                          {allocationMode === 'Percent' && <span className="text-[11px] font-black text-slate-400 font-mono">%</span>}
+                          {allocationMode === 'Percent' && <span className="text-[10px] font-black text-slate-400 font-mono">%</span>}
                         </div>
                       </div>
                     </div>
@@ -1540,33 +1582,35 @@ export default function PortfolioOverlapFinder() {
             {activeTab === 'optimizer' && (
               <div className="space-y-8" id="optimizer-tab-panel">
                 
-                {/* Slim, cohesive optimization advisory box with simple language */}
-                {overlappingWarnings.length === 0 ? (
-                  <div className="p-5 bg-emerald-50/70 border border-emerald-100/80 rounded-2xl flex items-start gap-3.5 text-left transition-all duration-300">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
+                {/* Clean, unified Active Optimization & Safety Studio status box in simple language */}
+                <div className={`p-5 rounded-2xl border flex items-start gap-3.5 text-left transition-all duration-300 ${
+                  overlappingWarnings.length === 0 
+                    ? 'bg-emerald-50/70 border-emerald-100/90' 
+                    : 'bg-amber-50/70 border-amber-200/90'
+                }`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    overlappingWarnings.length === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {overlappingWarnings.length === 0 ? (
                       <CheckCircle className="w-4.5 h-4.5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">Perfect Asset Cluster Safety</h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        We didn't detect any redundant holdings or high-overlap fund combinations in your chosen portfolio. Your investments are clean, well-diversified, and look safe!
-                      </p>
-                    </div>
+                    ) : (
+                      <AlertTriangle className="w-4.5 h-4.5 text-amber-600" />
+                    )}
                   </div>
-                ) : (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Active Portfolio Optimization & Safety Studio</h4>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      {overlappingWarnings.length === 0 ? (
+                        "Your portfolio is beautifully clean! We did not detect any duplicate stock holdings or overlapping mutual funds. Your money is safely spread across distinct, high-performance categories."
+                      ) : (
+                        "We found redundant styling or overlapping stocks in your selection. Holding multiple funds that buy the same exact companies means you pay duplicate fees for the same results. Use our simple mathematical swaps listed below to safely optimize."
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {overlappingWarnings.length > 0 && (
                   <div className="space-y-6">
-                    <div className="p-5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-3.5 text-left transition-all duration-300">
-                      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                        <AlertTriangle className="w-4.5 h-4.5 text-amber-600" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-amber-900">Portfolio Overlap Optimization Advice</h4>
-                        <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
-                          We detected style duplication or holding overlaps between your selected funds. Review our smart consolidation swaps below comparing risk efficiency (Sharpe, Sortino Ratios) and cost metrics to help optimize your returns.
-                        </p>
-                      </div>
-                    </div>
-                    
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Available Redundancy Fix Proposals</h4>
                     
                     {overlappingWarnings.map((warn, i) => {
@@ -1670,17 +1714,17 @@ export default function PortfolioOverlapFinder() {
                   </div>
                 )}
 
-                {/* 🏆 Multi-Year Rolling Returns & Risk-Adjusted Fund Upgrader */}
+                {/* Suggested Superior Alternatives to Swap with (Based on 3Y, 5Y, 7Y & 10Y Rolling Returns, Sharpe & Sortino) */}
                 <div className="border-t border-slate-205 pt-8 space-y-6" id="rolling-returns-upgrader">
                   <div className="text-left">
                     <div className="flex items-center gap-2">
                       <Award className="w-5 h-5 text-indigo-600 shrink-0" />
                       <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-                        Premium Multi-Cycle Performance & Risk Upgrades
+                        Suggested Superior Alternatives to Swap with (Based on 3Y, 5Y, 7Y & 10Y Rolling Returns, Sharpe & Sortino)
                       </h3>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 max-w-4xl font-sans">
-                      This dynamic engine performs a live categorization query across the complete 1,287-fund master database to isolate qualifying alternative funds of the exact same style. Candidates are exhaustively audited on risk-adjusted efficiency (Sharpe, Sortino) and multi-epoch rolling CAGR (3-Year, 5-Year, 7-Year, and 10-Year durations) to guarantee real mathematically backed upgrades.
+                    <p className="text-xs text-slate-500 mt-1 max-w-4xl font-sans leading-relaxed">
+                      This dynamic upgrader scans the master mutual fund database to locate better funds within the **exact same category** (e.g., small cap for small cap, debt for debt) using real-time AMFI returns and risk metrics. We evaluate 3-Year, 5-Year, 7-Year, and 10-Year rolling histories alongside Sharpe and Sortino ratios to guarantee a mathematically superior replacement.
                     </p>
                   </div>
 
@@ -1697,6 +1741,9 @@ export default function PortfolioOverlapFinder() {
                       {CategoryAlternativeUpgrades.map((upgradeGroup, idx) => {
                         if (!upgradeGroup || upgradeGroup.alternatives.length === 0) return null;
                         const { targetFund, alternatives } = upgradeGroup;
+                        const otherSelectedFunds = normalizedWeightedFunds.filter(
+                          portfolioItem => portfolioItem.fundDetails.ticker !== targetFund.ticker
+                        );
 
                         return (
                           <div 
@@ -1706,10 +1753,7 @@ export default function PortfolioOverlapFinder() {
                             {/* Current Fund Header Info */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
                               <div>
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] uppercase font-bold tracking-wider font-mono">
-                                  {targetFund.category} Style Core
-                                </span>
-                                <h4 className="text-sm font-black text-slate-800 tracking-tight mt-1">
+                                <h4 className="text-sm font-black text-slate-800 tracking-tight">
                                   Current Holding: <span className="text-indigo-950 underline font-extrabold">{targetFund.name}</span>
                                 </h4>
                               </div>
@@ -1830,6 +1874,42 @@ export default function PortfolioOverlapFinder() {
                                         </div>
                                       </div>
                                     </div>
+
+                                    {/* Real-time Overlap Metric with Other Selected Portfolio Funds */}
+                                    {otherSelectedFunds.length > 0 && (
+                                      <div className="border-t border-slate-100 pt-3 space-y-2">
+                                        <span className="text-[9px] font-mono uppercase font-extrabold tracking-widest text-slate-450 block text-left">
+                                          Real-Time Overlap with other selected funds
+                                        </span>
+                                        <div className="space-y-1.5 text-left">
+                                          {otherSelectedFunds.map((otherItem) => {
+                                            const otherFund = otherItem.fundDetails;
+                                            const overlapVal = calculatePairOverlap(alt, otherFund);
+                                            
+                                            let overlapColor = "text-emerald-700 bg-emerald-50 border-emerald-100";
+                                            if (overlapVal > 50) {
+                                              overlapColor = "text-rose-700 bg-rose-50 border-rose-100";
+                                            } else if (overlapVal > 25) {
+                                              overlapColor = "text-amber-700 bg-amber-50 border-amber-100";
+                                            }
+
+                                            return (
+                                              <div 
+                                                key={otherFund.ticker} 
+                                                className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50/50 border border-slate-100 text-[10.5px] font-sans"
+                                              >
+                                                <div className="truncate text-slate-600 font-medium">
+                                                  vs <span className="font-semibold text-slate-800">{otherFund.name}</span>
+                                                </div>
+                                                <span className={`px-2 py-0.5 rounded-md border text-[9.5px] font-bold font-mono shrink-0 ${overlapColor}`}>
+                                                  {overlapVal.toFixed(0)}% Overlap
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
 
                                     {/* Action switcher simulation button */}
                                     <button

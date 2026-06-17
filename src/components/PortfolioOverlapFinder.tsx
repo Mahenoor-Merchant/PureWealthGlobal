@@ -1769,7 +1769,7 @@ export default function PortfolioOverlapFinder() {
                             </div>
 
                             {/* Alternatives list */}
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                               {alternatives.map((altItem) => {
                                 const alt = altItem.fund;
                                 const alpha3Y = (alt.rolling3Y - targetFund.rolling3Y).toFixed(1);
@@ -1784,126 +1784,159 @@ export default function PortfolioOverlapFinder() {
                                 return (
                                   <div 
                                     key={alt.ticker} 
-                                    className="bg-white border border-slate-200/80 hover:border-slate-350 rounded-2xl p-4 sm:p-5 transition-all flex flex-col justify-between shadow-3xs"
+                                    className="bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-lg rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group shadow-sm text-left"
                                   >
                                     <div className="space-y-4">
-                                      {/* Header with recommendation tag */}
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                          <Sparkles className="w-3 h-3 text-emerald-600" /> Mathematically Backed Upgrade
+                                      {/* Header with recommendation tag & Expense ratio tag */}
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
+                                          <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                                          Superior Peer Upgrade
                                         </div>
-                                        <span className="text-[10px] font-mono text-slate-405">
-                                          TER: <strong className="text-slate-700">{alt.ter}%</strong> ({parseFloat(terSaving) >= 0 ? `-${terSaving}%` : `+${Math.abs(parseFloat(terSaving))}%`})
+                                        <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1">
+                                          TER: <strong className="text-slate-800">{alt.ter}%</strong> 
+                                          {parseFloat(terSaving) > 0 ? (
+                                            <span className="text-emerald-605 font-black ml-1 text-emerald-600">(-{terSaving}% saved)</span>
+                                          ) : parseFloat(terSaving) < 0 ? (
+                                            <span className="text-slate-400 font-medium ml-1">(+{Math.abs(parseFloat(terSaving)).toFixed(2)}%)</span>
+                                          ) : null}
                                         </span>
                                       </div>
 
-                                      {/* Fund Name */}
+                                      {/* Fund Name and Ticker */}
                                       <div>
-                                        <h5 className="text-[13px] font-black text-slate-910 tracking-tight leading-snug">
+                                        <h5 className="text-[14px] sm:text-[15px] font-extrabold text-slate-900 group-hover:text-indigo-950 transition-colors tracking-tight leading-snug">
                                           {alt.name}
                                         </h5>
-                                        <p className="text-[9.5px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">
-                                          Category peer • Ticker: {alt.ticker}
+                                        <p className="text-[10px] text-slate-450 font-mono mt-1 flex items-center gap-1.5 uppercase tracking-wider">
+                                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-bold">Ticker: {alt.ticker}</span>
+                                          <span>•</span>
+                                          <span className="text-slate-500 font-semibold">{alt.category}</span>
                                         </p>
                                       </div>
 
-                                      {/* Performance Grid (3Y, 5Y, 7Y, 10Y rolling) */}
-                                      <div className="space-y-1.5 border-t border-slate-100 pt-3">
-                                        <span className="text-[9px] font-mono uppercase font-extrabold tracking-widest text-slate-400 block">
-                                          Period Rolling Returns comparison
+                                      {/* High-impact highlight benefits */}
+                                      <div className="flex flex-wrap gap-2 text-[10px] font-sans pt-1">
+                                        <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
+                                          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                                          +{alpha5Y}% (5Y Return Benefit)
                                         </span>
-                                        <div className="grid grid-cols-4 gap-2 text-center font-mono">
-                                          <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100/70">
-                                            <span className="block text-[8.5px] font-bold text-slate-400 uppercase">3Yr CAGR</span>
-                                            <span className="block text-xs font-bold text-slate-800">{alt.rolling3Y}%</span>
-                                            <span className={`text-[9.5px] font-black ${parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(alpha3Y) >= 0 ? `+${alpha3Y}` : alpha3Y}%
-                                            </span>
-                                          </div>
-                                          
-                                          <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100/70">
-                                            <span className="block text-[8.5px] font-bold text-slate-400 uppercase">5Yr CAGR</span>
-                                            <span className="block text-xs font-bold text-slate-800">{alt.rolling5Y}%</span>
-                                            <span className={`text-[9.5px] font-black ${parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(alpha5Y) >= 0 ? `+${alpha5Y}` : alpha5Y}%
-                                            </span>
-                                          </div>
-
-                                          <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100/70">
-                                            <span className="block text-[8.5px] font-bold text-slate-400 uppercase">7Yr CAGR</span>
-                                            <span className="block text-xs font-bold text-slate-800">{altItem.cand7Y.toFixed(1)}%</span>
-                                            <span className={`text-[9.5px] font-black ${parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(alpha7Y) >= 0 ? `+${alpha7Y}` : alpha7Y}%
-                                            </span>
-                                          </div>
-
-                                          <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100/70">
-                                            <span className="block text-[8.5px] font-bold text-slate-400 uppercase">10Yr CAGR</span>
-                                            <span className="block text-xs font-bold text-slate-800">{altItem.cand10Y.toFixed(1)}%</span>
-                                            <span className={`text-[9.5px] font-black ${parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(alpha10Y) >= 0 ? `+${alpha10Y}` : alpha10Y}%
-                                            </span>
-                                          </div>
-                                        </div>
+                                        <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50/80 text-indigo-850 font-bold rounded-lg border border-indigo-100 shadow-2xs">
+                                          <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                                          +{sharpeUp} Sharpe (Risk Efficiency)
+                                        </span>
                                       </div>
 
-                                      {/* Risk Adjusted Return Statistics */}
-                                      <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-[11px] font-mono">
-                                        <div className="flex flex-col gap-0.5">
-                                          <span className="text-[9px] text-slate-400 font-bold uppercase">3Yr Sharpe Ratio</span>
-                                          <div className="flex items-center gap-1.5 font-bold">
-                                            <span className="text-slate-800">{alt.sharpe}</span>
-                                            <span className="text-slate-300 font-normal">vs</span>
-                                            <span className="text-slate-500">{targetFund.sharpe}</span>
-                                            <span className={`text-[9.5px] font-black ml-auto ${parseFloat(sharpeUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(sharpeUp) >= 0 ? `+${sharpeUp}` : sharpeUp}
-                                            </span>
-                                          </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-0.5">
-                                          <span className="text-[9px] text-slate-400 font-bold uppercase">3Yr Sortino Ratio</span>
-                                          <div className="flex items-center gap-1.5 font-bold">
-                                            <span className="text-slate-800">{alt.sortino}</span>
-                                            <span className="text-slate-300 font-normal">vs</span>
-                                            <span className="text-slate-500">{targetFund.sortino}</span>
-                                            <span className={`text-[9.5px] font-black ml-auto ${parseFloat(sortinoUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                              {parseFloat(sortinoUp) >= 0 ? `+${sortinoUp}` : sortinoUp}
-                                            </span>
-                                          </div>
-                                        </div>
+                                      {/* Beautiful, High-Contrast Direct Comparison Table */}
+                                      <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl overflow-hidden mt-4 shadow-3xs">
+                                        <table className="w-full text-left border-collapse">
+                                          <thead>
+                                            <tr className="bg-slate-100/50 border-b border-slate-200 text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest">
+                                              <th className="py-2 px-3">Comparison Metric</th>
+                                              <th className="py-2 px-3 text-right">Current holding</th>
+                                              <th className="py-2 px-3 text-right text-indigo-950 font-black">Proposed Alternative</th>
+                                              <th className="py-2 px-3 text-right text-slate-650">Net Improvement</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100 text-[11px] font-mono">
+                                            {/* 3Y CAGR Return */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Rolling Return</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.rolling3Y}%</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.rolling3Y}%</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(alpha3Y) >= 0 ? `+${alpha3Y}` : alpha3Y}%
+                                              </td>
+                                            </tr>
+                                            {/* 5Y CAGR Return */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">5Y Rolling Return</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.rolling5Y}%</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.rolling5Y}%</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(alpha5Y) >= 0 ? `+${alpha5Y}` : alpha5Y}%
+                                              </td>
+                                            </tr>
+                                            {/* 7Y CAGR Return */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">7Y Rolling Return</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{altItem.curr7Y.toFixed(1)}%</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{altItem.cand7Y.toFixed(1)}%</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(alpha7Y) >= 0 ? `+${alpha7Y}` : alpha7Y}%
+                                              </td>
+                                            </tr>
+                                            {/* 10Y CAGR Return */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">10Y Rolling Return</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{altItem.curr10Y.toFixed(1)}%</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{altItem.cand10Y.toFixed(1)}%</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(alpha10Y) >= 0 ? `+${alpha10Y}` : alpha10Y}%
+                                              </td>
+                                            </tr>
+                                            {/* Sharpe Ratio */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sharpe Ratio</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.sharpe}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.sharpe}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sharpeUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(sharpeUp) >= 0 ? `+${sharpeUp}` : sharpeUp}
+                                              </td>
+                                            </tr>
+                                            {/* Sortino Ratio */}
+                                            <tr className="hover:bg-white/40 transition-colors">
+                                              <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sortino Ratio</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.sortino}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.sortino}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sortinoUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                {parseFloat(sortinoUp) >= 0 ? `+${sortinoUp}` : sortinoUp}
+                                              </td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
                                       </div>
                                     </div>
 
                                     {/* Real-time Overlap Metric with Other Selected Portfolio Funds */}
                                     {otherSelectedFunds.length > 0 && (
-                                      <div className="border-t border-slate-100 pt-3 space-y-2">
-                                        <span className="text-[9px] font-mono uppercase font-extrabold tracking-widest text-slate-450 block text-left">
-                                          Real-Time Overlap with other selected funds
+                                      <div className="mt-4 bg-slate-50/40 p-3.5 rounded-2xl border border-slate-100 space-y-2.5">
+                                        <span className="text-[9.5px] font-sans uppercase font-bold tracking-wider text-slate-550 block text-left flex items-center gap-1.5">
+                                          <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                                          Real-Time Overlap with remaining portfolio
                                         </span>
-                                        <div className="space-y-1.5 text-left">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
                                           {otherSelectedFunds.map((otherItem) => {
                                             const otherFund = otherItem.fundDetails;
                                             const overlapVal = calculatePairOverlap(alt, otherFund);
                                             
-                                            let overlapColor = "text-emerald-700 bg-emerald-50 border-emerald-100";
+                                            let overlapBadgeColor = "text-emerald-700 bg-emerald-50/80 border-emerald-100";
+                                            let barColor = "bg-emerald-500";
                                             if (overlapVal > 50) {
-                                              overlapColor = "text-rose-700 bg-rose-50 border-rose-100";
+                                              overlapBadgeColor = "text-rose-700 bg-rose-50/80 border-rose-100";
+                                              barColor = "bg-rose-500";
                                             } else if (overlapVal > 25) {
-                                              overlapColor = "text-amber-700 bg-amber-50 border-amber-100";
+                                              overlapBadgeColor = "text-amber-700 bg-amber-50/80 border-amber-100";
+                                              barColor = "bg-amber-400";
                                             }
 
                                             return (
                                               <div 
                                                 key={otherFund.ticker} 
-                                                className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50/50 border border-slate-100 text-[10.5px] font-sans"
+                                                className="p-2.5 bg-white rounded-xl border border-slate-200/60 hover:border-slate-300 transition-all flex flex-col justify-between gap-1.5 shadow-3xs"
                                               >
-                                                <div className="truncate text-slate-600 font-medium">
-                                                  vs <span className="font-semibold text-slate-800">{otherFund.name}</span>
+                                                <div className="flex items-center justify-between gap-1">
+                                                  <span className="text-[10px] font-semibold text-slate-700 truncate max-w-[130px]" title={otherFund.name}>
+                                                    vs {otherFund.name}
+                                                  </span>
+                                                  <span className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black font-mono shrink-0 ${overlapBadgeColor}`}>
+                                                    {overlapVal.toFixed(0)}% Overlap
+                                                  </span>
                                                 </div>
-                                                <span className={`px-2 py-0.5 rounded-md border text-[9.5px] font-bold font-mono shrink-0 ${overlapColor}`}>
-                                                  {overlapVal.toFixed(0)}% Overlap
-                                                </span>
+                                                {/* Visual Mini Progress Bar */}
+                                                <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                                                  <div className={`${barColor} h-full rounded-full transition-all duration-500`} style={{ width: `${overlapVal}%` }}></div>
+                                                </div>
                                               </div>
                                             );
                                           })}
@@ -1915,10 +1948,10 @@ export default function PortfolioOverlapFinder() {
                                     <button
                                       onClick={() => handleApplySimulation(targetFund.ticker, alt.ticker)}
                                       disabled={isSimulationActive}
-                                      className="w-full mt-4 py-2.5 px-3 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-xs"
+                                      className="w-full mt-5 py-3 px-4 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-indigo-950 hover:to-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 text-center flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 shadow-md hover:shadow-indigo-100 hover:-translate-y-0.5 active:translate-y-0"
                                     >
                                       <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> 
-                                      Simulate Upgrade Swap with {alt.name.split(' ').slice(0, 2).join(' ')}
+                                      Simulate Upgrade Swap
                                     </button>
                                   </div>
                                 );

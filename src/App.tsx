@@ -50,11 +50,19 @@ export default function App() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [pendingPage, setPendingPage] = useState<NavPage['id'] | null>(null);
 
-  // Synchronize hash routing on mount and on hash changes
+  // Synchronize path and hash routing on mount and on history navigation changes
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleRouteSync = () => {
+      const pathname = window.location.pathname.toLowerCase().replace(/\/$/, ""); // Normalize trailing slashes
       const hash = window.location.hash;
-      if (hash.startsWith('#knowledge')) {
+
+      if (pathname === '/overlap' || pathname === '/overlap-finder') {
+        setCurrentPage('overlap-finder');
+      } else if (pathname === '/findfund' || pathname === '/find-fund-type') {
+        setCurrentPage('find-fund-type');
+      } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
+        setCurrentPage('portfolio-audit');
+      } else if (hash.startsWith('#knowledge')) {
         setCurrentPage('knowledge');
       } else if (hash === '#about') {
         setCurrentPage('about');
@@ -68,20 +76,24 @@ export default function App() {
         setCurrentPage('privacy');
       } else if (hash === '#find-fund') {
         setCurrentPage('find-fund');
-      } else if (hash === '#find-fund-type') {
+      } else if (hash === '#find-fund-type' || hash === '#findfund') {
         setCurrentPage('find-fund-type');
-      } else if (hash === '#overlap-finder') {
+      } else if (hash === '#overlap-finder' || hash === '#overlap') {
         setCurrentPage('overlap-finder');
-      } else if (hash === '#portfolio-audit') {
+      } else if (hash === '#portfolio-audit' || hash === '#audit') {
         setCurrentPage('portfolio-audit');
-      } else if (hash === '#home') {
+      } else if (hash === '#home' || pathname === '') {
         setCurrentPage('home');
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    handleRouteSync();
+    window.addEventListener('hashchange', handleRouteSync);
+    window.addEventListener('popstate', handleRouteSync);
+    return () => {
+      window.removeEventListener('hashchange', handleRouteSync);
+      window.removeEventListener('popstate', handleRouteSync);
+    };
   }, []);
 
   // Exit intent & Webpage close prevention hook
@@ -127,15 +139,21 @@ export default function App() {
       setPageHistory((prev) => [...prev, currentPage]);
       setCurrentPage(newPage);
       
-      // Update hash matching the new route structure
+      // Update browser URL using clean path paths or hash routing fallback
       if (newPage === 'home') {
-        window.location.hash = '';
+        window.history.pushState(null, '', '/');
+      } else if (newPage === 'overlap-finder') {
+        window.history.pushState(null, '', '/overlap');
+      } else if (newPage === 'find-fund-type') {
+        window.history.pushState(null, '', '/findfund');
+      } else if (newPage === 'portfolio-audit') {
+        window.history.pushState(null, '', '/audit');
       } else if (newPage === 'knowledge') {
         if (!window.location.hash.startsWith('#knowledge/')) {
-          window.location.hash = '#knowledge/journey';
+          window.history.pushState(null, '', '#knowledge/journey');
         }
       } else {
-        window.location.hash = `#${newPage}`;
+        window.history.pushState(null, '', `#${newPage}`);
       }
     }
   };

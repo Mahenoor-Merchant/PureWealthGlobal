@@ -1718,7 +1718,7 @@ export default function PortfolioAuditor() {
             type="email"
             value={whatsappEmail}
             onChange={(e) => setWhatsappEmail(e.target.value)}
-            placeholder="e.g. yourname@gmail.com"
+            placeholder="Enter Email which is linked to Investment"
             className="w-full bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-xs py-3 px-3.5 font-bold text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-inner"
           />
         </div>

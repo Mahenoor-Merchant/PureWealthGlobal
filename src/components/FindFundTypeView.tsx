@@ -10,7 +10,7 @@ import {
   Coins, RotateCcw, Landmark, Clock, ChevronRight,
   TrendingDown, Percent, Award, BookOpen, ExternalLink, Send,
   AlertTriangle, BrainCircuit, LineChart, PieChart as PieIcon, ChevronLeft, BarChart3,
-  Globe, Info as InfoIcon, Check, Lock
+  Globe, Info as InfoIcon, Check, Lock, PhoneCall
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion } from 'motion/react';
@@ -65,6 +65,34 @@ export default function FindFundTypeView({
   const [showResults, setShowResults] = useState(false);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+
+  // States for 3-step Lead Magnet Onboarding Timeline
+  const [focusedStep, setFocusedStep] = useState<2 | 3>(2);
+  const [callName, setCallName] = useState('');
+  const [callMobile, setCallMobile] = useState('');
+  
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [callDate, setCallDate] = useState(getLocalDateString());
+  const [callTime, setCallTime] = useState('');
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState(false);
+
+  const ALL_TIME_SLOTS = [
+    { value: "09:00 AM - 11:00 AM", label: "Morning (09:00 AM - 11:00 AM)", startHour: 9.0 },
+    { value: "11:00 AM - 01:00 PM", label: "Morning (11:00 AM - 01:00 PM)", startHour: 11.0 },
+    { value: "01:00 PM - 03:00 PM", label: "Afternoon (01:00 PM - 03:00 PM)", startHour: 13.0 },
+    { value: "03:00 PM - 05:00 PM", label: "Afternoon (03:00 PM - 05:00 PM)", startHour: 15.0 },
+    { value: "05:00 PM - 07:00 PM", label: "Evening (05:00 PM - 07:00 PM)", startHour: 17.0 },
+    { value: "07:00 PM - 08:30 PM", label: "Night (07:00 PM - 08:30 PM)", startHour: 19.0 },
+    { value: "08:30 PM - 09:30 PM", label: "Night (08:30 PM - 09:30 PM)", startHour: 20.5 },
+  ];
 
   // Scroll triggering references & flags for Pop-up box trigger
   const exclusionsEngineRef = useRef<HTMLDivElement | null>(null);
@@ -570,6 +598,13 @@ export default function FindFundTypeView({
     setStep(1);
     setShowResults(false);
     setActiveTab(0);
+    setFocusedStep(2);
+    setCallName('');
+    setCallMobile('');
+    setCallDate(getLocalDateString());
+    setCallTime('');
+    setFormError('');
+    setFormSuccess(false);
     triggeredExclusionsEngine.current = false;
     triggeredCategoryToAvoid.current = false;
     triggeredCagrUp.current = false;
@@ -1883,6 +1918,95 @@ export default function FindFundTypeView({
         </div>
       </div>
 
+      {/* 3-Step Lead Generation Timeline */}
+      <div className="max-w-4xl mx-auto mb-10 select-none px-4" id="lead-magnet-timeline">
+        <div className="relative flex items-center justify-between">
+          {/* Background Connecting Lines */}
+          <div className="absolute left-6 right-6 top-[22px] sm:top-1/2 sm:-translate-y-1/2 h-1 bg-slate-100 -z-0 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-600 transition-all duration-500" 
+              style={{ 
+                width: !showResults 
+                  ? '0%' 
+                  : focusedStep === 3 
+                    ? '100%' 
+                    : '50%' 
+              }} 
+            />
+          </div>
+
+          {/* Node 1: Fill Diagnose Form */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowResults(false);
+              window.scrollTo({ top: 350, behavior: 'smooth' });
+            }}
+            className="flex flex-col items-center group cursor-pointer z-10 basis-1/3"
+          >
+            <div className={`w-[44px] h-[44px] sm:w-[50px] sm:h-[50px] rounded-full flex items-center justify-center transition-all ${
+              !showResults 
+                ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100 scale-105' 
+                : 'bg-emerald-500 text-white shadow hover:scale-105'
+            }`}>
+              {!showResults ? <BrainCircuit className="w-5 h-5 animate-pulse" /> : <Check className="w-5 h-5 font-bold" />}
+            </div>
+            <span className={`text-[11.5px] font-sans font-bold mt-2.5 transition-colors text-center ${!showResults ? 'text-blue-700' : 'text-slate-600 font-bold'}`}>
+              Step 1: Diagnose Profile
+            </span>
+            <span className="text-[10px] text-slate-400 font-sans mt-0.5 text-center hidden xs:block">Interactive Form Calibration</span>
+          </button>
+
+          {/* Node 2: Results Display */}
+          <button
+            type="button"
+            disabled={!showResults}
+            onClick={() => {
+              setFocusedStep(2);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`flex flex-col items-center group z-10 basis-1/3 ${showResults ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+          >
+            <div className={`w-[44px] h-[44px] sm:w-[50px] sm:h-[50px] rounded-full flex items-center justify-center transition-all ${
+              showResults && focusedStep === 2
+                ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100 scale-105'
+                : showResults && focusedStep === 3
+                  ? 'bg-emerald-500 text-white shadow hover:scale-105'
+                  : 'bg-white text-slate-400 border border-slate-200'
+            }`}>
+              <LineChart className="w-5 h-5" />
+            </div>
+            <span className={`text-[11.5px] font-sans font-bold mt-2.5 transition-colors text-center ${showResults && focusedStep === 2 ? 'text-blue-700 font-extrabold' : 'text-slate-600 font-bold'}`}>
+              Step 2: Strategy Released
+            </span>
+            <span className="text-[10px] text-slate-400 font-sans mt-0.5 text-center hidden xs:block">Asset-wise Percent Class Blueprint</span>
+          </button>
+
+          {/* Node 3: Live Investment & Routing Callback */}
+          <button
+            type="button"
+            disabled={!showResults}
+            onClick={() => {
+              setFocusedStep(3);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`flex flex-col items-center group z-10 basis-1/3 ${showResults ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+          >
+            <div className={`w-[44px] h-[44px] sm:w-[50px] sm:h-[50px] rounded-full flex items-center justify-center transition-all ${
+              showResults && focusedStep === 3
+                ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100 scale-105'
+                : 'bg-white text-slate-400 border border-slate-200'
+            }`}>
+              <Landmark className="w-5 h-5" />
+            </div>
+            <span className={`text-[11.5px] font-sans font-bold mt-2.5 transition-colors text-center ${showResults && focusedStep === 3 ? 'text-blue-700 font-extrabold' : 'text-slate-600 font-bold'}`}>
+              Step 3: Access Execution Channels
+            </span>
+            <span className="text-[10px] text-slate-400 font-sans mt-0.5 text-center hidden xs:block">Start Investing & Callback Options</span>
+          </button>
+        </div>
+      </div>
+
       {!showResults ? (
         <div className="max-w-2xl mx-auto animate-fade-in" id="advisory-profiler-center-container">
           {/* The Questionnaire Container */}
@@ -2499,7 +2623,21 @@ export default function FindFundTypeView({
                   </h4>
                 </div>
               </div>
-              <div className="relative z-10 flex items-center gap-3 w-full md:w-auto shrink-0">
+              <div className="relative z-10 flex items-center gap-3 w-full md:w-auto shrink-0 flex-wrap md:flex-nowrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedStep(focusedStep === 2 ? 3 : 2);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }}
+                  className={`inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 text-white text-[12px] font-black rounded-xl cursor-pointer shadow-md transition-all active:scale-[0.98] w-full md:w-auto border ${
+                    focusedStep === 2 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500/20 animate-pulse' 
+                      : 'bg-blue-600 hover:bg-blue-700 border-blue-500/20'
+                  }`}
+                >
+                  {focusedStep === 2 ? '🚀 Invest & Onboarding' : 'Strategy Model'}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -2520,6 +2658,210 @@ export default function FindFundTypeView({
                 </button>
               </div>
             </div>
+            
+            {focusedStep === 3 ? (
+              <div className="space-y-8 animate-fade-in text-left text-slate-800" id="step-3-onboarding-panel">
+                {/* Option Header Summary */}
+                <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-[24px] p-6 text-white border border-slate-800 shadow-xl relative overflow-hidden">
+                  <div className="absolute -right-24 -top-24 w-64 h-64 bg-blue-500/10 rounded-full blur-[60px]" />
+                  <div className="relative z-10 max-w-4xl">
+                    <span className="inline-flex items-center gap-1.5 text-[9.5px] font-mono tracking-widest uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full mb-3.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Step 3: Execute Strategic Allocation</span>
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-black font-sans leading-tight">
+                      Invest in Your Recommended <span className="text-amber-400 font-extrabold">{currentCategory?.name || 'Asset Blueprint'}</span> Class
+                    </h2>
+                    <p className="text-[12.5px] text-slate-300 mt-2 font-light leading-relaxed max-w-2xl">
+                      Based on your {riskCapacity.toLowerCase()} profile and {timeHorizon}-year timeline, you perfectly match to start growing your capital in this asset mix. Execute your allocation smoothly using our secure options below.
+                    </p>
+                  </div>
+                </div>
+
+                {/* The 2 Option Split Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                  
+                  {/* Option 1: Direct self-investing via technological partner */}
+                  <div className="bg-white rounded-[24px] border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-lg hover:border-blue-200 hover:shadow-xl transition-all relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[64px] opacity-10 pointer-events-none" />
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                          <Sparkles className="w-5.5 h-5.5 text-blue-600" />
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] font-mono tracking-wider text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase font-black">Option 1 • Instant Deployment</span>
+                          <h3 className="text-lg font-black font-sans text-slate-900 mt-1">Start Investing Directly</h3>
+                        </div>
+                      </div>
+
+                      <p className="text-[12.5px] text-slate-600 leading-relaxed">
+                        Ready to deploy your capital? Use our integrated technology platform via <strong>Angel One</strong> to begin your regular Monthly SIP or standard Lumpsum placement now.
+                      </p>
+
+                      <div className="space-y-2.5 pt-4 text-xs font-medium text-slate-700">
+                        <div className="flex items-center gap-2.5">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Instant secure account integration</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Direct execution link mapping to chosen asset subclasses</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>No paperwork, no complex compliance pipelines</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-8">
+                      <a
+                        href="https://a.aonelink.in/ANGOne/SakbsEc"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/10 active:scale-95 cursor-pointer text-center"
+                      >
+                        <span>Activate & Invest Directly Online</span>
+                        <ArrowRight className="w-4 h-4 shrink-0" />
+                      </a>
+                      <p className="text-[10px] text-slate-400 text-center mt-2.5 leading-normal">
+                        Secure digital checkout via authorized financial networks.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Request Call back */}
+                  <div className="bg-[#0B1528] rounded-[24px] border border-slate-800 p-6 sm:p-8 flex flex-col justify-between shadow-xl text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[64px] opacity-15 pointer-events-none" />
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-[#1C2C4E] p-3 rounded-xl border border-slate-700/30">
+                          <PhoneCall className="w-5.5 h-5.5 text-blue-400" />
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] font-mono tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-black">Option 2 • Request Support</span>
+                          <h3 className="text-lg font-black font-sans text-white mt-1">Request Private Calibration Callback</h3>
+                        </div>
+                      </div>
+
+                      <p className="text-[12.5px] text-slate-400 leading-relaxed">
+                        Need parameter validation? Have our certified advisors construct your onboarding accounts securely at your exact requested schedule. Zero cold spam.
+                      </p>
+
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!callName.trim() || !callMobile.trim()) {
+                            setFormError('Please enter your Name and Contact Number');
+                            return;
+                          }
+                          setFormError('');
+                          setFormSuccess(true);
+                          
+                          // Open Whatsapp Message securely
+                          const whatsappMsg = encodeURIComponent(
+                            `Hi! I have calibrated my asset class blueprint and would like to schedule a secure onboarding call with a PW Consultant.\n\n` +
+                            `• Profile Recommendation: ${currentCategory?.name || 'Standard Portfolio'}\n` +
+                            `• Suggestion Split: ${scoringDetails.equityAllocation}% Equity / ${scoringDetails.debtAllocation}% Defensive\n` +
+                            `• Intended Allocation: ${capitalType} of ₹${capitalAmount.toLocaleString('en-IN')}\n\n` +
+                            `• Name: ${callName}\n` +
+                            `• Mobile: ${callMobile}\n` +
+                            `• Preferred Date: ${callDate}\n` +
+                            `• Preferred Time Slot: ${callTime || 'Flexible ASAP'}\n\n` +
+                            `Verify my profile parameters and arrange my direct live investments. Thank you!`
+                          );
+                          window.open(`https://wa.me/917718860398?text=${whatsappMsg}`, '_blank');
+                        }} 
+                        className="space-y-3.5 pt-2"
+                      >
+                        {/* Input Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          <div className="space-y-1 text-left">
+                            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-450 block uppercase">Your Name</span>
+                            <input 
+                              type="text" 
+                              required
+                              placeholder="e.g. John Doe"
+                              value={callName}
+                              onChange={(e) => setCallName(e.target.value)}
+                              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-800 bg-[#121927] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-sans"
+                            />
+                          </div>
+
+                          <div className="space-y-1 text-left">
+                            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-450 block uppercase">Contact Number</span>
+                            <input 
+                              type="tel" 
+                              required
+                              placeholder="10-Digit Mobile"
+                              value={callMobile}
+                              onChange={(e) => setCallMobile(e.target.value)}
+                              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-800 bg-[#121927] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-sans"
+                            />
+                          </div>
+                        </div>
+
+                        {/* DateTime Slot Selector */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          <div className="space-y-1 text-left">
+                            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-450 block uppercase">Preferred Date</span>
+                            <input 
+                              type="date" 
+                              value={callDate}
+                              min={getLocalDateString()}
+                              onChange={(e) => setCallDate(e.target.value)}
+                              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-800 bg-[#121927] text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-sans cursor-pointer"
+                            />
+                          </div>
+
+                          <div className="space-y-1 text-left">
+                            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-450 block uppercase">Preferred Slot</span>
+                            <select 
+                              value={callTime}
+                              onChange={(e) => setCallTime(e.target.value)}
+                              className="w-full text-xs px-3 py-2 pr-8 rounded-lg border border-slate-800 bg-[#121927] text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-sans cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23cbd5e1%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px] bg-[position:right_12px_center] bg-no-repeat"
+                            >
+                              <option value="">Flexible ASAP</option>
+                              {ALL_TIME_SLOTS.map(slot => (
+                                <option key={slot.value} value={slot.value}>{slot.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {formError && (
+                          <p className="text-red-400 text-[11px] font-bold mt-1 text-left">{formError}</p>
+                        )}
+
+                        {formSuccess && (
+                          <p className="text-emerald-400 text-[11px] font-bold mt-1 text-left">✔ Callback request formulated! Opening WhatsApp secure redirect link...</p>
+                        )}
+
+                        {/* Privacy Compliance Banner */}
+                        <div className="bg-[#050A14] border border-[#1E2E4A]/30 rounded-xl p-3 space-y-2 mt-4 text-[11px] text-slate-450 text-left">
+                          <div className="flex gap-2 items-start">
+                            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <p className="leading-snug">
+                              <strong>Secure Setup:</strong> Decrypted securely via your private session key. Visible only to PW Wealth Advisors.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="mt-5 w-full inline-flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/10 active:scale-95"
+                        >
+                          <PhoneCall className="w-4 h-4 text-emerald-100 animate-bounce shrink-0" />
+                          <span>Confirm & Route Callback Link</span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
             
             {/* 1. Verified Asset Calibration Banner */}
             <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-indigo-950 rounded-[30px] p-6 md:p-8 text-left border border-slate-800 shadow-xl relative overflow-hidden" id="verified-asset-calibration-banner">
@@ -3564,6 +3906,40 @@ export default function FindFundTypeView({
                 </div>
               </div>
             </div>
+
+            {/* Premium, High-Converting Transition CTA to Step 3 */}
+            <div className="bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 rounded-[24px] p-8 text-white border border-indigo-500/20 shadow-xl relative overflow-hidden mt-10">
+              <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px]" />
+              <div className="absolute -left-24 -bottom-24 w-64 h-64 bg-blue-500/10 rounded-full blur-[60px]" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="max-w-2xl text-left">
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-mono tracking-widest uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full mb-3">
+                    RECOMMENDED MATCH READY
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-black font-sans leading-tight">
+                    Deploy Your Customized Strategy Model
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-slate-350 mt-2 font-light leading-relaxed">
+                    You've calibrated your compatible asset classes. Now select how you'd like to fund your portfolio: utilize our direct automated technology partner or schedule a personalized callback.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFocusedStep(3);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center gap-2 py-3.5 px-8 bg-emerald-500 hover:bg-emerald-400 text-[#0B1528] font-black text-sm rounded-xl transition-all shadow-lg active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <span>Proceed to Step 3: Invest Now</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            </>
+            )}
 
           </div>
         );

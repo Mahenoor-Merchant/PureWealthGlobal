@@ -137,14 +137,16 @@ export default function InvestmentStartupPopup({
                   </div>
                 </button>
 
-                <button
-                  type="button"
+                <a
+                  href="https://a.aonelink.in/ANGOne/SakbsEc"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={onConfirm}
-                  className="w-full inline-flex items-center justify-center gap-1 py-1.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[12px] rounded-md transition-all cursor-pointer active:scale-[0.99]"
+                  className="w-full inline-flex items-center justify-center gap-1 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-blue-700 hover:text-blue-800 font-bold text-[12px] rounded-lg transition-all cursor-pointer active:scale-[0.99] text-center"
                 >
-                  <span>Connect with team online</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
+                  <span>Start Investing Directly</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-500" />
+                </a>
                 
                 <button
                   type="button"

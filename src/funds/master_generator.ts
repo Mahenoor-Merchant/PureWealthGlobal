@@ -12,6 +12,77 @@ export function getHashCode(str: string): number {
   return Math.abs(hash);
 }
 
+export function getFundInceptionYear(fundName: string): number {
+  const name = fundName.toLowerCase();
+  
+  // Custom exact matching launch years for precision
+  if (name.includes("nippon") && name.includes("small")) return 2010;
+  if (name.includes("quant") && name.includes("small")) return 2005;
+  if (name.includes("parag") && name.includes("flexi")) return 2013;
+  if (name.includes("hdfc top 100") || name.includes("hdfc top")) return 1996;
+  if (name.includes("sbi bluechip") || name.includes("sbi-bc")) return 2006;
+  if (name.includes("icici bluechip") || name.includes("icici-bc")) return 2008;
+  if (name.includes("hdfc mid-cap") || name.includes("hdfc midcap")) return 2007;
+  if (name.includes("kotak emerging") || name.includes("kotak equity")) return 2007;
+  if (name.includes("mirae asset large") || name.includes("mirae asset emerging")) return 2008;
+  if (name.includes("axis bluechip")) return 2010;
+  if (name.includes("axis long term equity") || name.includes("axis tax saver")) return 2009;
+  if (name.includes("axis small cap") || name.includes("axis-sc")) return 2013;
+  if (name.includes("sbi magnum")) return 2005;
+  
+  // General rule based on newly added funds or AMFI registrations of AMCs
+  if (name.includes("whiteoak") || name.includes("white oak")) {
+    if (name.includes("balanced") || name.includes("multi asset") || name.includes("small") || name.includes("tax")) return 2023;
+    return 2022; // WhiteOak launched their AMC and funds in 2022/2023
+  }
+  if (name.includes("groww") || name.includes("helios") || name.includes("zerodha") || name.includes("samco") || name.includes("old bridge")) {
+    if (name.includes("total market") || name.includes("banking") || name.includes("value") || name.includes("index")) return 2023;
+    return 2024; // Brand new AMCs launched in 25/24/23
+  }
+  if (name.includes("defence") || name.includes("defense")) return 2023; 
+  if (name.includes("innovation") || name.includes("ev ") || name.includes("electric vehicle")) {
+    if (name.includes("icici") || name.includes("nippon")) return 2023;
+    return 2024;
+  }
+  if (name.includes("business cycle")) {
+    if (name.includes("hdfc") || name.includes("sbi")) return 2022;
+    if (name.includes("aditya") || name.includes("icici")) return 2021;
+    return 2023;
+  }
+  if (name.includes("microcap") || name.includes("micro cap")) return 2023;
+  if (name.includes("momentum") || name.includes("low volatility")) {
+    if (name.includes("uti") || name.includes("motilal")) return 2020;
+    return 2023;
+  }
+  if (name.includes("manufacturing")) {
+    if (name.includes("icici")) return 2018;
+    return 2023;
+  }
+  if (name.includes("shariah") || name.includes("esg") || name.includes("ethical")) {
+    return 2020;
+  }
+  if (name.includes("nifty sd") || name.includes("sdl") || name.includes("target maturity") || name.includes("crisil ibx")) {
+    return 2021; // Target maturity debt funds
+  }
+
+  // Use a stable deterministic algorithm based on name hash for all other 1,200+ funds
+  const h = getHashCode(name);
+  const mod = h % 100;
+  if (mod < 20) {
+    return 2023; // Newer funds (launched in 2023)
+  } else if (mod < 35) {
+    return 2022; // In 2022
+  } else if (mod < 50) {
+    return 2021; // In 2021
+  } else if (mod < 60) {
+    return 2018; // In 2018
+  } else if (mod < 75) {
+    return 2015; // In 2015
+  } else {
+    return 2008; // Safe older funds
+  }
+}
+
 // Realistic stock lists by asset group
 const INDIAN_BLUECHIPS = [
   "HDFC Bank", "ICICI Bank", "Reliance Industries", "Infosys", "TCS", 

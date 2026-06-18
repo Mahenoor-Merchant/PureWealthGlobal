@@ -9,6 +9,7 @@ import {
   Plus, 
   Minus, 
   Search, 
+  X,
   AlertTriangle, 
   CheckCircle, 
   RefreshCw, 
@@ -31,7 +32,7 @@ import {
 } from 'lucide-react';
 
 import MF_NAMES from '../funds/master_list';
-import { generateOverlapFundHolding } from '../funds/master_generator';
+import { generateOverlapFundHolding, getFundInceptionYear } from '../funds/master_generator';
 import { getRollingReturnsForDate, HISTORICAL_DATES } from '../utils/rollingReturns';
 
 // ==========================================
@@ -580,13 +581,26 @@ export default function PortfolioOverlapFinder() {
 
 
 
-  // Filter DB based on queries
+  // Filter DB based on queries with high performance and no lag (slicing output sizes)
   const filteredFunds = useMemo(() => {
-    return INITIAL_FUNDS_DB.filter(x => 
-      x.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      x.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      x.ticker.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      // Show first 15 preseeded popular funds as prominent selections
+      return STATIC_FUNDS_DB.slice(0, 15);
+    }
+
+    // Return max 25 items matching the query to maintain 60FPS typing responsiveness
+    const results: FundHolding[] = [];
+    for (const x of INITIAL_FUNDS_DB) {
+      if (results.length >= 25) break;
+      const matches = x.name.toLowerCase().includes(query) || 
+                      x.category.toLowerCase().includes(query) ||
+                      x.ticker.toLowerCase().includes(query);
+      if (matches) {
+        results.push(x);
+      }
+    }
+    return results;
   }, [searchQuery]);
 
   // Handle adding a fund
@@ -596,6 +610,8 @@ export default function PortfolioOverlapFinder() {
     // Set default allocation based on mode
     const defaultAlloc = allocationMode === 'Amount' ? 10000 : 20;
     setSelectedFunds(prev => [...prev, { ticker, allocation: defaultAlloc }]);
+    // Reset search query to make consecutive selection easier and more direct
+    setSearchQuery('');
   };
 
   // Handle removing a fund
@@ -835,51 +851,72 @@ export default function PortfolioOverlapFinder() {
 
       // Calculate score for each candidate relative to current fund
       const scoredCandidates = candidates.map(cand => {
-        // Safe 7Y and 10Y check with deterministic fallback if missing
+        const candActiveYears = 2026 - getFundInceptionYear(cand.name);
+        const currActiveYears = 2026 - getFundInceptionYear(currentFund.name);
+
         const hCode = cand.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        
-        let cand7Y = cand.rolling7Y;
-        let cand10Y = cand.rolling10Y;
-        if (cand7Y === undefined) {
-          if (cand.category === 'Liquid') cand7Y = Math.round((cand.rolling5Y - 0.1) * 10) / 10;
-          else if (cand.category === 'Debt') cand7Y = Math.round((cand.rolling5Y + 0.1 - (hCode % 10) / 20) * 10) / 10;
-          else cand7Y = Math.round((cand.rolling5Y + 0.5 - (hCode % 11) / 10) * 10) / 10;
-        }
-        if (cand10Y === undefined) {
-          if (cand.category === 'Liquid') cand10Y = Math.round((cand7Y - 0.1) * 10) / 10;
-          else if (cand.category === 'Debt') cand10Y = Math.round((cand7Y + 0.05 + (hCode % 5) / 20) * 10) / 10;
-          else cand10Y = Math.round((cand7Y - 0.3 + (hCode % 9) / 10) * 10) / 10;
-        }
-
-        let curr7Y = currentFund.rolling7Y;
-        let curr10Y = currentFund.rolling10Y;
         const currHCode = currentFund.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        if (curr7Y === undefined) {
-          if (currentFund.category === 'Liquid') curr7Y = Math.round((currentFund.rolling5Y - 0.1) * 10) / 10;
-          else if (currentFund.category === 'Debt') curr7Y = Math.round((currentFund.rolling5Y + 0.1 - (currHCode % 10) / 20) * 10) / 10;
-          else curr7Y = Math.round((currentFund.rolling5Y + 0.5 - (currHCode % 11) / 10) * 10) / 10;
+
+        // Cand stats
+        const cand3Y = candActiveYears >= 3 ? cand.rolling3Y : undefined;
+        const cand5Y = candActiveYears >= 5 ? cand.rolling5Y : undefined;
+        let cand7Y: number | undefined = undefined;
+        if (candActiveYears >= 7) {
+          cand7Y = cand.rolling7Y;
+          if (cand7Y === undefined && cand.rolling5Y !== undefined) {
+            if (cand.category === 'Liquid') cand7Y = Math.round((cand.rolling5Y - 0.1) * 10) / 10;
+            else if (cand.category === 'Debt') cand7Y = Math.round((cand.rolling5Y + 0.1 - (hCode % 10) / 20) * 10) / 10;
+            else cand7Y = Math.round((cand.rolling5Y + 0.5 - (hCode % 11) / 10) * 10) / 10;
+          }
         }
-        if (curr10Y === undefined) {
-          if (currentFund.category === 'Liquid') curr10Y = Math.round((curr7Y - 0.1) * 10) / 10;
-          else if (currentFund.category === 'Debt') curr10Y = Math.round((curr7Y + 0.05 + (currHCode % 5) / 20) * 10) / 10;
-          else curr10Y = Math.round((curr7Y - 0.3 + (currHCode % 9) / 10) * 10) / 10;
+        let cand10Y: number | undefined = undefined;
+        if (candActiveYears >= 10) {
+          cand10Y = cand.rolling10Y;
+          if (cand10Y === undefined && cand7Y !== undefined) {
+            if (cand.category === 'Liquid') cand10Y = Math.round((cand7Y - 0.1) * 10) / 10;
+            else if (cand.category === 'Debt') cand10Y = Math.round((cand7Y + 0.05 + (hCode % 5) / 20) * 10) / 10;
+            else cand10Y = Math.round((cand7Y - 0.3 + (hCode % 9) / 10) * 10) / 10;
+          }
         }
 
-        let better3Y = cand.rolling3Y > currentFund.rolling3Y;
-        let better5Y = cand.rolling5Y > currentFund.rolling5Y;
-        let better7Y = cand7Y > curr7Y;
-        let better10Y = cand10Y > curr10Y;
-        let betterSharpe = cand.sharpe > currentFund.sharpe;
-        let betterSortino = cand.sortino > currentFund.sortino;
-        let lowerTER = cand.ter < currentFund.ter;
+        // Current stats
+        const curr3Y = currActiveYears >= 3 ? currentFund.rolling3Y : undefined;
+        const curr5Y = currActiveYears >= 5 ? currentFund.rolling5Y : undefined;
+        let curr7Y: number | undefined = undefined;
+        if (currActiveYears >= 7) {
+          curr7Y = currentFund.rolling7Y;
+          if (curr7Y === undefined && currentFund.rolling5Y !== undefined) {
+            if (currentFund.category === 'Liquid') curr7Y = Math.round((currentFund.rolling5Y - 0.1) * 10) / 10;
+            else if (currentFund.category === 'Debt') curr7Y = Math.round((currentFund.rolling5Y + 0.1 - (currHCode % 10) / 20) * 10) / 10;
+            else curr7Y = Math.round((currentFund.rolling5Y + 0.5 - (currHCode % 11) / 10) * 10) / 10;
+          }
+        }
+        let curr10Y: number | undefined = undefined;
+        if (currActiveYears >= 10) {
+          curr10Y = currentFund.rolling10Y;
+          if (curr10Y === undefined && curr7Y !== undefined) {
+            if (currentFund.category === 'Liquid') curr10Y = Math.round((curr7Y - 0.1) * 10) / 10;
+            else if (currentFund.category === 'Debt') curr10Y = Math.round((curr7Y + 0.05 + (currHCode % 5) / 20) * 10) / 10;
+            else curr10Y = Math.round((curr7Y - 0.3 + (currHCode % 9) / 10) * 10) / 10;
+          }
+        }
+
+        const better3Y = (cand3Y !== undefined && curr3Y !== undefined) ? cand3Y > curr3Y : false;
+        const better5Y = (cand5Y !== undefined && curr5Y !== undefined) ? cand5Y > curr5Y : false;
+        const better7Y = (cand7Y !== undefined && curr7Y !== undefined) ? cand7Y > curr7Y : false;
+        const better10Y = (cand10Y !== undefined && curr10Y !== undefined) ? cand10Y > curr10Y : false;
+        
+        const betterSharpe = cand.sharpe > currentFund.sharpe;
+        const betterSortino = cand.sortino > currentFund.sortino;
+        const lowerTER = cand.ter < currentFund.ter;
 
         let score = 0;
         let improvementsCount = 0;
 
-        if (better3Y) { score += (cand.rolling3Y - currentFund.rolling3Y) * 2.5; improvementsCount++; }
-        if (better5Y) { score += (cand.rolling5Y - currentFund.rolling5Y) * 2.5; improvementsCount++; }
-        if (better7Y) { score += (cand7Y - curr7Y) * 1.5; improvementsCount++; }
-        if (better10Y) { score += (cand10Y - curr10Y) * 1.5; improvementsCount++; }
+        if (better3Y && cand3Y !== undefined && curr3Y !== undefined) { score += (cand3Y - curr3Y) * 2.5; improvementsCount++; }
+        if (better5Y && cand5Y !== undefined && curr5Y !== undefined) { score += (cand5Y - curr5Y) * 2.5; improvementsCount++; }
+        if (better7Y && cand7Y !== undefined && curr7Y !== undefined) { score += (cand7Y - curr7Y) * 1.5; improvementsCount++; }
+        if (better10Y && cand10Y !== undefined && curr10Y !== undefined) { score += (cand10Y - curr10Y) * 1.5; improvementsCount++; }
         if (betterSharpe) { score += (cand.sharpe - currentFund.sharpe) * 30; improvementsCount++; }
         if (betterSortino) { score += (cand.sortino - currentFund.sortino) * 30; improvementsCount++; }
         if (lowerTER) { score += (currentFund.ter - cand.ter) * 15; improvementsCount++; }
@@ -948,10 +985,23 @@ export default function PortfolioOverlapFinder() {
 
   // Switcher Interactive Simulation action
   const handleApplySimulation = (pruneTicker: string, addTicker: string) => {
-    setSimulatedRemovals([pruneTicker]);
-    setSimulatedAdditions([{ ticker: addTicker, allocation: 10000 }]);
+    const originalAlloc = selectedFunds.find(f => f.ticker === pruneTicker)?.allocation ?? 10000;
+    
+    setSimulatedRemovals(prev => {
+      if (!prev.includes(pruneTicker)) {
+        return [...prev, pruneTicker];
+      }
+      return prev;
+    });
+
+    setSimulatedAdditions(prev => {
+      if (!prev.some(a => a.ticker === addTicker)) {
+        return [...prev, { ticker: addTicker, allocation: originalAlloc }];
+      }
+      return prev;
+    });
+
     setIsSimulationActive(true);
-    setActiveTab('matrix');
   };
 
   const handleResetSimulation = () => {
@@ -1028,24 +1078,46 @@ export default function PortfolioOverlapFinder() {
       </div>
 
       {isSimulationActive && (
-        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse-slow">
+        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse-slow">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-500/25 flex items-center justify-center text-amber-800 font-black">
               <Sparkles className="w-5 h-5 text-amber-700" />
             </div>
             <div className="text-left">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Interactive Optimizer Simulator Active</h4>
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Interactive Optimizer Simulator Active ({simulatedRemovals.length} Swap{simulatedRemovals.length > 1 ? 's' : ''} Staged)</h4>
               <p className="text-[11.5px] text-slate-600 leading-tight">
-                Showing how your portfolio overlap and concentration score reduces under our proposed active switch recommendation.
+                Showing how your portfolio overlap and concentration score reduces under our active switch recommendation. You can stage multiple swaps and then commit them all permanently.
               </p>
             </div>
           </div>
-          <button 
-            onClick={handleResetSimulation}
-            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-          >
-            <RefreshCw className="w-3 h-3" /> Restore Current Portfolio
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button 
+              type="button"
+              onClick={() => {
+                setSelectedFunds(prev => {
+                  const filtered = prev.filter(f => !simulatedRemovals.includes(f.ticker));
+                  const combined = [...filtered];
+                  simulatedAdditions.forEach(add => {
+                    if (!combined.some(c => c.ticker === add.ticker)) {
+                      combined.push(add);
+                    }
+                  });
+                  return combined;
+                });
+                handleResetSimulation();
+              }}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-[0.98]"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Confirm & Apply Swaps Permanently
+            </button>
+            <button 
+              type="button"
+              onClick={handleResetSimulation}
+              className="px-4 py-1.5 bg-slate-905 hover:bg-slate-800 bg-slate-900 text-white text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-[0.98]"
+            >
+              <RefreshCw className="w-3 h-3" /> Restore Current Portfolio
+            </button>
+          </div>
         </div>
       )}
 
@@ -1211,8 +1283,17 @@ export default function PortfolioOverlapFinder() {
                 placeholder="Search index, bluechips, small-caps..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-55 border border-slate-200/80 rounded-xl py-2 px-9 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 transition-all"
+                className="w-full bg-slate-55 border border-slate-200/80 rounded-xl py-2 pl-9 pr-10 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-800 transition-all"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2 w-5 h-5 rounded-full bg-slate-200/60 hover:bg-slate-200 text-slate-500 hover:text-slate-700 font-bold flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <X className="w-3 h-3 text-slate-600" />
+                </button>
+              )}
             </div>
 
             {/* List to pick from */}
@@ -1715,7 +1796,11 @@ export default function PortfolioOverlapFinder() {
                                           {alt.category}
                                         </span>
                                         <span className="text-xs font-mono font-black text-emerald-600">
-                                          3Y Roll: {alt.rolling3Y}%
+                                          {(() => {
+                                            const activeY = 2026 - getFundInceptionYear(alt.name);
+                                            if (activeY >= 3) return `3Y Roll: ${alt.rolling3Y}%`;
+                                            return `NFO: ${getFundInceptionYear(alt.name)}`;
+                                          })()}
                                         </span>
                                       </div>
                                       <h6 className="text-[12.5px] font-extrabold text-slate-800 line-clamp-1 mt-1">
@@ -1741,11 +1826,24 @@ export default function PortfolioOverlapFinder() {
 
                                     {/* Action button to test and simulate switch */}
                                     <button
+                                      type="button"
                                       onClick={() => handleApplySimulation(toReplace.ticker, alt.ticker)}
-                                      disabled={isSimulationActive}
-                                      className="w-full mt-2 py-1 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40"
+                                      disabled={simulatedRemovals.includes(toReplace.ticker)}
+                                      className={`w-full mt-2 py-1.5 px-3 rounded-lg text-[10.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                                        simulatedRemovals.includes(toReplace.ticker)
+                                          ? 'bg-emerald-600 border border-emerald-500 text-white'
+                                          : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
+                                      }`}
                                     >
-                                      <Sparkles className="w-3 h-3 text-amber-300" /> Apply Switch Simulation
+                                      {simulatedRemovals.includes(toReplace.ticker) ? (
+                                        <>
+                                          <CheckCircle className="w-3 h-3 text-white shrink-0" /> Swapped in Simulator
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Sparkles className="w-3 h-3 text-amber-300" /> Apply Switch Simulation
+                                        </>
+                                      )}
                                     </button>
                                   </div>
                                 ))}
@@ -1796,31 +1894,64 @@ export default function PortfolioOverlapFinder() {
                             className="bg-slate-50/50 border border-slate-200/90 rounded-3xl p-5 sm:p-6 space-y-4 text-left"
                           >
                             {/* Current Fund Header Info */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
-                              <div>
-                                <h4 className="text-sm font-black text-slate-800 tracking-tight">
-                                  Current Holding: <span className="text-indigo-950 underline font-extrabold">{targetFund.name}</span>
-                                </h4>
-                              </div>
-                              <div className="flex flex-wrap gap-2 text-[10px] font-mono bg-white border px-3 py-1.5 rounded-xl shadow-3xs">
-                                <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{targetFund.rolling3Y}%</span></div>
-                                <span className="text-slate-250">|</span>
-                                <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{targetFund.rolling5Y}%</span></div>
-                                <span className="text-slate-250">|</span>
-                                <div><span className="text-slate-400">7Y:</span> <span className="font-bold text-slate-700">{(targetFund.rolling7Y ?? Math.round((targetFund.rolling5Y + 0.5) * 10) / 10).toFixed(1)}%</span></div>
-                                <span className="text-slate-250">|</span>
-                                <div><span className="text-slate-400">10Y:</span> <span className="font-bold text-slate-700">{(targetFund.rolling10Y ?? Math.round(((targetFund.rolling7Y ?? (targetFund.rolling5Y + 0.5)) - 0.2) * 10) / 10).toFixed(1)}%</span></div>
-                              </div>
-                            </div>
+                            {(() => {
+                              const targetInception = getFundInceptionYear(targetFund.name);
+                              const targetActiveYears = 2026 - targetInception;
+                              const curr3Active = targetActiveYears >= 3;
+                              const curr5Active = targetActiveYears >= 5;
+                              const curr7Active = targetActiveYears >= 7;
+                              const curr10Active = targetActiveYears >= 10;
+
+                              const current7YVal = targetFund.rolling7Y ?? (targetFund.rolling5Y ? Math.round((targetFund.rolling5Y + 0.5) * 10) / 10 : undefined);
+                              const current10YVal = targetFund.rolling10Y ?? (current7YVal ? Math.round((current7YVal - 0.2) * 10) / 10 : undefined);
+
+                              const current7YDisplay = curr7Active && current7YVal !== undefined ? `${current7YVal.toFixed(1)}%` : 'N/A';
+                              const current10YDisplay = curr10Active && current10YVal !== undefined ? `${current10YVal.toFixed(1)}%` : 'N/A';
+
+                              return (
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 font-sans">
+                                  <div>
+                                    <h4 className="text-sm font-black text-slate-800 tracking-tight">
+                                      Current Holding: <span className="text-indigo-950 underline font-extrabold">{targetFund.name}</span>
+                                    </h4>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 text-[10px] font-mono bg-white border px-3 py-1.5 rounded-xl shadow-3xs">
+                                    <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{curr3Active ? `${targetFund.rolling3Y}%` : 'N/A'}</span></div>
+                                    <span className="text-slate-250">|</span>
+                                    <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{curr5Active ? `${targetFund.rolling5Y}%` : 'N/A'}</span></div>
+                                    <span className="text-slate-250">|</span>
+                                    <div><span className="text-slate-400">7Y:</span> <span className="font-bold text-slate-700">{current7YDisplay}</span></div>
+                                    <span className="text-slate-250">|</span>
+                                    <div><span className="text-slate-400">10Y:</span> <span className="font-bold text-slate-700">{current10YDisplay}</span></div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Alternatives list */}
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                               {alternatives.map((altItem) => {
                                 const alt = altItem.fund;
-                                const alpha3Y = (alt.rolling3Y - targetFund.rolling3Y).toFixed(1);
-                                const alpha5Y = (alt.rolling5Y - targetFund.rolling5Y).toFixed(1);
-                                const alpha7Y = (altItem.cand7Y - altItem.curr7Y).toFixed(1);
-                                const alpha10Y = (altItem.cand10Y - altItem.curr10Y).toFixed(1);
+                                const targetInception = getFundInceptionYear(targetFund.name);
+                                const altInception = getFundInceptionYear(alt.name);
+
+                                const targetYearsActive = 2026 - targetInception;
+                                const altYearsActive = 2026 - altInception;
+
+                                const curr3Active = targetYearsActive >= 3;
+                                const curr5Active = targetYearsActive >= 5;
+                                const curr7Active = targetYearsActive >= 7;
+                                const curr10Active = targetYearsActive >= 10;
+
+                                const alt3Active = altYearsActive >= 3;
+                                const alt5Active = altYearsActive >= 5;
+                                const alt7Active = altYearsActive >= 7;
+                                const alt10Active = altYearsActive >= 10;
+
+                                const alpha3Y = (curr3Active && alt3Active) ? (alt.rolling3Y - targetFund.rolling3Y).toFixed(1) : undefined;
+                                const alpha5Y = (curr5Active && alt5Active) ? (alt.rolling5Y - targetFund.rolling5Y).toFixed(1) : undefined;
+                                const alpha7Y = (curr7Active && alt7Active && altItem.cand7Y !== undefined && altItem.curr7Y !== undefined) ? (altItem.cand7Y - altItem.curr7Y).toFixed(1) : undefined;
+                                const alpha10Y = (curr10Active && alt10Active && altItem.cand10Y !== undefined && altItem.curr10Y !== undefined) ? (altItem.cand10Y - altItem.curr10Y).toFixed(1) : undefined;
 
                                 const sharpeUp = (alt.sharpe - targetFund.sharpe).toFixed(2);
                                 const sortinoUp = (alt.sortino - targetFund.sortino).toFixed(2);
@@ -1838,10 +1969,10 @@ export default function PortfolioOverlapFinder() {
                                           <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
                                           Superior Peer Upgrade
                                         </div>
-                                        <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1">
+                                        <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 box-border">
                                           TER: <strong className="text-slate-800">{alt.ter}%</strong> 
                                           {parseFloat(terSaving) > 0 ? (
-                                            <span className="text-emerald-605 font-black ml-1 text-emerald-600">(-{terSaving}% saved)</span>
+                                            <span className="text-emerald-600 font-black ml-1">(-{terSaving}% saved)</span>
                                           ) : parseFloat(terSaving) < 0 ? (
                                             <span className="text-slate-400 font-medium ml-1">(+{Math.abs(parseFloat(terSaving)).toFixed(2)}%)</span>
                                           ) : null}
@@ -1862,10 +1993,22 @@ export default function PortfolioOverlapFinder() {
 
                                       {/* High-impact highlight benefits */}
                                       <div className="flex flex-wrap gap-2 text-[10px] font-sans pt-1">
-                                        <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
-                                          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                                          +{alpha5Y}% (5Y Return Benefit)
-                                        </span>
+                                        {alpha5Y !== undefined ? (
+                                          <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
+                                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                                            +{alpha5Y}% (5Y Return Benefit)
+                                          </span>
+                                        ) : alpha3Y !== undefined ? (
+                                          <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
+                                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                                            +{alpha3Y}% (3Y Return Benefit)
+                                          </span>
+                                        ) : (
+                                          <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 text-indigo-850 font-extrabold rounded-lg border border-indigo-100 shadow-2xs">
+                                            <Sparkles className="w-3.5 h-3.5 text-indigo-650" />
+                                            Superior Peer Standard
+                                          </span>
+                                        )}
                                         <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50/80 text-indigo-850 font-bold rounded-lg border border-indigo-100 shadow-2xs">
                                           <Shield className="w-3.5 h-3.5 text-indigo-600" />
                                           +{sharpeUp} Sharpe (Risk Efficiency)
@@ -1887,37 +2030,37 @@ export default function PortfolioOverlapFinder() {
                                             {/* 3Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.rolling3Y}%</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.rolling3Y}%</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(alpha3Y) >= 0 ? `+${alpha3Y}` : alpha3Y}%
+                                              <td className="py-2 px-3 text-right text-slate-500">{curr3Active ? `${targetFund.rolling3Y}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt3Active ? `${alt.rolling3Y}%` : 'N/A'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${alpha3Y !== undefined ? (parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {alpha3Y !== undefined ? `${parseFloat(alpha3Y) >= 0 ? '+' : ''}${alpha3Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* 5Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">5Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.rolling5Y}%</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.rolling5Y}%</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(alpha5Y) >= 0 ? `+${alpha5Y}` : alpha5Y}%
+                                              <td className="py-2 px-3 text-right text-slate-500">{curr5Active ? `${targetFund.rolling5Y}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt5Active ? `${alt.rolling5Y}%` : 'N/A'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${alpha5Y !== undefined ? (parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {alpha5Y !== undefined ? `${parseFloat(alpha5Y) >= 0 ? '+' : ''}${alpha5Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* 7Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">7Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{altItem.curr7Y.toFixed(1)}%</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{altItem.cand7Y.toFixed(1)}%</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(alpha7Y) >= 0 ? `+${alpha7Y}` : alpha7Y}%
+                                              <td className="py-2 px-3 text-right text-slate-500">{curr7Active && altItem.curr7Y !== undefined ? `${altItem.curr7Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt7Active && altItem.cand7Y !== undefined ? `${altItem.cand7Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${alpha7Y !== undefined ? (parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {alpha7Y !== undefined ? `${parseFloat(alpha7Y) >= 0 ? '+' : ''}${alpha7Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* 10Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">10Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{altItem.curr10Y.toFixed(1)}%</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{altItem.cand10Y.toFixed(1)}%</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(alpha10Y) >= 0 ? `+${alpha10Y}` : alpha10Y}%
+                                              <td className="py-2 px-3 text-right text-slate-500">{curr10Active && altItem.curr10Y !== undefined ? `${altItem.curr10Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt10Active && altItem.cand10Y !== undefined ? `${altItem.cand10Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${alpha10Y !== undefined ? (parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {alpha10Y !== undefined ? `${parseFloat(alpha10Y) >= 0 ? '+' : ''}${alpha10Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* Sharpe Ratio */}
@@ -1991,12 +2134,25 @@ export default function PortfolioOverlapFinder() {
 
                                     {/* Action switcher simulation button */}
                                     <button
+                                      type="button"
                                       onClick={() => handleApplySimulation(targetFund.ticker, alt.ticker)}
-                                      disabled={isSimulationActive}
-                                      className="w-full mt-5 py-3 px-4 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-indigo-950 hover:to-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 text-center flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 shadow-md hover:shadow-indigo-100 hover:-translate-y-0.5 active:translate-y-0"
+                                      disabled={simulatedRemovals.includes(targetFund.ticker)}
+                                      className={`w-full mt-5 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 text-center flex items-center justify-center gap-2 cursor-pointer shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                                        simulatedRemovals.includes(targetFund.ticker)
+                                          ? 'bg-emerald-600 border border-emerald-500 text-white'
+                                          : 'bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-indigo-950 hover:to-slate-900 text-white'
+                                      }`}
                                     >
-                                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> 
-                                      Simulate Upgrade Swap
+                                      {simulatedRemovals.includes(targetFund.ticker) ? (
+                                        <>
+                                          <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" /> Swap Active in Simulator
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> 
+                                          Simulate Upgrade Swap
+                                        </>
+                                      )}
                                     </button>
                                   </div>
                                 );
@@ -2116,16 +2272,16 @@ export default function PortfolioOverlapFinder() {
                                       </span>
                                     </td>
                                     <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '1 Year' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
-                                      {r1}%
+                                      {r1}{r1 === '-' ? '' : '%'}
                                     </td>
                                     <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '3 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
-                                      {r3}%
+                                      {r3}{r3 === '-' ? '' : '%'}
                                     </td>
                                     <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '5 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
-                                      {r5}%
+                                      {r5}{r5 === '-' ? '' : '%'}
                                     </td>
                                     <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '7 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
-                                      {r7}%
+                                      {r7}{r7 === '-' ? '' : '%'}
                                     </td>
                                     <td className={`py-2.5 px-3 text-center font-mono font-medium ${rollingReturnPeriod === '10 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
                                       {r10}{r10 === '-' ? '' : '%'}

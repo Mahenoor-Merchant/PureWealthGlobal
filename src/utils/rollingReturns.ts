@@ -4,7 +4,7 @@
  * For general funds, it uses a high-fidelity deterministically simulated rolling returns engine base.
  */
 
-import { classifyFundName, getHashCode } from '../funds/master_generator';
+import { classifyFundName, getHashCode, getFundInceptionYear } from '../funds/master_generator';
 
 // Exact historical rolling returns for Nippon and Quant Small Cap as shown in screenshot
 const HISTORICAL_EXACT_MAPPING: Record<string, Record<string, string[]>> = {
@@ -113,59 +113,104 @@ export const HISTORICAL_DATES = [
  * Return format: string Array [1Y, 3Y, 5Y, 7Y, 10Y]
  */
 export function getRollingReturnsForDate(fundName: string, dateStr: string): string[] {
+  let dateYear = 2025;
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const yr = parseInt(parts[2]);
+    if (!isNaN(yr)) dateYear = yr;
+  }
+
+  const inceptionYear = getFundInceptionYear(fundName);
+
+  // If the fund was not launched as of the target date, it gets empty dashes for everything
+  if (inceptionYear > dateYear) {
+    return ["-", "-", "-", "-", "-"];
+  }
+
+  const activeYears = dateYear - inceptionYear;
+  if (activeYears < 1) {
+    return ["-", "-", "-", "-", "-"];
+  }
+
   const normalized = fundName.toLowerCase();
+
+  let returnsRaw: string[] = ["-", "-", "-", "-", "-"];
 
   // 1. Check exact matches first
   if (normalized.includes("nippon") && normalized.includes("small")) {
     const data = HISTORICAL_EXACT_MAPPING["nippon"][dateStr];
-    if (data) return data;
-  }
-  if (normalized.includes("quant") && normalized.includes("small")) {
+    if (data) returnsRaw = [...data];
+  } else if (normalized.includes("quant") && normalized.includes("small")) {
     const data = HISTORICAL_EXACT_MAPPING["quant"][dateStr];
-    if (data) return data;
-  }
-  if (normalized.includes("parag") && normalized.includes("flexi")) {
+    if (data) returnsRaw = [...data];
+  } else if (normalized.includes("parag") && normalized.includes("flexi")) {
     const data = HISTORICAL_EXACT_MAPPING["parag"][dateStr];
-    if (data) return data;
-  }
+    if (data) returnsRaw = [...data];
+  } else {
+    // 2. Classify and retrieve high-fidelity database trends
+    const classification = classifyFundName(fundName);
+    let categoryKey: string = classification.category;
 
-  // 2. Classify and retrieve high-fidelity database trends
-  const classification = classifyFundName(fundName);
-  let categoryKey: string = classification.category;
-
-  // Group similar categories for statistical stability
-  if (categoryKey === "Multi Cap" || categoryKey === "Large & Midcap" || categoryKey === "Hybrid" || categoryKey === "Arbitrage") {
-    categoryKey = "Flexi Cap";
-  } else if (categoryKey === "International") {
-    categoryKey = "Large Cap";
-  }
-
-  const dateDataObj = CATEGORY_DATE_BASELINES[categoryKey] || CATEGORY_DATE_BASELINES["Large Cap"];
-  const baseline = dateDataObj[dateStr];
-
-  if (!baseline) {
-    return ["12.0", "14.5", "15.0", "13.2", "12.8"];
-  }
-
-  // Compute a deterministic unique hash-offset for authenticity
-  const h = getHashCode(fundName);
-  const offsetMult = (h % 21 - 10) / 10; // offset factor between -1.0 and +1.0
-  const isinValue = h % 3; // variety
-
-  return baseline.map((baseVal, index) => {
-    // 10Y can sometimes return "-" if fund doesn't have 10Y history
-    if (index === 4 && (normalized.includes("overnight") || h % 17 === 0)) {
-      return "-";
+    // Group similar categories for statistical stability
+    if (categoryKey === "Multi Cap" || categoryKey === "Large & Midcap" || categoryKey === "Hybrid" || categoryKey === "Arbitrage") {
+      categoryKey = "Flexi Cap";
+    } else if (categoryKey === "International") {
+      categoryKey = "Large Cap";
     }
 
-    // Apply unique deterministic variation based on the period index
-    let varVal = baseVal + (offsetMult * (index === 0 ? 2.5 : index === 1 ? 1.5 : index === 2 ? 1.2 : index === 3 ? 0.9 : 0.6));
-    
-    // Slight style variations
-    if (classification.category === "Small Cap") {
-      varVal += (isinValue - 1) * 0.8;
-    }
+    const dateDataObj = CATEGORY_DATE_BASELINES[categoryKey] || CATEGORY_DATE_BASELINES["Large Cap"];
+    const baseline = dateDataObj[dateStr];
 
-    return varVal.toFixed(2);
+    if (!baseline) {
+      returnsRaw = ["12.00", "14.50", "15.00", "13.20", "12.80"];
+    } else {
+      // Compute a deterministic unique hash-offset for authenticity
+      const h = getHashCode(fundName);
+      const offsetMult = (h % 21 - 10) / 10; // offset factor between -1.0 and +1.0
+      const isinValue = h % 3; // variety
+
+      returnsRaw = baseline.map((baseVal, index) => {
+        // 10Y can sometimes return "-" if fund doesn't have 10Y history
+        if (index === 4 && (normalized.includes("overnight") || h % 17 === 0)) {
+          return "-";
+        }
+
+        // Apply unique deterministic variation based on the period index
+        let varVal = baseVal + (offsetMult * (index === 0 ? 2.5 : index === 1 ? 1.5 : index === 2 ? 1.2 : index === 3 ? 0.9 : 0.6));
+        
+        // Slight style variations
+        if (classification.category === "Small Cap") {
+          varVal += (isinValue - 1) * 0.8;
+        }
+
+        return varVal.toFixed(2);
+      });
+    }
+  }
+
+  // 3. Now dynamically enforce physical inception boundaries:
+  // indices: 0 = 1Y, 1 = 3Y, 2 = 5Y, 3 = 7Y, 4 = 10Y
+  return returnsRaw.map((val, idx) => {
+    if (idx === 0) {
+      // 1Y needs at least 1 year active
+      return val;
+    }
+    if (idx === 1) {
+      // 3Y needs at least 3 years active
+      return activeYears >= 3 ? val : "-";
+    }
+    if (idx === 2) {
+      // 5Y needs at least 5 years active
+      return activeYears >= 5 ? val : "-";
+    }
+    if (idx === 3) {
+      // 7Y needs at least 7 years active
+      return activeYears >= 7 ? val : "-";
+    }
+    if (idx === 4) {
+      // 10Y needs at least 10 years active
+      return activeYears >= 10 ? val : "-";
+    }
+    return val;
   });
 }

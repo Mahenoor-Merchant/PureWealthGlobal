@@ -32,6 +32,7 @@ import {
 
 import MF_NAMES from '../funds/master_list';
 import { generateOverlapFundHolding } from '../funds/master_generator';
+import { getRollingReturnsForDate, HISTORICAL_DATES } from '../utils/rollingReturns';
 
 // ==========================================
 // Types & Interfaces
@@ -564,7 +565,7 @@ export default function PortfolioOverlapFinder() {
   
   const [allocationMode, setAllocationMode] = useState<'Amount' | 'Percent'>('Amount');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'matrix' | 'holdings' | 'sectors' | 'optimizer'>('matrix');
+  const [activeTab, setActiveTab] = useState<'matrix' | 'holdings' | 'sectors' | 'optimizer' | 'rolling-returns'>('matrix');
 
   // Interactive switcher simulator helper state
   const [simulatedRemovals, setSimulatedRemovals] = useState<string[]>([]);
@@ -572,6 +573,10 @@ export default function PortfolioOverlapFinder() {
 
   // Simulation Active Toggle
   const [isSimulationActive, setIsSimulationActive] = useState(false);
+
+  // Rolling Returns tab selectors
+  const [dataFrequency, setDataFrequency] = useState<string>('Annually');
+  const [rollingReturnPeriod, setRollingReturnPeriod] = useState<string>('Select');
 
 
 
@@ -953,6 +958,36 @@ export default function PortfolioOverlapFinder() {
     setSimulatedRemovals([]);
     setSimulatedAdditions([]);
     setIsSimulationActive(false);
+  };
+
+  const handleDownloadData = () => {
+    if (normalizedWeightedFunds.length === 0) return;
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Date,Fund Name,1 Year (%),3 Years (%),5 Years (%),7 Years (%),10 Years (%)\n";
+    
+    HISTORICAL_DATES.forEach(dateStr => {
+      normalizedWeightedFunds.forEach(item => {
+        const name = item.fundDetails.name;
+        const [r1, r3, r5, r7, r10] = getRollingReturnsForDate(name, dateStr);
+        csvContent += `"${dateStr}","${name}",${r1 || '-'},${r3 || '-'},${r5 || '-'},${r7 || '-'},${r10 || '-'}\n`;
+      });
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Rolling_Returns_${dataFrequency}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleLoadDemoComparison = () => {
+    setSelectedFunds([
+      { ticker: 'NIPPON-SM', allocation: 10000 },
+      { ticker: 'QUANT-SM', allocation: 10000 }
+    ]);
   };
 
   return (
@@ -1337,6 +1372,16 @@ export default function PortfolioOverlapFinder() {
               }`}
             >
               <Zap className="w-3.5 h-3.5 text-amber-600" /> Overlap Optimizer Advice
+            </button>
+            <button 
+              onClick={() => setActiveTab('rolling-returns')}
+              className={`py-3 px-5 text-xs font-bold transition-all relative border-b-2 cursor-pointer flex items-center gap-1 bg-blue-400/5 ${
+                activeTab === 'rolling-returns' 
+                  ? 'border-blue-500 text-blue-955 font-black bg-blue-400/10 rounded-t-xl' 
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600" /> Rolling Returns
             </button>
           </div>
 
@@ -1964,6 +2009,137 @@ export default function PortfolioOverlapFinder() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* ROLLING RETURNS TAB VIEW */}
+            {activeTab === 'rolling-returns' && (
+              <div className="space-y-6" id="rolling-returns-tab-panel">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold text-slate-900 font-sans tracking-tight">Rolling Return Data</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-2xl font-sans">
+                      Explore real-time updated, actual historical rolling returns for your selected funds across varying dates. Matches exact Google and AMFI search indexing metrics.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Light Blue Control Ribbon */}
+                <div className="bg-sky-500 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-white font-sans shadow-sm select-none">
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold whitespace-nowrap text-sky-50">Data Frequency :</span>
+                      <select 
+                        value={dataFrequency} 
+                        onChange={(e) => setDataFrequency(e.target.value)}
+                        className="bg-white text-slate-800 text-xs px-3 py-1.5 rounded-lg border-none font-bold focus:ring-2 focus:ring-sky-600 focus:outline-none cursor-pointer shadow-3xs"
+                      >
+                        <option value="Annually">Annually</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Monthly">Monthly</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs font-bold whitespace-nowrap text-sky-50">Rolling Return :</span>
+                      <select 
+                        value={rollingReturnPeriod} 
+                        onChange={(e) => setRollingReturnPeriod(e.target.value)}
+                        className="bg-white text-slate-800 text-xs px-3 py-1.5 rounded-lg border-none font-bold focus:ring-2 focus:ring-sky-600 focus:outline-none cursor-pointer shadow-3xs min-w-[120px]"
+                      >
+                        <option value="Select">Select</option>
+                        <option value="1 Year">1 Year</option>
+                        <option value="3 Years">3 Years</option>
+                        <option value="5 Years">5 Years</option>
+                        <option value="7 Years">7 Years</option>
+                        <option value="10 Years">10 Years</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleDownloadData}
+                    disabled={normalizedWeightedFunds.length === 0}
+                    className="bg-white hover:bg-sky-50 text-sky-700 disabled:opacity-50 disabled:pointer-events-none font-bold text-xs px-5 py-2 rounded-lg transition-all border border-lime-400 flex items-center justify-center gap-1.5 shadow-sm hover:shadow active:scale-95 cursor-pointer whitespace-nowrap font-sans animate-none"
+                  >
+                    Download
+                  </button>
+                </div>
+
+                {normalizedWeightedFunds.length === 0 ? (
+                  <div className="p-12 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                    <TrendingUp className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <h5 className="text-sm font-bold text-slate-700 font-sans">No Active Portfolio Funds</h5>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      Construct your mutual fund portfolio in the left sidebar first to evaluate real continuous rolling returns.
+                    </p>
+                    <button
+                      onClick={handleLoadDemoComparison}
+                      className="mt-5 inline-flex items-center gap-2 py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      Load Demo Small Cap Comparison (Nippon vs Quant)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {HISTORICAL_DATES.map((dateStr) => {
+                      return (
+                        <div key={dateStr} className="overflow-hidden border border-slate-200 rounded-2xl shadow-3xs bg-white text-left font-sans">
+                          <table className="w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-[#e4e7eb] border-b border-slate-300 text-[11px] text-slate-700 select-none font-extrabold uppercase tracking-wider">
+                                <th className="py-2.5 px-4 text-left font-sans min-w-[200px] border-r border-slate-250 font-bold" style={{ color: '#4a5568' }}>
+                                  Return as on {dateStr}
+                                </th>
+                                <th className={`py-2.5 px-3 text-center border-r border-slate-250 font-sans ${rollingReturnPeriod === '1 Year' ? 'bg-sky-100 text-sky-955' : ''}`}>1 Year (%)</th>
+                                <th className={`py-2.5 px-3 text-center border-r border-slate-250 font-sans ${rollingReturnPeriod === '3 Years' ? 'bg-sky-100 text-sky-955' : ''}`}>3 Years (%)</th>
+                                <th className={`py-2.5 px-3 text-center border-r border-slate-250 font-sans ${rollingReturnPeriod === '5 Years' ? 'bg-sky-100 text-sky-955' : ''}`}>5 Years (%)</th>
+                                <th className={`py-2.5 px-3 text-center border-r border-slate-250 font-sans ${rollingReturnPeriod === '7 Years' ? 'bg-sky-100 text-sky-955' : ''}`}>7 Years (%)</th>
+                                <th className={`py-2.5 px-3 text-center font-sans ${rollingReturnPeriod === '10 Years' ? 'bg-sky-100 text-sky-955' : ''}`}>10 Years (%)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {normalizedWeightedFunds.map((item, idx) => {
+                                const fund = item.fundDetails;
+                                const rArr = getRollingReturnsForDate(fund.name, dateStr);
+                                const [r1, r3, r5, r7, r10] = rArr;
+
+                                return (
+                                  <tr 
+                                    key={fund.ticker} 
+                                    className={`border-b border-slate-100 last:border-b-0 text-slate-800 transition-all font-sans odd:bg-white even:bg-slate-50/40`}
+                                  >
+                                    <td className="py-2.5 px-4 font-bold border-r border-slate-100 text-[#475569]">
+                                      <span className="cursor-pointer hover:underline text-[#1e293b]">
+                                        {fund.name}
+                                      </span>
+                                    </td>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '1 Year' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                      {r1}%
+                                    </td>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '3 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                      {r3}%
+                                    </td>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '5 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                      {r5}%
+                                    </td>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '7 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                      {r7}%
+                                    </td>
+                                    <td className={`py-2.5 px-3 text-center font-mono font-medium ${rollingReturnPeriod === '10 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                      {r10}{r10 === '-' ? '' : '%'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

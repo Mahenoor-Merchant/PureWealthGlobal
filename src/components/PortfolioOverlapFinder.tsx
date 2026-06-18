@@ -34,6 +34,7 @@ import {
 import MF_NAMES from '../funds/master_list';
 import { generateOverlapFundHolding, getFundInceptionYear } from '../funds/master_generator';
 import { getRollingReturnsForDate, HISTORICAL_DATES } from '../utils/rollingReturns';
+import { getLiveMetricsForFund, LiveMetrics } from '../utils/liveMfApi';
 
 // ==========================================
 // Types & Interfaces
@@ -579,6 +580,31 @@ export default function PortfolioOverlapFinder() {
   const [dataFrequency, setDataFrequency] = useState<string>('Annually');
   const [rollingReturnPeriod, setRollingReturnPeriod] = useState<string>('Select');
 
+  // Real-time AMFI live metrics state
+  const [liveMetrics, setLiveMetrics] = useState<Record<string, Record<string, LiveMetrics>>>({});
+  const [loadingFunds, setLoadingFunds] = useState<Record<string, boolean>>({});
+
+  const fetchLiveMetrics = async (fundName: string, dateStr: string) => {
+    if (liveMetrics[fundName]?.[dateStr]) return;
+    setLoadingFunds(prev => ({ ...prev, [fundName]: true }));
+    try {
+      const metrics = await getLiveMetricsForFund(fundName, dateStr);
+      if (metrics) {
+        setLiveMetrics(prev => ({
+          ...prev,
+          [fundName]: {
+            ...(prev[fundName] || {}),
+            [dateStr]: metrics
+          }
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch live metrics for " + fundName, err);
+    } finally {
+      setLoadingFunds(prev => ({ ...prev, [fundName]: false }));
+    }
+  };
+
 
 
   // Filter DB based on queries with high performance and no lag (slicing output sizes)
@@ -981,7 +1007,30 @@ export default function PortfolioOverlapFinder() {
     });
   }, []);
 
+  // Trigger live downloads for currently compared funds
+  React.useEffect(() => {
+    normalizedWeightedFunds.forEach(item => {
+      const fundName = item.fundDetails.name;
+      HISTORICAL_DATES.forEach(dateStr => {
+        fetchLiveMetrics(fundName, dateStr);
+      });
+    });
+  }, [normalizedWeightedFunds]);
 
+  // Trigger live downloads for optimizer cards
+  React.useEffect(() => {
+    CategoryAlternativeUpgrades.forEach(grp => {
+      if (!grp) return;
+      HISTORICAL_DATES.forEach(dateStr => {
+        fetchLiveMetrics(grp.targetFund.name, dateStr);
+      });
+      grp.alternatives.slice(0, 3).forEach(altItem => {
+        HISTORICAL_DATES.forEach(dateStr => {
+          fetchLiveMetrics(altItem.fund.name, dateStr);
+        });
+      });
+    });
+  }, [CategoryAlternativeUpgrades]);
 
   // Switcher Interactive Simulation action
   const handleApplySimulation = (pruneTicker: string, addTicker: string) => {
@@ -1019,7 +1068,10 @@ export default function PortfolioOverlapFinder() {
     HISTORICAL_DATES.forEach(dateStr => {
       normalizedWeightedFunds.forEach(item => {
         const name = item.fundDetails.name;
-        const [r1, r3, r5, r7, r10] = getRollingReturnsForDate(name, dateStr);
+        const liveF = liveMetrics[name]?.[dateStr];
+        const [r1, r3, r5, r7, r10] = liveF && liveF.rolling 
+          ? liveF.rolling 
+          : getRollingReturnsForDate(name, dateStr);
         csvContent += `"${dateStr}","${name}",${r1 || '-'},${r3 || '-'},${r5 || '-'},${r7 || '-'},${r10 || '-'}\n`;
       });
     });
@@ -1895,18 +1947,11 @@ export default function PortfolioOverlapFinder() {
                           >
                             {/* Current Fund Header Info */}
                             {(() => {
-                              const targetInception = getFundInceptionYear(targetFund.name);
-                              const targetActiveYears = 2026 - targetInception;
-                              const curr3Active = targetActiveYears >= 3;
-                              const curr5Active = targetActiveYears >= 5;
-                              const curr7Active = targetActiveYears >= 7;
-                              const curr10Active = targetActiveYears >= 10;
-
                               const current7YVal = targetFund.rolling7Y ?? (targetFund.rolling5Y ? Math.round((targetFund.rolling5Y + 0.5) * 10) / 10 : undefined);
                               const current10YVal = targetFund.rolling10Y ?? (current7YVal ? Math.round((current7YVal - 0.2) * 10) / 10 : undefined);
 
-                              const current7YDisplay = curr7Active && current7YVal !== undefined ? `${current7YVal.toFixed(1)}%` : 'N/A';
-                              const current10YDisplay = curr10Active && current10YVal !== undefined ? `${current10YVal.toFixed(1)}%` : 'N/A';
+                              const current7YDisplay = current7YVal !== undefined ? `${current7YVal.toFixed(1)}%` : 'N/A';
+                              const current10YDisplay = current10YVal !== undefined ? `${current10YVal.toFixed(1)}%` : 'N/A';
 
                               return (
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 font-sans">
@@ -1916,9 +1961,9 @@ export default function PortfolioOverlapFinder() {
                                     </h4>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-[10px] font-mono bg-white border px-3 py-1.5 rounded-xl shadow-3xs">
-                                    <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{curr3Active ? `${targetFund.rolling3Y}%` : 'N/A'}</span></div>
+                                    <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{`${targetFund.rolling3Y}%`}</span></div>
                                     <span className="text-slate-250">|</span>
-                                    <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{curr5Active ? `${targetFund.rolling5Y}%` : 'N/A'}</span></div>
+                                    <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{`${targetFund.rolling5Y}%`}</span></div>
                                     <span className="text-slate-250">|</span>
                                     <div><span className="text-slate-400">7Y:</span> <span className="font-bold text-slate-700">{current7YDisplay}</span></div>
                                     <span className="text-slate-250">|</span>
@@ -1932,29 +1977,37 @@ export default function PortfolioOverlapFinder() {
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                               {alternatives.map((altItem) => {
                                 const alt = altItem.fund;
-                                const targetInception = getFundInceptionYear(targetFund.name);
-                                const altInception = getFundInceptionYear(alt.name);
 
-                                const targetYearsActive = 2026 - targetInception;
-                                const altYearsActive = 2026 - altInception;
+                                const evalDate = HISTORICAL_DATES[0];
+                                const liveTarget = liveMetrics[targetFund.name]?.[evalDate];
+                                const liveAlt = liveMetrics[alt.name]?.[evalDate];
+                                const isRealTimeCombined = !!(liveTarget && liveAlt);
+                                
+                                const finalTarget3Y = liveTarget?.rolling[1] !== undefined && liveTarget.rolling[1] !== '-' ? parseFloat(liveTarget.rolling[1]) : targetFund.rolling3Y;
+                                const finalAlt3Y = liveAlt?.rolling[1] !== undefined && liveAlt.rolling[1] !== '-' ? parseFloat(liveAlt.rolling[1]) : alt.rolling3Y;
+                                
+                                const finalTarget5Y = liveTarget?.rolling[2] !== undefined && liveTarget.rolling[2] !== '-' ? parseFloat(liveTarget.rolling[2]) : targetFund.rolling5Y;
+                                const finalAlt5Y = liveAlt?.rolling[2] !== undefined && liveAlt.rolling[2] !== '-' ? parseFloat(liveAlt.rolling[2]) : alt.rolling5Y;
+                                
+                                const finalTarget7Y = liveTarget?.rolling[3] !== undefined && liveTarget.rolling[3] !== '-' ? parseFloat(liveTarget.rolling[3]) : (altItem.curr7Y ?? targetFund.rolling3Y + 0.5);
+                                const finalAlt7Y = liveAlt?.rolling[3] !== undefined && liveAlt.rolling[3] !== '-' ? parseFloat(liveAlt.rolling[3]) : (altItem.cand7Y ?? alt.rolling5Y + 0.5);
 
-                                const curr3Active = targetYearsActive >= 3;
-                                const curr5Active = targetYearsActive >= 5;
-                                const curr7Active = targetYearsActive >= 7;
-                                const curr10Active = targetYearsActive >= 10;
+                                const finalTarget10Y = liveTarget?.rolling[4] !== undefined && liveTarget.rolling[4] !== '-' ? parseFloat(liveTarget.rolling[4]) : (altItem.curr10Y ?? targetFund.rolling3Y - 0.2);
+                                const finalAlt10Y = liveAlt?.rolling[4] !== undefined && liveAlt.rolling[4] !== '-' ? parseFloat(liveAlt.rolling[4]) : (altItem.cand10Y ?? alt.rolling5Y - 0.2);
 
-                                const alt3Active = altYearsActive >= 3;
-                                const alt5Active = altYearsActive >= 5;
-                                const alt7Active = altYearsActive >= 7;
-                                const alt10Active = altYearsActive >= 10;
+                                const finalTargetSharpe = liveTarget && liveTarget.sharpe !== '—' ? parseFloat(liveTarget.sharpe) : targetFund.sharpe;
+                                const finalAltSharpe = liveAlt && liveAlt.sharpe !== '—' ? parseFloat(liveAlt.sharpe) : alt.sharpe;
 
-                                const alpha3Y = (curr3Active && alt3Active) ? (alt.rolling3Y - targetFund.rolling3Y).toFixed(1) : undefined;
-                                const alpha5Y = (curr5Active && alt5Active) ? (alt.rolling5Y - targetFund.rolling5Y).toFixed(1) : undefined;
-                                const alpha7Y = (curr7Active && alt7Active && altItem.cand7Y !== undefined && altItem.curr7Y !== undefined) ? (altItem.cand7Y - altItem.curr7Y).toFixed(1) : undefined;
-                                const alpha10Y = (curr10Active && alt10Active && altItem.cand10Y !== undefined && altItem.curr10Y !== undefined) ? (altItem.cand10Y - altItem.curr10Y).toFixed(1) : undefined;
+                                const finalTargetSortino = liveTarget && liveTarget.sortino !== '—' ? parseFloat(liveTarget.sortino) : targetFund.sortino;
+                                const finalAltSortino = liveAlt && liveAlt.sortino !== '—' ? parseFloat(liveAlt.sortino) : alt.sortino;
 
-                                const sharpeUp = (alt.sharpe - targetFund.sharpe).toFixed(2);
-                                const sortinoUp = (alt.sortino - targetFund.sortino).toFixed(2);
+                                const alpha3Y = (finalAlt3Y - finalTarget3Y).toFixed(1);
+                                const alpha5Y = (finalAlt5Y - finalTarget5Y).toFixed(1);
+                                const alpha7Y = (finalAlt7Y - finalTarget7Y).toFixed(1);
+                                const alpha10Y = (finalAlt10Y - finalTarget10Y).toFixed(1);
+
+                                const sharpeUp = (finalAltSharpe - finalTargetSharpe).toFixed(2);
+                                const sortinoUp = (finalAltSortino - finalTargetSortino).toFixed(2);
                                 const terSaving = (targetFund.ter - alt.ter).toFixed(2);
 
                                 return (
@@ -1965,9 +2018,16 @@ export default function PortfolioOverlapFinder() {
                                     <div className="space-y-4">
                                       {/* Header with recommendation tag & Expense ratio tag */}
                                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
-                                          <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                                          Superior Peer Upgrade
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
+                                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                                            Superior Peer Upgrade
+                                          </div>
+                                          {isRealTimeCombined && (
+                                            <div className="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-[9px] font-extrabold text-indigo-700 border border-indigo-200 rounded-full uppercase tracking-wider scale-90 origin-left">
+                                              AMFI Live Verified
+                                            </div>
+                                          )}
                                         </div>
                                         <span className="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 box-border">
                                           TER: <strong className="text-slate-800">{alt.ter}%</strong> 
@@ -1993,12 +2053,12 @@ export default function PortfolioOverlapFinder() {
 
                                       {/* High-impact highlight benefits */}
                                       <div className="flex flex-wrap gap-2 text-[10px] font-sans pt-1">
-                                        {alpha5Y !== undefined ? (
+                                        {parseFloat(alpha5Y) > 0 ? (
                                           <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
                                             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                             +{alpha5Y}% (5Y Return Benefit)
                                           </span>
-                                        ) : alpha3Y !== undefined ? (
+                                        ) : parseFloat(alpha3Y) > 0 ? (
                                           <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
                                             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                             +{alpha3Y}% (3Y Return Benefit)
@@ -2009,10 +2069,12 @@ export default function PortfolioOverlapFinder() {
                                             Superior Peer Standard
                                           </span>
                                         )}
-                                        <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50/80 text-indigo-850 font-bold rounded-lg border border-indigo-100 shadow-2xs">
-                                          <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                                          +{sharpeUp} Sharpe (Risk Efficiency)
-                                        </span>
+                                        {parseFloat(sharpeUp) > 0 && (
+                                          <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50/80 text-indigo-850 font-bold rounded-lg border border-indigo-100 shadow-2xs">
+                                            <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                                            +{sharpeUp} Sharpe (Risk Efficiency)
+                                          </span>
+                                        )}
                                       </div>
 
                                       {/* Beautiful, High-Contrast Direct Comparison Table */}
@@ -2030,8 +2092,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 3Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{curr3Active ? `${targetFund.rolling3Y}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt3Active ? `${alt.rolling3Y}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{`${finalTarget3Y.toFixed(1)}%`}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{`${finalAlt3Y.toFixed(1)}%`}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha3Y !== undefined ? (parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha3Y !== undefined ? `${parseFloat(alpha3Y) >= 0 ? '+' : ''}${alpha3Y}%` : '—'}
                                               </td>
@@ -2039,8 +2101,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 5Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">5Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{curr5Active ? `${targetFund.rolling5Y}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt5Active ? `${alt.rolling5Y}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{`${finalTarget5Y.toFixed(1)}%`}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{`${finalAlt5Y.toFixed(1)}%`}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha5Y !== undefined ? (parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha5Y !== undefined ? `${parseFloat(alpha5Y) >= 0 ? '+' : ''}${alpha5Y}%` : '—'}
                                               </td>
@@ -2048,26 +2110,26 @@ export default function PortfolioOverlapFinder() {
                                             {/* 7Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">7Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{curr7Active && altItem.curr7Y !== undefined ? `${altItem.curr7Y.toFixed(1)}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt7Active && altItem.cand7Y !== undefined ? `${altItem.cand7Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget7Y !== undefined && !isNaN(finalTarget7Y) ? `${finalTarget7Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt7Y !== undefined && !isNaN(finalAlt7Y) ? `${finalAlt7Y.toFixed(1)}%` : 'N/A'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha7Y !== undefined ? (parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
-                                                {alpha7Y !== undefined ? `${parseFloat(alpha7Y) >= 0 ? '+' : ''}${alpha7Y}%` : '—'}
+                                                {alpha7Y !== undefined && !isNaN(parseFloat(alpha7Y)) ? `${parseFloat(alpha7Y) >= 0 ? '+' : ''}${alpha7Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* 10Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">10Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{curr10Active && altItem.curr10Y !== undefined ? `${altItem.curr10Y.toFixed(1)}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt10Active && altItem.cand10Y !== undefined ? `${altItem.cand10Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget10Y !== undefined && !isNaN(finalTarget10Y) ? `${finalTarget10Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt10Y !== undefined && !isNaN(finalAlt10Y) ? `${finalAlt10Y.toFixed(1)}%` : 'N/A'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha10Y !== undefined ? (parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
-                                                {alpha10Y !== undefined ? `${parseFloat(alpha10Y) >= 0 ? '+' : ''}${alpha10Y}%` : '—'}
+                                                {alpha10Y !== undefined && !isNaN(parseFloat(alpha10Y)) ? `${parseFloat(alpha10Y) >= 0 ? '+' : ''}${alpha10Y}%` : '—'}
                                               </td>
                                             </tr>
                                             {/* Sharpe Ratio */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sharpe Ratio</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.sharpe}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.sharpe}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSharpe.toFixed(2)}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSharpe.toFixed(2)}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sharpeUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                                                 {parseFloat(sharpeUp) >= 0 ? `+${sharpeUp}` : sharpeUp}
                                               </td>
@@ -2075,8 +2137,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* Sortino Ratio */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sortino Ratio</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{targetFund.sortino}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{alt.sortino}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSortino.toFixed(2)}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSortino.toFixed(2)}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sortinoUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                                                 {parseFloat(sortinoUp) >= 0 ? `+${sortinoUp}` : sortinoUp}
                                               </td>
@@ -2258,18 +2320,29 @@ export default function PortfolioOverlapFinder() {
                             <tbody>
                               {normalizedWeightedFunds.map((item, idx) => {
                                 const fund = item.fundDetails;
-                                const rArr = getRollingReturnsForDate(fund.name, dateStr);
+                                const liveF = liveMetrics[fund.name]?.[dateStr];
+                                const rArr = liveF && liveF.rolling ? liveF.rolling : getRollingReturnsForDate(fund.name, dateStr);
                                 const [r1, r3, r5, r7, r10] = rArr;
+                                const isLive = !!(liveF && liveF.rolling);
 
                                 return (
                                   <tr 
                                     key={fund.ticker} 
                                     className={`border-b border-slate-100 last:border-b-0 text-slate-800 transition-all font-sans odd:bg-white even:bg-slate-50/40`}
                                   >
-                                    <td className="py-2.5 px-4 font-bold border-r border-slate-100 text-[#475569]">
+                                    <td className="py-2.5 px-4 font-bold border-r border-slate-100 text-[#475569] flex flex-wrap items-center gap-1.5">
                                       <span className="cursor-pointer hover:underline text-[#1e293b]">
                                         {fund.name}
                                       </span>
+                                      {isLive ? (
+                                        <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 uppercase tracking-wider scale-90 origin-left">
+                                          AMFI Live
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-slate-100 text-slate-400 border border-slate-250 uppercase tracking-wider scale-90 origin-left">
+                                          Syncing...
+                                        </span>
+                                      )}
                                     </td>
                                     <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '1 Year' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
                                       {r1}{r1 === '-' ? '' : '%'}

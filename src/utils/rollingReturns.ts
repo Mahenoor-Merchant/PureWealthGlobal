@@ -113,25 +113,6 @@ export const HISTORICAL_DATES = [
  * Return format: string Array [1Y, 3Y, 5Y, 7Y, 10Y]
  */
 export function getRollingReturnsForDate(fundName: string, dateStr: string): string[] {
-  let dateYear = 2025;
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const yr = parseInt(parts[2]);
-    if (!isNaN(yr)) dateYear = yr;
-  }
-
-  const inceptionYear = getFundInceptionYear(fundName);
-
-  // If the fund was not launched as of the target date, it gets empty dashes for everything
-  if (inceptionYear > dateYear) {
-    return ["-", "-", "-", "-", "-"];
-  }
-
-  const activeYears = dateYear - inceptionYear;
-  if (activeYears < 1) {
-    return ["-", "-", "-", "-", "-"];
-  }
-
   const normalized = fundName.toLowerCase();
 
   let returnsRaw: string[] = ["-", "-", "-", "-", "-"];
@@ -188,29 +169,5 @@ export function getRollingReturnsForDate(fundName: string, dateStr: string): str
     }
   }
 
-  // 3. Now dynamically enforce physical inception boundaries:
-  // indices: 0 = 1Y, 1 = 3Y, 2 = 5Y, 3 = 7Y, 4 = 10Y
-  return returnsRaw.map((val, idx) => {
-    if (idx === 0) {
-      // 1Y needs at least 1 year active
-      return val;
-    }
-    if (idx === 1) {
-      // 3Y needs at least 3 years active
-      return activeYears >= 3 ? val : "-";
-    }
-    if (idx === 2) {
-      // 5Y needs at least 5 years active
-      return activeYears >= 5 ? val : "-";
-    }
-    if (idx === 3) {
-      // 7Y needs at least 7 years active
-      return activeYears >= 7 ? val : "-";
-    }
-    if (idx === 4) {
-      // 10Y needs at least 10 years active
-      return activeYears >= 10 ? val : "-";
-    }
-    return val;
-  });
+  return returnsRaw;
 }

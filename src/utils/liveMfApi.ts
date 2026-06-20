@@ -24,7 +24,10 @@ const POPULAR_SCHeme_MAPPING: Record<string, string> = {
   "mirae asset large cap": "107560", // Regular Growth
   "hdfc mid-cap opportunities": "101218", // Regular Growth
   "mirae asset multicap": "151757", // Regular Growth
-  "motilal oswal multi cap": "152430" // Regular Growth
+  "motilal oswal multi cap": "152430", // Regular Growth
+  "quant large & mid cap": "120822",
+  "motilal oswal midcap": "127038",
+  "baroda bnp paribas large & mid cap": "101157"
 };
 
 export interface LiveMetrics {
@@ -165,7 +168,7 @@ export async function fetchSchemeCode(fundName: string): Promise<string | null> 
       return String(finalItem.schemeCode);
     }
   } catch (err) {
-    console.error("Error searching scheme code of " + fundName, err);
+    console.warn("Recoverable: Error searching scheme code of " + fundName, err);
   }
   schemeCodeGlobalCache[normalized] = null;
   return null;
@@ -187,7 +190,7 @@ export async function fetchNavHistory(schemeCode: string): Promise<{ date: strin
     navHistoryGlobalCache[schemeCode] = data;
     return data;
   } catch (err) {
-    console.error("Error fetching NAV history for " + schemeCode, err);
+    console.warn("Recoverable: Error fetching NAV history for " + schemeCode, err);
     return [];
   }
 }

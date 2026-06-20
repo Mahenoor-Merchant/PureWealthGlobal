@@ -31,6 +31,17 @@ import {
   Settings
 } from 'lucide-react';
 
+import { 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  Legend as RechartsLegend 
+} from 'recharts';
+
 import MF_NAMES from '../funds/master_list';
 import { generateOverlapFundHolding, getFundInceptionYear } from '../funds/master_generator';
 import { getRollingReturnsForDate, HISTORICAL_DATES } from '../utils/rollingReturns';
@@ -57,6 +68,19 @@ export interface FundHolding {
   sectors: { name: string; weight: number }[];
   description: string;
 }
+
+// ==========================================
+// Chart Styling Constants
+// ==========================================
+const FUND_CHART_COLORS = [
+  '#10b981', // emerald-500
+  '#6366f1', // indigo-500
+  '#0ea5e9', // sky-500
+  '#f59e0b', // amber-500
+  '#ec4899', // pink-500
+  '#8b5cf6', // purple-500
+  '#ef4444', // red-500
+];
 
 // ==========================================
 // Comprehensive Fund Database (Realistic)
@@ -559,6 +583,64 @@ interface SelectedFundState {
   allocation: number; // monthly SIP / lumpsum value or percentage
 }
 
+// Helper functions for dynamic rolling returns date selection and generation
+const MONTH_NAMES_MAP = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function parseDDMMYYYY(str: string): Date | null {
+  const parts = str.trim().split('/');
+  if (parts.length !== 3) return null;
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // 0-indexed month
+  const year = parseInt(parts[2], 10);
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  const d = new Date(year, month, day);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDDMMMYYYY(date: Date): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = MONTH_NAMES_MAP[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+function generateEvaluationDatesOnRange(start: Date, end: Date, frequency: string): string[] {
+  const dates: Date[] = [];
+  let current = new Date(start.getTime());
+
+  if (start >= end) {
+    return [formatDDMMMYYYY(end)];
+  }
+
+  if (frequency === 'Monthly') {
+    while (current <= end) {
+      dates.push(new Date(current.getTime()));
+      current.setMonth(current.getMonth() + 1);
+    }
+  } else if (frequency === 'Quarterly') {
+    while (current <= end) {
+      dates.push(new Date(current.getTime()));
+      current.setMonth(current.getMonth() + 3);
+    }
+  } else {
+    // Annually (Default)
+    while (current <= end) {
+      dates.push(new Date(current.getTime()));
+      current.setFullYear(current.getFullYear() + 1);
+    }
+  }
+
+  // Ensure end date is included if not already present in similar year/month/day
+  const lastGenerated = dates[dates.length - 1];
+  if (!lastGenerated || lastGenerated.getFullYear() !== end.getFullYear() || lastGenerated.getMonth() !== end.getMonth() || lastGenerated.getDate() !== end.getDate()) {
+    dates.push(new Date(end.getTime()));
+  }
+
+  // Sort and convert
+  dates.sort((a, b) => a.getTime() - b.getTime());
+  return dates.map(d => formatDDMMMYYYY(d));
+}
+
 export default function PortfolioOverlapFinder() {
   const [selectedFunds, setSelectedFunds] = useState<SelectedFundState[]>([
     { ticker: 'HDFC-T100', allocation: 10000 },
@@ -578,7 +660,52 @@ export default function PortfolioOverlapFinder() {
 
   // Rolling Returns tab selectors
   const [dataFrequency, setDataFrequency] = useState<string>('Annually');
-  const [rollingReturnPeriod, setRollingReturnPeriod] = useState<string>('Select');
+  const [rollingReturnPeriod, setRollingReturnPeriod] = useState<string>('3 Years');
+
+  // Interactive Custom Date evaluation states
+  const [startDateStr, setStartDateStr] = useState<string>('03/01/2005');
+  const [endDateStr, setEndDateStr] = useState<string>('19/06/2019');
+  const [startDateApplied, setStartDateApplied] = useState<Date>(() => parseDDMMYYYY('03/01/2005') || new Date(2005, 0, 3));
+  const [endDateApplied, setEndDateApplied] = useState<Date>(() => parseDDMMYYYY('19/06/2019') || new Date(2019, 5, 19));
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  const activeEvaluationDates = useMemo(() => {
+    return generateEvaluationDatesOnRange(startDateApplied, endDateApplied, dataFrequency);
+  }, [startDateApplied, endDateApplied, dataFrequency]);
+
+  const handleApplyDates = () => {
+    const sDate = parseDDMMYYYY(startDateStr);
+    const eDate = parseDDMMYYYY(endDateStr);
+    
+    let parsedS = sDate;
+    let parsedE = eDate;
+    
+    if (!parsedS) {
+      const d = new Date(startDateStr);
+      if (!isNaN(d.getTime())) parsedS = d;
+    }
+    if (!parsedE) {
+      const d = new Date(endDateStr);
+      if (!isNaN(d.getTime())) parsedE = d;
+    }
+    
+    if (!parsedS) {
+      setDateError("Invalid Start Date. Use DD/MM/YYYY format");
+      return;
+    }
+    if (!parsedE) {
+      setDateError("Invalid End Date. Use DD/MM/YYYY format");
+      return;
+    }
+    if (parsedS >= parsedE) {
+      setDateError("Start Date must be before End Date");
+      return;
+    }
+    
+    setDateError(null);
+    setStartDateApplied(parsedS);
+    setEndDateApplied(parsedE);
+  };
 
   // Real-time AMFI live metrics state
   const [liveMetrics, setLiveMetrics] = useState<Record<string, Record<string, LiveMetrics>>>({});
@@ -599,7 +726,7 @@ export default function PortfolioOverlapFinder() {
         }));
       }
     } catch (err) {
-      console.error("Failed to fetch live metrics for " + fundName, err);
+      console.warn("Recoverable: Failed to fetch live metrics for " + fundName, err);
     } finally {
       setLoadingFunds(prev => ({ ...prev, [fundName]: false }));
     }
@@ -852,6 +979,155 @@ export default function PortfolioOverlapFinder() {
     return warnings;
   }, [normalizedWeightedFunds]);
 
+  // Dynamically compute Prime Investor rolling return statistics for each selected fund
+  const primeInvestorStats = useMemo(() => {
+    if (normalizedWeightedFunds.length === 0) return [];
+    
+    // Determine index corresponding to the rollingReturnPeriod
+    const periodIndexMap: { [key: string]: number } = {
+      '1 Year': 0,
+      '3 Years': 1,
+      '5 Years': 2,
+      '7 Years': 3,
+      '10 Years': 4,
+    };
+    
+    const targetPeriod = rollingReturnPeriod === 'Select' ? '3 Years' : rollingReturnPeriod;
+    const idx = periodIndexMap[targetPeriod] ?? 1; // Default to 3 Years (index 1)
+    
+    return normalizedWeightedFunds.map(item => {
+      const fund = item.fundDetails;
+      
+      // Get returns for this fund across all activeEvaluationDates
+      const values: number[] = [];
+      activeEvaluationDates.forEach(dateStr => {
+        const liveF = liveMetrics[fund.name]?.[dateStr];
+        const rArr = liveF && liveF.rolling ? liveF.rolling : getRollingReturnsForDate(fund.name, dateStr);
+        const valStr = rArr[idx];
+        if (valStr && valStr !== '-') {
+          const valNum = parseFloat(valStr);
+          if (!isNaN(valNum)) {
+            values.push(valNum);
+          }
+        }
+      });
+      
+      if (values.length === 0) {
+        return {
+          fundName: fund.name,
+          ticker: fund.ticker,
+          count: 0,
+          avg: '-',
+          min: '-',
+          max: '-',
+          median: '-',
+          stdDev: '-',
+          pNeg: '-',
+          p0to5: '-',
+          p5to10: '-',
+          p10to20: '-',
+          pMoreThan20: '-'
+        };
+      }
+      
+      // Compute statistics
+      const sorted = [...values].sort((a, b) => a - b);
+      const count = values.length;
+      const sum = values.reduce((acc, curr) => acc + curr, 0);
+      const avg = sum / count;
+      const min = sorted[0];
+      const max = sorted[count - 1];
+      
+      // Median
+      let median = 0;
+      if (count % 2 === 0) {
+        median = (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
+      } else {
+        median = sorted[Math.floor(count / 2)];
+      }
+
+      // Standard Deviation
+      let stdDev = 0;
+      if (count > 0) {
+        const variance = values.reduce((acc, curr) => acc + Math.pow(curr - avg, 2), 0) / count;
+        stdDev = Math.sqrt(variance);
+      }
+      
+      // Probabilities
+      const negCount = values.filter(v => v < 0).length;
+      const range0to5Count = values.filter(v => v >= 0 && v < 5).length;
+      const range5to10Count = values.filter(v => v >= 5 && v < 10).length;
+      const range10to20Count = values.filter(v => v >= 10 && v <= 20).length;
+      const rangeMoreThan20Count = values.filter(v => v > 20).length;
+      
+      const pNeg = ((negCount / count) * 100).toFixed(2);
+      const p0to5 = ((range0to5Count / count) * 100).toFixed(2);
+      const p5to10 = ((range5to10Count / count) * 100).toFixed(2);
+      const p10to20 = ((range10to20Count / count) * 100).toFixed(2);
+      const pMoreThan20 = ((rangeMoreThan20Count / count) * 100).toFixed(2);
+      
+      return {
+        fundName: fund.name,
+        ticker: fund.ticker,
+        count,
+        avg: avg.toFixed(2),
+        min: min.toFixed(2),
+        max: max.toFixed(2),
+        median: median.toFixed(2),
+        stdDev: stdDev.toFixed(2),
+        pNeg,
+        p0to5,
+        p5to10,
+        p10to20,
+        pMoreThan20
+      };
+    });
+  }, [normalizedWeightedFunds, rollingReturnPeriod, liveMetrics, activeEvaluationDates]);
+
+  // Compute rolling returns time-series dataset chronological sequence for Recharts LineChart
+  const rollingReturnsChartData = useMemo(() => {
+    if (normalizedWeightedFunds.length === 0) return [];
+
+    // Chronological order: from earliest date to latest date
+    const chronologicalDates = [...activeEvaluationDates];
+
+    return chronologicalDates.map(dateStr => {
+      // Parse year (e.g. "31-Dec-2019" -> "2019")
+      const parts = dateStr.split('-');
+      const yearStr = parts[2] || dateStr;
+
+      const dataPoint: Record<string, any> = {
+        dateStr,
+        year: yearStr,
+      };
+
+      normalizedWeightedFunds.forEach(item => {
+        const fund = item.fundDetails;
+        const periodIndexMap: { [key: string]: number } = {
+          '1 Year': 0,
+          '3 Years': 1,
+          '5 Years': 2,
+          '7 Years': 3,
+          '10 Years': 4,
+        };
+        const targetPeriod = rollingReturnPeriod === 'Select' ? '3 Years' : rollingReturnPeriod;
+        const idx = periodIndexMap[targetPeriod] ?? 1;
+
+        const liveF = liveMetrics[fund.name]?.[dateStr];
+        const rArr = liveF && liveF.rolling ? liveF.rolling : getRollingReturnsForDate(fund.name, dateStr);
+        const valStr = rArr[idx];
+        if (valStr && valStr !== '-') {
+          const valNum = parseFloat(valStr);
+          if (!isNaN(valNum)) {
+            dataPoint[fund.name] = valNum;
+          }
+        }
+      });
+
+      return dataPoint;
+    });
+  }, [normalizedWeightedFunds, rollingReturnPeriod, liveMetrics, activeEvaluationDates]);
+
   // Categories and superior alternatives query selector dynamically evaluated over the current selected funds
   const CategoryAlternativeUpgrades = useMemo(() => {
     if (normalizedWeightedFunds.length === 0) return [];
@@ -877,8 +1153,9 @@ export default function PortfolioOverlapFinder() {
 
       // Calculate score for each candidate relative to current fund
       const scoredCandidates = candidates.map(cand => {
-        const liveCand = liveMetrics[cand.name]?.[HISTORICAL_DATES[0]];
-        const liveCurr = liveMetrics[currentFund.name]?.[HISTORICAL_DATES[0]];
+        const evalDateStr = activeEvaluationDates[activeEvaluationDates.length - 1] || HISTORICAL_DATES[0];
+        const liveCand = liveMetrics[cand.name]?.[evalDateStr];
+        const liveCurr = liveMetrics[currentFund.name]?.[evalDateStr];
         const candActiveYears = 2026 - (liveCand?.realLaunchYear ?? getFundInceptionYear(cand.name));
         const currActiveYears = 2026 - (liveCurr?.realLaunchYear ?? getFundInceptionYear(currentFund.name));
 
@@ -886,67 +1163,96 @@ export default function PortfolioOverlapFinder() {
         const currHCode = currentFund.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
 
         // Cand stats
-        const cand3Y = candActiveYears >= 3 ? cand.rolling3Y : undefined;
-        const cand5Y = candActiveYears >= 5 ? cand.rolling5Y : undefined;
-        let cand7Y: number | undefined = undefined;
+        const cand3YStatic = candActiveYears >= 3 ? cand.rolling3Y : undefined;
+        const cand5YStatic = candActiveYears >= 5 ? cand.rolling5Y : undefined;
+        let cand7YStatic: number | undefined = undefined;
         if (candActiveYears >= 7) {
-          cand7Y = cand.rolling7Y;
-          if (cand7Y === undefined && cand.rolling5Y !== undefined) {
-            if (cand.category === 'Liquid') cand7Y = Math.round((cand.rolling5Y - 0.1) * 10) / 10;
-            else if (cand.category === 'Debt') cand7Y = Math.round((cand.rolling5Y + 0.1 - (hCode % 10) / 20) * 10) / 10;
-            else cand7Y = Math.round((cand.rolling5Y + 0.5 - (hCode % 11) / 10) * 10) / 10;
+          cand7YStatic = cand.rolling7Y;
+          if (cand7YStatic === undefined && cand.rolling5Y !== undefined) {
+            if (cand.category === 'Liquid') cand7YStatic = Math.round((cand.rolling5Y - 0.1) * 10) / 10;
+            else if (cand.category === 'Debt') cand7YStatic = Math.round((cand.rolling5Y + 0.1 - (hCode % 10) / 20) * 10) / 10;
+            else cand7YStatic = Math.round((cand.rolling5Y + 0.5 - (hCode % 11) / 10) * 10) / 10;
           }
         }
-        let cand10Y: number | undefined = undefined;
+        let cand10YStatic: number | undefined = undefined;
         if (candActiveYears >= 10) {
-          cand10Y = cand.rolling10Y;
-          if (cand10Y === undefined && cand7Y !== undefined) {
-            if (cand.category === 'Liquid') cand10Y = Math.round((cand7Y - 0.1) * 10) / 10;
-            else if (cand.category === 'Debt') cand10Y = Math.round((cand7Y + 0.05 + (hCode % 5) / 20) * 10) / 10;
-            else cand10Y = Math.round((cand7Y - 0.3 + (hCode % 9) / 10) * 10) / 10;
+          cand10YStatic = cand.rolling10Y;
+          if (cand10YStatic === undefined && cand7YStatic !== undefined) {
+            if (cand.category === 'Liquid') cand10YStatic = Math.round((cand7YStatic - 0.1) * 10) / 10;
+            else if (cand.category === 'Debt') cand10YStatic = Math.round((cand7YStatic + 0.05 + (hCode % 5) / 20) * 10) / 10;
+            else cand10YStatic = Math.round((cand7YStatic - 0.3 + (hCode % 9) / 10) * 10) / 10;
           }
         }
 
         // Current stats
-        const curr3Y = currActiveYears >= 3 ? currentFund.rolling3Y : undefined;
-        const curr5Y = currActiveYears >= 5 ? currentFund.rolling5Y : undefined;
-        let curr7Y: number | undefined = undefined;
+        const curr3YStatic = currActiveYears >= 3 ? currentFund.rolling3Y : undefined;
+        const curr5YStatic = currActiveYears >= 5 ? currentFund.rolling5Y : undefined;
+        let curr7YStatic: number | undefined = undefined;
         if (currActiveYears >= 7) {
-          curr7Y = currentFund.rolling7Y;
-          if (curr7Y === undefined && currentFund.rolling5Y !== undefined) {
-            if (currentFund.category === 'Liquid') curr7Y = Math.round((currentFund.rolling5Y - 0.1) * 10) / 10;
-            else if (currentFund.category === 'Debt') curr7Y = Math.round((currentFund.rolling5Y + 0.1 - (currHCode % 10) / 20) * 10) / 10;
-            else curr7Y = Math.round((currentFund.rolling5Y + 0.5 - (currHCode % 11) / 10) * 10) / 10;
+          curr7YStatic = currentFund.rolling7Y;
+          if (curr7YStatic === undefined && currentFund.rolling5Y !== undefined) {
+            if (currentFund.category === 'Liquid') curr7YStatic = Math.round((currentFund.rolling5Y - 0.1) * 10) / 10;
+            else if (currentFund.category === 'Debt') curr7YStatic = Math.round((currentFund.rolling5Y + 0.1 - (currHCode % 10) / 20) * 10) / 10;
+            else curr7YStatic = Math.round((currentFund.rolling5Y + 0.5 - (currHCode % 11) / 10) * 10) / 10;
           }
         }
-        let curr10Y: number | undefined = undefined;
+        let curr10YStatic: number | undefined = undefined;
         if (currActiveYears >= 10) {
-          curr10Y = currentFund.rolling10Y;
-          if (curr10Y === undefined && curr7Y !== undefined) {
-            if (currentFund.category === 'Liquid') curr10Y = Math.round((curr7Y - 0.1) * 10) / 10;
-            else if (currentFund.category === 'Debt') curr10Y = Math.round((curr7Y + 0.05 + (currHCode % 5) / 20) * 10) / 10;
-            else curr10Y = Math.round((curr7Y - 0.3 + (currHCode % 9) / 10) * 10) / 10;
+          curr10YStatic = currentFund.rolling10Y;
+          if (curr10YStatic === undefined && curr7YStatic !== undefined) {
+            if (currentFund.category === 'Liquid') curr10YStatic = Math.round((curr7YStatic - 0.1) * 10) / 10;
+            else if (currentFund.category === 'Debt') curr10YStatic = Math.round((curr7YStatic + 0.05 + (currHCode % 5) / 20) * 10) / 10;
+            else curr10YStatic = Math.round((curr7YStatic - 0.3 + (currHCode % 9) / 10) * 10) / 10;
           }
         }
 
-        const better3Y = (cand3Y !== undefined && curr3Y !== undefined) ? cand3Y > curr3Y : false;
-        const better5Y = (cand5Y !== undefined && curr5Y !== undefined) ? cand5Y > curr5Y : false;
-        const better7Y = (cand7Y !== undefined && curr7Y !== undefined) ? cand7Y > curr7Y : false;
-        const better10Y = (cand10Y !== undefined && curr10Y !== undefined) ? cand10Y > curr10Y : false;
+        // Live values overriding
+        const cand3YLive = (liveCand && liveCand.rolling[1] !== undefined && liveCand.rolling[1] !== '-') ? parseFloat(liveCand.rolling[1]) : undefined;
+        const cand5YLive = (liveCand && liveCand.rolling[2] !== undefined && liveCand.rolling[2] !== '-') ? parseFloat(liveCand.rolling[2]) : undefined;
+        const cand7YLive = (liveCand && liveCand.rolling[3] !== undefined && liveCand.rolling[3] !== '-') ? parseFloat(liveCand.rolling[3]) : undefined;
+        const cand10YLive = (liveCand && liveCand.rolling[4] !== undefined && liveCand.rolling[4] !== '-') ? parseFloat(liveCand.rolling[4]) : undefined;
+        const candSharpeLive = (liveCand && liveCand.sharpe !== '—' && liveCand.sharpe !== '-') ? parseFloat(liveCand.sharpe) : undefined;
+        const candSortinoLive = (liveCand && liveCand.sortino !== '—' && liveCand.sortino !== '-') ? parseFloat(liveCand.sortino) : undefined;
+
+        const curr3YLive = (liveCurr && liveCurr.rolling[1] !== undefined && liveCurr.rolling[1] !== '-') ? parseFloat(liveCurr.rolling[1]) : undefined;
+        const curr5YLive = (liveCurr && liveCurr.rolling[2] !== undefined && liveCurr.rolling[2] !== '-') ? parseFloat(liveCurr.rolling[2]) : undefined;
+        const curr7YLive = (liveCurr && liveCurr.rolling[3] !== undefined && liveCurr.rolling[3] !== '-') ? parseFloat(liveCurr.rolling[3]) : undefined;
+        const curr10YLive = (liveCurr && liveCurr.rolling[4] !== undefined && liveCurr.rolling[4] !== '-') ? parseFloat(liveCurr.rolling[4]) : undefined;
+        const currSharpeLive = (liveCurr && liveCurr.sharpe !== '—' && liveCurr.sharpe !== '-') ? parseFloat(liveCurr.sharpe) : undefined;
+        const currSortinoLive = (liveCurr && liveCurr.sortino !== '—' && liveCurr.sortino !== '-') ? parseFloat(liveCurr.sortino) : undefined;
+
+        const finalCand3Y = cand3YLive !== undefined ? cand3YLive : cand3YStatic;
+        const finalCand5Y = cand5YLive !== undefined ? cand5YLive : cand5YStatic;
+        const finalCand7Y = cand7YLive !== undefined ? cand7YLive : cand7YStatic;
+        const finalCand10Y = cand10YLive !== undefined ? cand10YLive : cand10YStatic;
+        const finalCandSharpe = candSharpeLive !== undefined ? candSharpeLive : cand.sharpe;
+        const finalCandSortino = candSortinoLive !== undefined ? candSortinoLive : cand.sortino;
+
+        const finalCurr3Y = curr3YLive !== undefined ? curr3YLive : curr3YStatic;
+        const finalCurr5Y = curr5YLive !== undefined ? curr5YLive : curr5YStatic;
+        const finalCurr7Y = curr7YLive !== undefined ? curr7YLive : curr7YStatic;
+        const finalCurr10Y = curr10YLive !== undefined ? curr10YLive : curr10YStatic;
+        const finalCurrSharpe = currSharpeLive !== undefined ? currSharpeLive : currentFund.sharpe;
+        const finalCurrSortino = currSortinoLive !== undefined ? currSortinoLive : currentFund.sortino;
+
+        const better3Y = (finalCand3Y !== undefined && finalCurr3Y !== undefined) ? finalCand3Y > finalCurr3Y : false;
+        const better5Y = (finalCand5Y !== undefined && finalCurr5Y !== undefined) ? finalCand5Y > finalCurr5Y : false;
+        const better7Y = (finalCand7Y !== undefined && finalCurr7Y !== undefined) ? finalCand7Y > finalCurr7Y : false;
+        const better10Y = (finalCand10Y !== undefined && finalCurr10Y !== undefined) ? finalCand10Y > finalCurr10Y : false;
         
-        const betterSharpe = cand.sharpe > currentFund.sharpe;
-        const betterSortino = cand.sortino > currentFund.sortino;
+        const betterSharpe = finalCandSharpe > finalCurrSharpe;
+        const betterSortino = finalCandSortino > finalCurrSortino;
         const lowerTER = cand.ter < currentFund.ter;
 
         let score = 0;
         let improvementsCount = 0;
 
-        if (better3Y && cand3Y !== undefined && curr3Y !== undefined) { score += (cand3Y - curr3Y) * 2.5; improvementsCount++; }
-        if (better5Y && cand5Y !== undefined && curr5Y !== undefined) { score += (cand5Y - curr5Y) * 2.5; improvementsCount++; }
-        if (better7Y && cand7Y !== undefined && curr7Y !== undefined) { score += (cand7Y - curr7Y) * 1.5; improvementsCount++; }
-        if (better10Y && cand10Y !== undefined && curr10Y !== undefined) { score += (cand10Y - curr10Y) * 1.5; improvementsCount++; }
-        if (betterSharpe) { score += (cand.sharpe - currentFund.sharpe) * 30; improvementsCount++; }
-        if (betterSortino) { score += (cand.sortino - currentFund.sortino) * 30; improvementsCount++; }
+        if (better3Y && finalCand3Y !== undefined && finalCurr3Y !== undefined) { score += (finalCand3Y - finalCurr3Y) * 2.5; improvementsCount++; }
+        if (better5Y && finalCand5Y !== undefined && finalCurr5Y !== undefined) { score += (finalCand5Y - finalCurr5Y) * 2.5; improvementsCount++; }
+        if (better7Y && finalCand7Y !== undefined && finalCurr7Y !== undefined) { score += (finalCand7Y - finalCurr7Y) * 1.5; improvementsCount++; }
+        if (better10Y && finalCand10Y !== undefined && finalCurr10Y !== undefined) { score += (finalCand10Y - finalCurr10Y) * 1.5; improvementsCount++; }
+        if (betterSharpe) { score += (finalCandSharpe - finalCurrSharpe) * 30; improvementsCount++; }
+        if (betterSortino) { score += (finalCandSortino - finalCurrSortino) * 30; improvementsCount++; }
         if (lowerTER) { score += (currentFund.ter - cand.ter) * 15; improvementsCount++; }
 
         return {
@@ -960,10 +1266,10 @@ export default function PortfolioOverlapFinder() {
           betterSharpe,
           betterSortino,
           lowerTER,
-          cand7Y,
-          cand10Y,
-          curr7Y,
-          curr10Y
+          cand7Y: finalCand7Y,
+          cand10Y: finalCand10Y,
+          curr7Y: finalCurr7Y,
+          curr10Y: finalCurr10Y
         };
       }).filter(item => item.score > 0 && item.improvementsCount >= 1); // must excel in at least some key departments
 
@@ -1013,26 +1319,27 @@ export default function PortfolioOverlapFinder() {
   React.useEffect(() => {
     normalizedWeightedFunds.forEach(item => {
       const fundName = item.fundDetails.name;
-      HISTORICAL_DATES.forEach(dateStr => {
+      // Slice to prevent choking the async mock API for excessively dense series
+      activeEvaluationDates.slice(0, 15).forEach(dateStr => {
         fetchLiveMetrics(fundName, dateStr);
       });
     });
-  }, [normalizedWeightedFunds]);
+  }, [normalizedWeightedFunds, activeEvaluationDates]);
 
   // Trigger live downloads for optimizer cards
   React.useEffect(() => {
     CategoryAlternativeUpgrades.forEach(grp => {
       if (!grp) return;
-      HISTORICAL_DATES.forEach(dateStr => {
+      activeEvaluationDates.slice(0, 15).forEach(dateStr => {
         fetchLiveMetrics(grp.targetFund.name, dateStr);
       });
       grp.alternatives.slice(0, 3).forEach(altItem => {
-        HISTORICAL_DATES.forEach(dateStr => {
+        activeEvaluationDates.slice(0, 15).forEach(dateStr => {
           fetchLiveMetrics(altItem.fund.name, dateStr);
         });
       });
     });
-  }, [CategoryAlternativeUpgrades]);
+  }, [CategoryAlternativeUpgrades, activeEvaluationDates]);
 
   // Switcher Interactive Simulation action
   const handleApplySimulation = (pruneTicker: string, addTicker: string) => {
@@ -1067,7 +1374,7 @@ export default function PortfolioOverlapFinder() {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Date,Fund Name,1 Year (%),3 Years (%),5 Years (%),7 Years (%),10 Years (%)\n";
     
-    HISTORICAL_DATES.forEach(dateStr => {
+    activeEvaluationDates.forEach(dateStr => {
       normalizedWeightedFunds.forEach(item => {
         const name = item.fundDetails.name;
         const liveF = liveMetrics[name]?.[dateStr];
@@ -1374,6 +1681,9 @@ export default function PortfolioOverlapFinder() {
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono font-bold">
                           TER: {fund.ter}%
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono font-bold border-l border-slate-250 pl-1.5 leading-none">
+                          Launch: {getFundInceptionYear(fund.name)}
                         </span>
                       </div>
                       <h5 className="text-[11.5px] font-bold text-slate-700 line-clamp-1 mt-0.5">
@@ -1851,10 +2161,12 @@ export default function PortfolioOverlapFinder() {
                                         </span>
                                         <span className="text-xs font-mono font-black text-emerald-600">
                                           {(() => {
-                                            const liveAlt = liveMetrics[alt.name]?.[HISTORICAL_DATES[0]];
+                                            const evalDateStr = activeEvaluationDates[activeEvaluationDates.length - 1] || HISTORICAL_DATES[0];
+                                            const liveAlt = liveMetrics[alt.name]?.[evalDateStr];
                                             const incYear = liveAlt?.realLaunchYear ?? getFundInceptionYear(alt.name);
                                             const activeY = 2026 - incYear;
-                                            if (activeY >= 3) return `3Y Roll: ${alt.rolling3Y}%`;
+                                            const actual3YValue = (liveAlt?.rolling[1] !== undefined && liveAlt?.rolling[1] !== '-') ? `${parseFloat(liveAlt.rolling[1]).toFixed(1)}%` : `${alt.rolling3Y}%`;
+                                            if (activeY >= 3) return `3Y Roll: ${actual3YValue}`;
                                             return `NFO: ${incYear}`;
                                           })()}
                                         </span>
@@ -1864,20 +2176,34 @@ export default function PortfolioOverlapFinder() {
                                       </h6>
                                       
                                       {/* Specific details comparing stats */}
-                                      <div className="grid grid-cols-3 gap-1 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-500">
-                                        <div>
-                                          <span className="block text-[8.5px] text-slate-400 font-bold uppercase">Sharpe</span>
-                                          <span className="font-bold font-mono text-slate-700">{alt.sharpe}</span> vs {toReplace.sharpe}
-                                        </div>
-                                        <div>
-                                          <span className="block text-[8.5px] text-slate-400 font-bold uppercase">Sortino</span>
-                                          <span className="font-bold font-mono text-slate-700">{alt.sortino}</span> vs {toReplace.sortino}
-                                        </div>
-                                        <div>
-                                          <span className="block text-[8.5px] text-slate-400 font-bold uppercase">TER</span>
-                                          <span className="font-bold font-mono text-slate-700">{alt.ter}%</span> vs {toReplace.ter}%
-                                        </div>
-                                      </div>
+                                      {(() => {
+                                        const evalDateStr = activeEvaluationDates[activeEvaluationDates.length - 1] || HISTORICAL_DATES[0];
+                                        const liveAlt = liveMetrics[alt.name]?.[evalDateStr];
+                                        const liveTarget = liveMetrics[toReplace.name]?.[evalDateStr];
+                                        
+                                        const altSharpe = (liveAlt && liveAlt.sharpe !== '—' && liveAlt.sharpe !== '-') ? liveAlt.sharpe : alt.sharpe.toFixed(2);
+                                        const targetSharpe = (liveTarget && liveTarget.shadow?.sharpe !== '—' && liveTarget.sharpe !== '—' && liveTarget.sharpe !== '-') ? liveTarget.sharpe : toReplace.sharpe.toFixed(2);
+                                        
+                                        const altSortino = (liveAlt && liveAlt.sortino !== '—' && liveAlt.sortino !== '-') ? liveAlt.sortino : alt.sortino.toFixed(2);
+                                        const targetSortino = (liveTarget && liveTarget.sortino !== '—' && liveTarget.sortino !== '-') ? liveTarget.sortino : toReplace.sortino.toFixed(2);
+                                        
+                                        return (
+                                          <div className="grid grid-cols-3 gap-1 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-500">
+                                            <div>
+                                              <span className="block text-[8.5px] text-slate-400 font-bold uppercase">Sharpe</span>
+                                              <span className="font-bold font-mono text-slate-700">{altSharpe}</span> vs {targetSharpe}
+                                            </div>
+                                            <div>
+                                              <span className="block text-[8.5px] text-slate-400 font-bold uppercase">Sortino</span>
+                                              <span className="font-bold font-mono text-slate-700">{altSortino}</span> vs {targetSortino}
+                                            </div>
+                                            <div>
+                                              <span className="block text-[8.5px] text-slate-400 font-bold uppercase">TER</span>
+                                              <span className="font-bold font-mono text-slate-700">{alt.ter}%</span> vs {toReplace.ter}%
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
 
                                     {/* Action button to test and simulate switch */}
@@ -1951,11 +2277,17 @@ export default function PortfolioOverlapFinder() {
                           >
                             {/* Current Fund Header Info */}
                             {(() => {
+                              const evalDate = activeEvaluationDates[activeEvaluationDates.length - 1] || HISTORICAL_DATES[HISTORICAL_DATES.length - 1];
+                              const liveTarget = liveMetrics[targetFund.name]?.[evalDate];
+                              
+                              const final3Y = (liveTarget?.rolling[1] !== undefined && liveTarget?.rolling[1] !== '-') ? `${parseFloat(liveTarget.rolling[1]).toFixed(1)}%` : `${targetFund.rolling3Y}%`;
+                              const final5Y = (liveTarget?.rolling[2] !== undefined && liveTarget?.rolling[2] !== '-') ? `${parseFloat(liveTarget.rolling[2]).toFixed(1)}%` : `${targetFund.rolling5Y}%`;
+
                               const current7YVal = targetFund.rolling7Y ?? (targetFund.rolling5Y ? Math.round((targetFund.rolling5Y + 0.5) * 10) / 10 : undefined);
                               const current10YVal = targetFund.rolling10Y ?? (current7YVal ? Math.round((current7YVal - 0.2) * 10) / 10 : undefined);
 
-                              const current7YDisplay = current7YVal !== undefined ? `${current7YVal.toFixed(1)}%` : 'N/A';
-                              const current10YDisplay = current10YVal !== undefined ? `${current10YVal.toFixed(1)}%` : 'N/A';
+                              const final7Y = (liveTarget?.rolling[3] !== undefined && liveTarget?.rolling[3] !== '-') ? `${parseFloat(liveTarget.rolling[3]).toFixed(1)}%` : (current7YVal !== undefined ? `${current7YVal.toFixed(1)}%` : 'N/A');
+                              const final10Y = (liveTarget?.rolling[4] !== undefined && liveTarget?.rolling[4] !== '-') ? `${parseFloat(liveTarget.rolling[4]).toFixed(1)}%` : (current10YVal !== undefined ? `${current10YVal.toFixed(1)}%` : 'N/A');
 
                               return (
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 font-sans">
@@ -1965,13 +2297,13 @@ export default function PortfolioOverlapFinder() {
                                     </h4>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-[10px] font-mono bg-white border px-3 py-1.5 rounded-xl shadow-3xs">
-                                    <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{`${targetFund.rolling3Y}%`}</span></div>
+                                    <div><span className="text-slate-400">3Y:</span> <span className="font-bold text-slate-700">{final3Y}</span></div>
                                     <span className="text-slate-250">|</span>
-                                    <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{`${targetFund.rolling5Y}%`}</span></div>
+                                    <div><span className="text-slate-400">5Y:</span> <span className="font-bold text-slate-700">{final5Y}</span></div>
                                     <span className="text-slate-250">|</span>
-                                    <div><span className="text-slate-400">7Y:</span> <span className="font-bold text-slate-700">{current7YDisplay}</span></div>
+                                    <div><span className="text-slate-400">7Y:</span> <span className="font-bold text-slate-700">{final7Y}</span></div>
                                     <span className="text-slate-250">|</span>
-                                    <div><span className="text-slate-400">10Y:</span> <span className="font-bold text-slate-700">{current10YDisplay}</span></div>
+                                    <div><span className="text-slate-400">10Y:</span> <span className="font-bold text-slate-700">{final10Y}</span></div>
                                   </div>
                                 </div>
                               );
@@ -1981,7 +2313,7 @@ export default function PortfolioOverlapFinder() {
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                               {alternatives.map((altItem) => {
                                 const alt = altItem.fund;
-                                const evalDate = HISTORICAL_DATES[0];
+                                const evalDate = activeEvaluationDates[activeEvaluationDates.length - 1] || HISTORICAL_DATES[HISTORICAL_DATES.length - 1];
                                 const evalParts = evalDate.split('-');
                                 const evalYear = evalParts.length === 3 ? parseInt(evalParts[2]) : 2026;
 
@@ -2287,15 +2619,50 @@ export default function PortfolioOverlapFinder() {
                   </div>
                 </div>
 
-                {/* Light Blue Control Ribbon */}
-                <div className="bg-sky-500 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-white font-sans shadow-sm select-none">
-                  <div className="flex flex-wrap items-center gap-6">
+                {/* Prime Investor Dark Blue Control Ribbon */}
+                <div className="bg-[#052331] rounded-2xl p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-white font-sans shadow-md select-none border border-slate-700/20">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                    {/* Start Date */}
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold whitespace-nowrap text-sky-50">Data Frequency :</span>
+                      <span className="text-xs font-semibold whitespace-nowrap text-sky-100/90">Start date:</span>
+                      <input 
+                        type="text" 
+                        value={startDateStr} 
+                        onChange={(e) => setStartDateStr(e.target.value)}
+                        placeholder="DD/MM/YYYY"
+                        className="w-28 bg-white text-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none text-center shadow-3xs"
+                      />
+                    </div>
+
+                    {/* End Date */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold whitespace-nowrap text-sky-100/90">End date:</span>
+                      <input 
+                        type="text" 
+                        value={endDateStr} 
+                        onChange={(e) => setEndDateStr(e.target.value)}
+                        placeholder="DD/MM/YYYY"
+                        className="w-28 bg-white text-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none text-center shadow-3xs"
+                      />
+                    </div>
+
+                    {/* Go Button */}
+                    <button 
+                      onClick={handleApplyDates}
+                      className="bg-[#00a3e0] hover:bg-sky-500 text-white font-extrabold text-xs px-4 py-1.5 rounded-lg transition-all active:scale-95 shadow-3xs cursor-pointer uppercase tracking-wider"
+                    >
+                      Go
+                    </button>
+
+                    <div className="h-4 w-[1px] bg-sky-800/65 hidden sm:block"></div>
+
+                    {/* Data Frequency */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold whitespace-nowrap text-sky-100/90">Frequency:</span>
                       <select 
                         value={dataFrequency} 
                         onChange={(e) => setDataFrequency(e.target.value)}
-                        className="bg-white text-slate-800 text-xs px-3 py-1.5 rounded-lg border-none font-bold focus:ring-2 focus:ring-sky-600 focus:outline-none cursor-pointer shadow-3xs"
+                        className="bg-white text-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer shadow-3xs"
                       >
                         <option value="Annually">Annually</option>
                         <option value="Quarterly">Quarterly</option>
@@ -2303,19 +2670,20 @@ export default function PortfolioOverlapFinder() {
                       </select>
                     </div>
 
+                    {/* Rolling Return Selection */}
                     <div className="flex items-center gap-2">
-                       <span className="text-xs font-bold whitespace-nowrap text-sky-50">Rolling Return :</span>
+                       <span className="text-xs font-semibold whitespace-nowrap text-sky-100/90">Rolling Period:</span>
                       <select 
                         value={rollingReturnPeriod} 
                         onChange={(e) => setRollingReturnPeriod(e.target.value)}
-                        className="bg-white text-slate-800 text-xs px-3 py-1.5 rounded-lg border-none font-bold focus:ring-2 focus:ring-sky-600 focus:outline-none cursor-pointer shadow-3xs min-w-[120px]"
+                        className="bg-white text-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer shadow-3xs min-w-[180px]"
                       >
-                        <option value="Select">Select</option>
-                        <option value="1 Year">1 Year</option>
-                        <option value="3 Years">3 Years</option>
-                        <option value="5 Years">5 Years</option>
-                        <option value="7 Years">7 Years</option>
-                        <option value="10 Years">10 Years</option>
+                        <option value="Select">Rolling returns period</option>
+                        <option value="1 Year">Rolling 1-year returns</option>
+                        <option value="3 Years">Rolling 3-year returns</option>
+                        <option value="5 Years">Rolling 5-year returns</option>
+                        <option value="7 Years">Rolling 7-year returns</option>
+                        <option value="10 Years">Rolling 10-year returns</option>
                       </select>
                     </div>
                   </div>
@@ -2323,11 +2691,19 @@ export default function PortfolioOverlapFinder() {
                   <button 
                     onClick={handleDownloadData}
                     disabled={normalizedWeightedFunds.length === 0}
-                    className="bg-white hover:bg-sky-50 text-sky-700 disabled:opacity-50 disabled:pointer-events-none font-bold text-xs px-5 py-2 rounded-lg transition-all border border-lime-400 flex items-center justify-center gap-1.5 shadow-sm hover:shadow active:scale-95 cursor-pointer whitespace-nowrap font-sans animate-none"
+                    className="bg-white hover:bg-sky-50 text-slate-800 disabled:opacity-50 disabled:pointer-events-none font-bold text-xs px-4 py-1.5 rounded-lg transition-all border border-slate-200 flex items-center justify-center gap-1.5 shadow-3xs active:scale-95 cursor-pointer whitespace-nowrap font-sans shrink-0"
                   >
-                    Download
+                    Download CSV
                   </button>
                 </div>
+
+                {/* Inline Error Notice */}
+                {dateError && (
+                  <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-xl text-xs font-bold font-sans flex items-center gap-2 animate-pulse mt-2">
+                    <span className="text-sm shrink-0">⚠️</span>
+                    <span>{dateError}</span>
+                  </div>
+                )}
 
                 {normalizedWeightedFunds.length === 0 ? (
                   <div className="p-12 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
@@ -2346,7 +2722,199 @@ export default function PortfolioOverlapFinder() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {HISTORICAL_DATES.map((dateStr) => {
+                    {/* Interactive Rolling Returns Time Series Line Chart */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5 text-left">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                        <div>
+                          <h4 className="text-base font-extrabold text-[#1e293b] flex items-center gap-2 font-sans">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#052331] animate-pulse"></span>
+                            Rolling Return Chronological Trends (Time Series)
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-0.5 font-sans">
+                            Continuous performance curve for {rollingReturnPeriod.toLowerCase()} rolling returns evaluated across cycles.
+                          </p>
+                        </div>
+                        <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[10px] font-black text-slate-600 uppercase tracking-wider font-mono">
+                          Period: {rollingReturnPeriod}
+                        </div>
+                      </div>
+
+                      <div className="text-center font-sans">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Interactive Chart</span>
+                        <h4 className="text-base font-extrabold text-slate-700">Rolling {rollingReturnPeriod.toLowerCase()} returns</h4>
+                      </div>
+
+                      <div className="h-[365px] w-full relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={rollingReturnsChartData} margin={{ top: 15, right: 25, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis 
+                              dataKey="year" 
+                              stroke="#64748b" 
+                              fontSize={11} 
+                              tickLine={false} 
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickMargin={8}
+                            />
+                            <YAxis 
+                              stroke="#64748b" 
+                              fontSize={11} 
+                              tickLine={false} 
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickFormatter={(v) => `${v}%`}
+                              tickMargin={8}
+                            />
+                            <RechartsTooltip 
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-[#052331] text-white p-3.5 rounded-2xl border border-[#104359] shadow-xl text-xs font-sans space-y-2 min-w-[220px]">
+                                      <p className="font-extrabold text-sky-200 border-b border-[#104359] pb-1.5 mb-1">
+                                        Evaluation: {payload[0].payload.dateStr}
+                                      </p>
+                                      {payload.map((entry: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between gap-6">
+                                          <span className="flex items-center gap-1.5 font-bold text-slate-200 truncate max-w-[130px]">
+                                            <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: entry.stroke }}></span>
+                                            {entry.name}
+                                          </span>
+                                          <span className="font-mono font-black text-[#00a3e0]">
+                                            {entry.value !== undefined ? `${parseFloat(entry.value).toFixed(2)}%` : '—'}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <RechartsLegend 
+                              verticalAlign="top" 
+                              height={45} 
+                              iconType="rect" 
+                              iconSize={12}
+                              formatter={(value) => <span className="text-xs font-bold text-slate-600 mr-4 font-sans select-none">{value}</span>}
+                            />
+                            {normalizedWeightedFunds.map((item, idx) => {
+                              const color = FUND_CHART_COLORS[idx % FUND_CHART_COLORS.length];
+                              return (
+                                <Line
+                                  key={item.fundDetails.name}
+                                  type="monotone"
+                                  dataKey={item.fundDetails.name}
+                                  stroke={color}
+                                  strokeWidth={3}
+                                  dot={{ r: 4, strokeWidth: 1, fill: color }}
+                                  activeDot={{ r: 6 }}
+                                  name={item.fundDetails.name}
+                                  connectNulls
+                                />
+                              );
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                        <div className="absolute bottom-1 right-2 text-[9px] font-bold text-slate-400 select-none uppercase tracking-wider flex items-center gap-1 font-mono">
+                          <span>📈</span> PrimeInvestor.in
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Return Statistics and Distribution Table Box */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 space-y-5 text-left">
+                      <div>
+                        <h4 className="text-base font-extrabold text-[#1e293b] font-sans">
+                          Performance Statistics &amp; Probability Matrices
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5 font-sans">
+                          A systematic distribution of historical rolling returns under different return brackets.
+                        </p>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-slate-350 bg-white shadow-3xs">
+                        <table className="w-full text-xs text-left border-collapse min-w-[950px]">
+                          <thead>
+                            {/* Layer 1: Header Category Grouping */}
+                            <tr className="bg-[#052331] text-white text-[10px] uppercase font-bold tracking-wider select-none text-center">
+                              <th className="py-3 px-4 text-left border-r border-[#104359] font-sans font-bold" rowSpan={2} style={{ verticalAlign: 'middle', minWidth: '220px' }}>
+                                Fund Name
+                              </th>
+                              <th className="py-2.5 px-3 border-r border-[#104359] font-sans font-extrabold text-[#00a3e0]" colSpan={4}>
+                                Return Statistics (%)
+                              </th>
+                              <th className="py-2.5 px-3 font-sans font-extrabold text-emerald-400" colSpan={5}>
+                                Return Distribution (% of times)
+                              </th>
+                            </tr>
+                            {/* Layer 2: Sub-metrics */}
+                            <tr className="bg-[#073245] text-white text-[9px] uppercase font-black tracking-wider border-b border-slate-300 text-center select-none">
+                              {/* Statistics */}
+                              <th className="py-2 px-2.5 border-r border-[#104359] font-mono">Average</th>
+                              <th className="py-2 px-2.5 border-r border-[#104359] font-mono">Maximum</th>
+                              <th className="py-2 px-2.5 border-r border-[#104359] font-mono">Minimum</th>
+                              <th className="py-2 px-2.5 border-r border-[#104359] font-mono whitespace-nowrap">Std. Deviation</th>
+                              {/* Distributions */}
+                              <th className="py-2 px-3 border-r border-[#104359] font-mono bg-red-950/20 text-red-300">Negative (&lt; 0%)</th>
+                              <th className="py-2 px-3 border-r border-[#104359] font-mono">0 - 5%</th>
+                              <th className="py-2 px-3 border-r border-[#104359] font-mono">5 - 10%</th>
+                              <th className="py-2 px-3 border-r border-[#104359] font-mono">10 - 20%</th>
+                              <th className="py-2 px-3 font-mono bg-emerald-950/20 text-emerald-300">More than 20%</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {primeInvestorStats.map((stat, idx) => (
+                              <tr key={idx} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                <td className="py-3 px-4 font-extrabold text-slate-800 border-r border-slate-200 font-sans">
+                                  {stat.fundName}
+                                </td>
+                                {/* Statistics */}
+                                <td className="py-3 px-2.5 text-center font-bold text-sky-955 font-mono border-r border-slate-150">
+                                  {stat.avg !== '-' ? `${stat.avg}%` : '—'}
+                                </td>
+                                <td className="py-3 px-2.5 text-center font-semibold text-emerald-700 font-mono border-r border-slate-150">
+                                  {stat.max !== '-' ? `${stat.max}%` : '—'}
+                                </td>
+                                <td className="py-3 px-2.5 text-center font-semibold text-rose-700 font-mono border-r border-slate-150">
+                                  {stat.min !== '-' ? `${stat.min}%` : '—'}
+                                </td>
+                                <td className="py-3 px-2.5 text-center font-medium text-slate-600 font-mono border-r border-slate-150">
+                                  {stat.stdDev !== '-' ? `${stat.stdDev}%` : '—'}
+                                </td>
+                                {/* Distributions */}
+                                <td className={`py-3 px-3 text-center font-extrabold border-r border-slate-150 font-mono bg-red-50/10 ${stat.pNeg !== '-' && parseFloat(stat.pNeg) > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+                                  {stat.pNeg !== '-' ? `${stat.pNeg}%` : '—'}
+                                </td>
+                                <td className="py-3 px-3 text-center font-medium text-amber-700 border-r border-slate-150 font-mono">
+                                  {stat.p0to5 !== '-' ? `${stat.p0to5}%` : '—'}
+                                </td>
+                                <td className="py-3 px-3 text-center font-medium text-indigo-700 border-r border-slate-150 font-mono">
+                                  {stat.p5to10 !== '-' ? `${stat.p5to10}%` : '—'}
+                                </td>
+                                <td className="py-3 px-3 text-center font-semibold text-blue-700 border-r border-slate-150 font-mono">
+                                  {stat.p10to20 !== '-' ? `${stat.p10to20}%` : '—'}
+                                </td>
+                                <td className="py-3 px-3 text-center font-black text-emerald-700 font-mono bg-emerald-50/10">
+                                  {stat.pMoreThan20 !== '-' ? `${stat.pMoreThan20}%` : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] text-slate-500 flex items-start gap-2.5 leading-relaxed font-sans">
+                        <span className="text-base select-none shrink-0 mt-0.5">ℹ️</span>
+                        <span>
+                          <strong>Understanding the Prime Investor Metrics:</strong> These probability profiles display how frequently rolling investments resulted in each performance band. An optimal portfolio seeks to maximize the <strong>&gt; 20% bracket</strong> (superior compounding) while retaining a <strong>0% negative return probability</strong>, signifying high defensive index outperformance.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-6">
+                      <h4 className="text-sm font-bold text-slate-900 tracking-tight mb-3">Granular Historical Date-wise Rolling Returns</h4>
+                    </div>
+
+                    {activeEvaluationDates.slice(0, 10).map((dateStr) => {
                       return (
                         <div key={dateStr} className="overflow-hidden border border-slate-200 rounded-2xl shadow-3xs bg-white text-left font-sans">
                           <table className="w-full text-xs border-collapse">
@@ -2389,19 +2957,19 @@ export default function PortfolioOverlapFinder() {
                                         </span>
                                       )}
                                     </td>
-                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '1 Year' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '1 Year' ? 'bg-sky-50 text-sky-955 font-bold' : ''}`}>
                                       {r1}{r1 === '-' ? '' : '%'}
                                     </td>
-                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '3 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '3 Years' ? 'bg-sky-50 text-sky-955 font-bold' : ''}`}>
                                       {r3}{r3 === '-' ? '' : '%'}
                                     </td>
-                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '5 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '5 Years' ? 'bg-sky-50 text-sky-955 font-bold' : ''}`}>
                                       {r5}{r5 === '-' ? '' : '%'}
                                     </td>
-                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '7 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                    <td className={`py-2.5 px-3 text-center border-r border-slate-100 font-mono font-medium ${rollingReturnPeriod === '7 Years' ? 'bg-sky-50 text-sky-955 font-bold' : ''}`}>
                                       {r7}{r7 === '-' ? '' : '%'}
                                     </td>
-                                    <td className={`py-2.5 px-3 text-center font-mono font-medium ${rollingReturnPeriod === '10 Years' ? 'bg-sky-50 text-sky-950 font-bold' : ''}`}>
+                                    <td className={`py-2.5 px-3 text-center font-mono font-medium ${rollingReturnPeriod === '10 Years' ? 'bg-sky-50 text-sky-955 font-bold' : ''}`}>
                                       {r10}{r10 === '-' ? '' : '%'}
                                     </td>
                                   </tr>
@@ -2412,6 +2980,20 @@ export default function PortfolioOverlapFinder() {
                         </div>
                       );
                     })}
+
+                    {activeEvaluationDates.length > 10 && (
+                      <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
+                        <span className="text-xs text-slate-500 block mb-2">
+                          Showing first 10 dates of {activeEvaluationDates.length} total cycles.
+                        </span>
+                        <button
+                          onClick={handleDownloadData}
+                          className="py-1.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                        >
+                          Export Full CSV to view all {activeEvaluationDates.length} Dates
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

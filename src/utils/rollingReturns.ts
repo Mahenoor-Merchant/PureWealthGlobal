@@ -114,6 +114,11 @@ export const HISTORICAL_DATES = [
  */
 export function getRollingReturnsForDate(fundName: string, dateStr: string): string[] {
   const normalized = fundName.toLowerCase();
+  const inceptionYear = getFundInceptionYear(fundName);
+
+  // Parse evaluation year from a string like "26-Dec-2025" or "31-Dec-2024"
+  const dateParts = dateStr.split('-');
+  const evalYear = dateParts.length === 3 ? parseInt(dateParts[2]) : 2026;
 
   let returnsRaw: string[] = ["-", "-", "-", "-", "-"];
 
@@ -128,46 +133,16 @@ export function getRollingReturnsForDate(fundName: string, dateStr: string): str
     const data = HISTORICAL_EXACT_MAPPING["parag"][dateStr];
     if (data) returnsRaw = [...data];
   } else {
-    // 2. Classify and retrieve high-fidelity database trends
-    const classification = classifyFundName(fundName);
-    let categoryKey: string = classification.category;
-
-    // Group similar categories for statistical stability
-    if (categoryKey === "Multi Cap" || categoryKey === "Large & Midcap" || categoryKey === "Hybrid" || categoryKey === "Arbitrage") {
-      categoryKey = "Flexi Cap";
-    } else if (categoryKey === "International") {
-      categoryKey = "Large Cap";
-    }
-
-    const dateDataObj = CATEGORY_DATE_BASELINES[categoryKey] || CATEGORY_DATE_BASELINES["Large Cap"];
-    const baseline = dateDataObj[dateStr];
-
-    if (!baseline) {
-      returnsRaw = ["12.00", "14.50", "15.00", "13.20", "12.80"];
-    } else {
-      // Compute a deterministic unique hash-offset for authenticity
-      const h = getHashCode(fundName);
-      const offsetMult = (h % 21 - 10) / 10; // offset factor between -1.0 and +1.0
-      const isinValue = h % 3; // variety
-
-      returnsRaw = baseline.map((baseVal, index) => {
-        // 10Y can sometimes return "-" if fund doesn't have 10Y history
-        if (index === 4 && (normalized.includes("overnight") || h % 17 === 0)) {
-          return "-";
-        }
-
-        // Apply unique deterministic variation based on the period index
-        let varVal = baseVal + (offsetMult * (index === 0 ? 2.5 : index === 1 ? 1.5 : index === 2 ? 1.2 : index === 3 ? 0.9 : 0.6));
-        
-        // Slight style variations
-        if (classification.category === "Small Cap") {
-          varVal += (isinValue - 1) * 0.8;
-        }
-
-        return varVal.toFixed(2);
-      });
-    }
+    returnsRaw = ["-", "-", "-", "-", "-"];
   }
 
-  return returnsRaw;
+  // 3. Strict pre-launch factual check: Nullify return figures that go past inception year limit
+  // Periods mapping: index 0 -> 1Y, index 1 -> 3Y, index 2 -> 5Y, index 3 -> 7Y, index 4 -> 10Y
+  const periods = [1, 3, 5, 7, 10];
+  return returnsRaw.map((ret, idx) => {
+    if (evalYear - periods[idx] < inceptionYear) {
+      return "-";
+    }
+    return ret;
+  });
 }

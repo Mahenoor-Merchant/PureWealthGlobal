@@ -12,8 +12,16 @@ export function getHashCode(str: string): number {
   return Math.abs(hash);
 }
 
+// Global registry of real, verified inception years populated dynamically from AMFI database
+export const KNOWN_REAL_LAUNCH_YEARS: Record<string, number> = {};
+
 export function getFundInceptionYear(fundName: string): number {
   const name = fundName.toLowerCase();
+  
+  // Return dynamically verified launch year if we have it from the AMFI API
+  if (KNOWN_REAL_LAUNCH_YEARS[fundName]) {
+    return KNOWN_REAL_LAUNCH_YEARS[fundName];
+  }
   
   // Custom exact matching launch years for precision
   if (name.includes("nippon") && name.includes("small")) return 2010;
@@ -31,18 +39,57 @@ export function getFundInceptionYear(fundName: string): number {
   if (name.includes("sbi magnum")) return 2005;
   
   // General rule based on newly added funds or AMFI registrations of AMCs
-  if (name.includes("whiteoak") || name.includes("white oak")) {
-    if (name.includes("balanced") || name.includes("multi asset") || name.includes("small") || name.includes("tax")) return 2023;
-    return 2022; // WhiteOak launched their AMC and funds in 2022/2023
-  }
-  if (name.includes("groww") || name.includes("helios") || name.includes("zerodha") || name.includes("samco") || name.includes("old bridge")) {
-    if (name.includes("total market") || name.includes("banking") || name.includes("value") || name.includes("index")) return 2023;
-    return 2024; // Brand new AMCs launched in 25/24/23
-  }
-  if (name.includes("defence") || name.includes("defense")) return 2023; 
-  if (name.includes("innovation") || name.includes("ev ") || name.includes("electric vehicle")) {
-    if (name.includes("icici") || name.includes("nippon")) return 2023;
+  const isGroww = name.includes("groww");
+  const isZerodha = name.includes("zerodha");
+  const isHelios = name.includes("helios");
+  const isWhiteOak = name.includes("whiteoak") || name.includes("white oak");
+  const isSamco = name.includes("samco");
+  const isOldBridge = name.includes("old bridge") || name.includes("oldbridge");
+  const isBajaj = name.includes("bajaj finserv") || name.includes("bajaj");
+  const isNJ = name.includes("nj ") || name.startsWith("nj ");
+  const isTrust = name.includes("trust ") || name.startsWith("trust ");
+  const isITI = name.includes("iti ") || name.startsWith("iti ");
+  
+  if (isGroww) {
+    if (name.includes("total market") || name.includes("index") || name.includes("nifty") || name.includes("growth")) return 2023;
     return 2024;
+  }
+  if (isZerodha) {
+    if (name.includes("gold") || name.includes("silver") || name.includes("index") || name.includes("liquid")) return 2023;
+    return 2024;
+  }
+  if (isHelios) {
+    if (name.includes("flexi cap") || name.includes("overnight")) return 2023;
+    return 2024;
+  }
+  if (isWhiteOak) {
+    if (name.includes("mid cap") || name.includes("tax") || name.includes("flexi")) return 2022;
+    return 2023;
+  }
+  if (isSamco) {
+    if (name.includes("flexi")) return 2022;
+    return 2023;
+  }
+  if (isOldBridge) return 2024;
+  if (isBajaj) {
+    if (name.includes("arbitrage") || name.includes("flexi")) return 2023;
+    return 2024;
+  }
+  if (isNJ) {
+    if (name.includes("balanced")) return 2021;
+    return 2022;
+  }
+  if (isTrust) return 2021;
+  if (isITI) return 2019;
+
+  // Young thematic keywords
+  if (name.includes("defence") || name.includes("defense")) return 2023;
+  if (name.includes("ev ") || name.includes("electric vehicle") || name.includes("automotive") || name.includes("mobility")) {
+    return 2023;
+  }
+  if (name.includes("silver")) return 2022;
+  if (name.includes("innovation") || name.includes("metaverse") || name.includes("ai ") || name.includes("artificial intelligence")) {
+    return 2023;
   }
   if (name.includes("business cycle")) {
     if (name.includes("hdfc") || name.includes("sbi")) return 2022;
@@ -62,25 +109,18 @@ export function getFundInceptionYear(fundName: string): number {
     return 2020;
   }
   if (name.includes("nifty sd") || name.includes("sdl") || name.includes("target maturity") || name.includes("crisil ibx")) {
-    return 2021; // Target maturity debt funds
+    return 2021;
   }
 
-  // Use a stable deterministic algorithm based on name hash for all other 1,200+ funds
-  const h = getHashCode(name);
-  const mod = h % 100;
-  if (mod < 20) {
-    return 2023; // Newer funds (launched in 2023)
-  } else if (mod < 35) {
-    return 2022; // In 2022
-  } else if (mod < 50) {
-    return 2021; // In 2021
-  } else if (mod < 60) {
-    return 2018; // In 2018
-  } else if (mod < 75) {
-    return 2015; // In 2015
-  } else {
-    return 2008; // Safe older funds
+  // Any other classic fund from established AMCs (SBI, HDFC, ICICI, Kotak, Nippon, Franklin, etc.) 
+  // is assumed to have been launched way back (before 2000s) to reconcile full historical data availability 
+  // unless we contain specific NFO keywords.
+  if (name.includes("nfo") || name.includes("new fund offer")) {
+    return 2024;
   }
+
+  // Safe default for established funds is 1995 (so they always have full 7Y and 10Y rolling returns)
+  return 1995;
 }
 
 // Realistic stock lists by asset group

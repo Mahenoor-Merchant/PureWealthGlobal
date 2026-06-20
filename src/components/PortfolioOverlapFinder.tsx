@@ -877,8 +877,10 @@ export default function PortfolioOverlapFinder() {
 
       // Calculate score for each candidate relative to current fund
       const scoredCandidates = candidates.map(cand => {
-        const candActiveYears = 2026 - getFundInceptionYear(cand.name);
-        const currActiveYears = 2026 - getFundInceptionYear(currentFund.name);
+        const liveCand = liveMetrics[cand.name]?.[HISTORICAL_DATES[0]];
+        const liveCurr = liveMetrics[currentFund.name]?.[HISTORICAL_DATES[0]];
+        const candActiveYears = 2026 - (liveCand?.realLaunchYear ?? getFundInceptionYear(cand.name));
+        const currActiveYears = 2026 - (liveCurr?.realLaunchYear ?? getFundInceptionYear(currentFund.name));
 
         const hCode = cand.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const currHCode = currentFund.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -1849,9 +1851,11 @@ export default function PortfolioOverlapFinder() {
                                         </span>
                                         <span className="text-xs font-mono font-black text-emerald-600">
                                           {(() => {
-                                            const activeY = 2026 - getFundInceptionYear(alt.name);
+                                            const liveAlt = liveMetrics[alt.name]?.[HISTORICAL_DATES[0]];
+                                            const incYear = liveAlt?.realLaunchYear ?? getFundInceptionYear(alt.name);
+                                            const activeY = 2026 - incYear;
                                             if (activeY >= 3) return `3Y Roll: ${alt.rolling3Y}%`;
-                                            return `NFO: ${getFundInceptionYear(alt.name)}`;
+                                            return `NFO: ${incYear}`;
                                           })()}
                                         </span>
                                       </div>
@@ -1977,37 +1981,78 @@ export default function PortfolioOverlapFinder() {
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                               {alternatives.map((altItem) => {
                                 const alt = altItem.fund;
-
                                 const evalDate = HISTORICAL_DATES[0];
+                                const evalParts = evalDate.split('-');
+                                const evalYear = evalParts.length === 3 ? parseInt(evalParts[2]) : 2026;
+
                                 const liveTarget = liveMetrics[targetFund.name]?.[evalDate];
                                 const liveAlt = liveMetrics[alt.name]?.[evalDate];
                                 const isRealTimeCombined = !!(liveTarget && liveAlt);
+
+                                const targetInception = liveTarget?.realLaunchYear ?? getFundInceptionYear(targetFund.name);
+                                const altInception = liveAlt?.realLaunchYear ?? getFundInceptionYear(alt.name);
+
+                                const isTarget3YValid = (evalYear - 3) >= targetInception;
+                                const isAlt3YValid = (evalYear - 3) >= altInception;
+
+                                const isTarget5YValid = (evalYear - 5) >= targetInception;
+                                const isAlt5YValid = (evalYear - 5) >= altInception;
+
+                                const isTarget7YValid = (evalYear - 7) >= targetInception;
+                                const isAlt7YValid = (evalYear - 7) >= altInception;
+
+                                const isTarget10YValid = (evalYear - 10) >= targetInception;
+                                const isAlt10YValid = (evalYear - 10) >= altInception;
                                 
-                                const finalTarget3Y = liveTarget?.rolling[1] !== undefined && liveTarget.rolling[1] !== '-' ? parseFloat(liveTarget.rolling[1]) : targetFund.rolling3Y;
-                                const finalAlt3Y = liveAlt?.rolling[1] !== undefined && liveAlt.rolling[1] !== '-' ? parseFloat(liveAlt.rolling[1]) : alt.rolling3Y;
+                                const finalTarget3Y = (liveTarget?.rolling[1] !== undefined)
+                                  ? (liveTarget.rolling[1] === '-' ? undefined : parseFloat(liveTarget.rolling[1]))
+                                  : (isTarget3YValid ? targetFund.rolling3Y : undefined);
+                                const finalAlt3Y = (liveAlt?.rolling[1] !== undefined)
+                                  ? (liveAlt.rolling[1] === '-' ? undefined : parseFloat(liveAlt.rolling[1]))
+                                  : (isAlt3YValid ? alt.rolling3Y : undefined);
                                 
-                                const finalTarget5Y = liveTarget?.rolling[2] !== undefined && liveTarget.rolling[2] !== '-' ? parseFloat(liveTarget.rolling[2]) : targetFund.rolling5Y;
-                                const finalAlt5Y = liveAlt?.rolling[2] !== undefined && liveAlt.rolling[2] !== '-' ? parseFloat(liveAlt.rolling[2]) : alt.rolling5Y;
+                                const finalTarget5Y = (liveTarget?.rolling[2] !== undefined)
+                                  ? (liveTarget.rolling[2] === '-' ? undefined : parseFloat(liveTarget.rolling[2]))
+                                  : (isTarget5YValid ? targetFund.rolling5Y : undefined);
+                                const finalAlt5Y = (liveAlt?.rolling[2] !== undefined)
+                                  ? (liveAlt.rolling[2] === '-' ? undefined : parseFloat(liveAlt.rolling[2]))
+                                  : (isAlt5YValid ? alt.rolling5Y : undefined);
                                 
-                                const finalTarget7Y = liveTarget?.rolling[3] !== undefined && liveTarget.rolling[3] !== '-' ? parseFloat(liveTarget.rolling[3]) : (altItem.curr7Y ?? targetFund.rolling3Y + 0.5);
-                                const finalAlt7Y = liveAlt?.rolling[3] !== undefined && liveAlt.rolling[3] !== '-' ? parseFloat(liveAlt.rolling[3]) : (altItem.cand7Y ?? alt.rolling5Y + 0.5);
+                                const finalTarget7Y = (liveTarget?.rolling[3] !== undefined)
+                                  ? (liveTarget.rolling[3] === '-' ? undefined : parseFloat(liveTarget.rolling[3]))
+                                  : (isTarget7YValid ? (altItem.curr7Y ?? targetFund.rolling3Y + 0.5) : undefined);
+                                const finalAlt7Y = (liveAlt?.rolling[3] !== undefined)
+                                  ? (liveAlt.rolling[3] === '-' ? undefined : parseFloat(liveAlt.rolling[3]))
+                                  : (isAlt7YValid ? (altItem.cand7Y ?? alt.rolling5Y + 0.5) : undefined);
 
-                                const finalTarget10Y = liveTarget?.rolling[4] !== undefined && liveTarget.rolling[4] !== '-' ? parseFloat(liveTarget.rolling[4]) : (altItem.curr10Y ?? targetFund.rolling3Y - 0.2);
-                                const finalAlt10Y = liveAlt?.rolling[4] !== undefined && liveAlt.rolling[4] !== '-' ? parseFloat(liveAlt.rolling[4]) : (altItem.cand10Y ?? alt.rolling5Y - 0.2);
+                                const finalTarget10Y = (liveTarget?.rolling[4] !== undefined)
+                                  ? (liveTarget.rolling[4] === '-' ? undefined : parseFloat(liveTarget.rolling[4]))
+                                  : (isTarget10YValid ? (altItem.curr10Y ?? targetFund.rolling3Y - 0.2) : undefined);
+                                const finalAlt10Y = (liveAlt?.rolling[4] !== undefined)
+                                  ? (liveAlt.rolling[4] === '-' ? undefined : parseFloat(liveAlt.rolling[4]))
+                                  : (isAlt10YValid ? (altItem.cand10Y ?? alt.rolling5Y - 0.2) : undefined);
 
-                                const finalTargetSharpe = liveTarget && liveTarget.sharpe !== '—' ? parseFloat(liveTarget.sharpe) : targetFund.sharpe;
-                                const finalAltSharpe = liveAlt && liveAlt.sharpe !== '—' ? parseFloat(liveAlt.sharpe) : alt.sharpe;
+                                const finalTargetSharpe = isTarget3YValid 
+                                  ? (liveTarget && liveTarget.sharpe !== '—' ? parseFloat(liveTarget.sharpe) : targetFund.sharpe)
+                                  : undefined;
+                                const finalAltSharpe = isAlt3YValid
+                                  ? (liveAlt && liveAlt.sharpe !== '—' ? parseFloat(liveAlt.sharpe) : alt.sharpe)
+                                  : undefined;
 
-                                const finalTargetSortino = liveTarget && liveTarget.sortino !== '—' ? parseFloat(liveTarget.sortino) : targetFund.sortino;
-                                const finalAltSortino = liveAlt && liveAlt.sortino !== '—' ? parseFloat(liveAlt.sortino) : alt.sortino;
+                                const finalTargetSortino = isTarget3YValid
+                                  ? (liveTarget && liveTarget.sortino !== '—' ? parseFloat(liveTarget.sortino) : targetFund.sortino)
+                                  : undefined;
+                                const finalAltSortino = isAlt3YValid
+                                  ? (liveAlt && liveAlt.sortino !== '—' ? parseFloat(liveAlt.sortino) : alt.sortino)
+                                  : undefined;
 
-                                const alpha3Y = (finalAlt3Y - finalTarget3Y).toFixed(1);
-                                const alpha5Y = (finalAlt5Y - finalTarget5Y).toFixed(1);
-                                const alpha7Y = (finalAlt7Y - finalTarget7Y).toFixed(1);
-                                const alpha10Y = (finalAlt10Y - finalTarget10Y).toFixed(1);
+                                const alpha3Y = (finalAlt3Y !== undefined && finalTarget3Y !== undefined) ? (finalAlt3Y - finalTarget3Y).toFixed(1) : undefined;
+                                const alpha5Y = (finalAlt5Y !== undefined && finalTarget5Y !== undefined) ? (finalAlt5Y - finalTarget5Y).toFixed(1) : undefined;
+                                const alpha7Y = (finalAlt7Y !== undefined && finalTarget7Y !== undefined) ? (finalAlt7Y - finalTarget7Y).toFixed(1) : undefined;
+                                const alpha10Y = (finalAlt10Y !== undefined && finalTarget10Y !== undefined) ? (finalAlt10Y - finalTarget10Y).toFixed(1) : undefined;
 
-                                const sharpeUp = (finalAltSharpe - finalTargetSharpe).toFixed(2);
-                                const sortinoUp = (finalAltSortino - finalTargetSortino).toFixed(2);
+                                const sharpeUp = (finalAltSharpe !== undefined && finalTargetSharpe !== undefined) ? (finalAltSharpe - finalTargetSharpe).toFixed(2) : undefined;
+                                const sortinoUp = (finalAltSortino !== undefined && finalTargetSortino !== undefined) ? (finalAltSortino - finalTargetSortino).toFixed(2) : undefined;
                                 const terSaving = (targetFund.ter - alt.ter).toFixed(2);
 
                                 return (
@@ -2053,12 +2098,12 @@ export default function PortfolioOverlapFinder() {
 
                                       {/* High-impact highlight benefits */}
                                       <div className="flex flex-wrap gap-2 text-[10px] font-sans pt-1">
-                                        {parseFloat(alpha5Y) > 0 ? (
+                                        {alpha5Y !== undefined && parseFloat(alpha5Y) > 0 ? (
                                           <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
                                             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                             +{alpha5Y}% (5Y Return Benefit)
                                           </span>
-                                        ) : parseFloat(alpha3Y) > 0 ? (
+                                        ) : alpha3Y !== undefined && parseFloat(alpha3Y) > 0 ? (
                                           <span className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100 shadow-2xs">
                                             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                             +{alpha3Y}% (3Y Return Benefit)
@@ -2069,7 +2114,7 @@ export default function PortfolioOverlapFinder() {
                                             Superior Peer Standard
                                           </span>
                                         )}
-                                        {parseFloat(sharpeUp) > 0 && (
+                                        {sharpeUp !== undefined && parseFloat(sharpeUp) > 0 && (
                                           <span className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50/80 text-indigo-850 font-bold rounded-lg border border-indigo-100 shadow-2xs">
                                             <Shield className="w-3.5 h-3.5 text-indigo-600" />
                                             +{sharpeUp} Sharpe (Risk Efficiency)
@@ -2092,8 +2137,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 3Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{`${finalTarget3Y.toFixed(1)}%`}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{`${finalAlt3Y.toFixed(1)}%`}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget3Y !== undefined && !isNaN(finalTarget3Y) ? `${finalTarget3Y.toFixed(1)}%` : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt3Y !== undefined && !isNaN(finalAlt3Y) ? `${finalAlt3Y.toFixed(1)}%` : '—'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha3Y !== undefined ? (parseFloat(alpha3Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha3Y !== undefined ? `${parseFloat(alpha3Y) >= 0 ? '+' : ''}${alpha3Y}%` : '—'}
                                               </td>
@@ -2101,8 +2146,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 5Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">5Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{`${finalTarget5Y.toFixed(1)}%`}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{`${finalAlt5Y.toFixed(1)}%`}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget5Y !== undefined && !isNaN(finalTarget5Y) ? `${finalTarget5Y.toFixed(1)}%` : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt5Y !== undefined && !isNaN(finalAlt5Y) ? `${finalAlt5Y.toFixed(1)}%` : '—'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha5Y !== undefined ? (parseFloat(alpha5Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha5Y !== undefined ? `${parseFloat(alpha5Y) >= 0 ? '+' : ''}${alpha5Y}%` : '—'}
                                               </td>
@@ -2110,8 +2155,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 7Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">7Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget7Y !== undefined && !isNaN(finalTarget7Y) ? `${finalTarget7Y.toFixed(1)}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt7Y !== undefined && !isNaN(finalAlt7Y) ? `${finalAlt7Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget7Y !== undefined && !isNaN(finalTarget7Y) ? `${finalTarget7Y.toFixed(1)}%` : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt7Y !== undefined && !isNaN(finalAlt7Y) ? `${finalAlt7Y.toFixed(1)}%` : '—'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha7Y !== undefined ? (parseFloat(alpha7Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha7Y !== undefined && !isNaN(parseFloat(alpha7Y)) ? `${parseFloat(alpha7Y) >= 0 ? '+' : ''}${alpha7Y}%` : '—'}
                                               </td>
@@ -2119,8 +2164,8 @@ export default function PortfolioOverlapFinder() {
                                             {/* 10Y CAGR Return */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">10Y Rolling Return</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget10Y !== undefined && !isNaN(finalTarget10Y) ? `${finalTarget10Y.toFixed(1)}%` : 'N/A'}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt10Y !== undefined && !isNaN(finalAlt10Y) ? `${finalAlt10Y.toFixed(1)}%` : 'N/A'}</td>
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTarget10Y !== undefined && !isNaN(finalTarget10Y) ? `${finalTarget10Y.toFixed(1)}%` : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAlt10Y !== undefined && !isNaN(finalAlt10Y) ? `${finalAlt10Y.toFixed(1)}%` : '—'}</td>
                                               <td className={`py-2 px-3 text-right font-extrabold ${alpha10Y !== undefined ? (parseFloat(alpha10Y) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
                                                 {alpha10Y !== undefined && !isNaN(parseFloat(alpha10Y)) ? `${parseFloat(alpha10Y) >= 0 ? '+' : ''}${alpha10Y}%` : '—'}
                                               </td>
@@ -2128,19 +2173,19 @@ export default function PortfolioOverlapFinder() {
                                             {/* Sharpe Ratio */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sharpe Ratio</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSharpe.toFixed(2)}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSharpe.toFixed(2)}</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sharpeUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(sharpeUp) >= 0 ? `+${sharpeUp}` : sharpeUp}
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSharpe !== undefined && !isNaN(finalTargetSharpe) ? finalTargetSharpe.toFixed(2) : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSharpe !== undefined && !isNaN(finalAltSharpe) ? finalAltSharpe.toFixed(2) : '—'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${sharpeUp !== undefined ? (parseFloat(sharpeUp) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {sharpeUp !== undefined ? `${parseFloat(sharpeUp) >= 0 ? '+' : ''}${sharpeUp}` : '—'}
                                               </td>
                                             </tr>
                                             {/* Sortino Ratio */}
                                             <tr className="hover:bg-white/40 transition-colors">
                                               <td className="py-2 px-3 font-sans font-bold text-slate-600">3Y Sortino Ratio</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSortino.toFixed(2)}</td>
-                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSortino.toFixed(2)}</td>
-                                              <td className={`py-2 px-3 text-right font-extrabold ${parseFloat(sortinoUp) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                {parseFloat(sortinoUp) >= 0 ? `+${sortinoUp}` : sortinoUp}
+                                              <td className="py-2 px-3 text-right text-slate-500">{finalTargetSortino !== undefined && !isNaN(finalTargetSortino) ? finalTargetSortino.toFixed(2) : '—'}</td>
+                                              <td className="py-2 px-3 text-right font-bold text-indigo-950">{finalAltSortino !== undefined && !isNaN(finalAltSortino) ? finalAltSortino.toFixed(2) : '—'}</td>
+                                              <td className={`py-2 px-3 text-right font-extrabold ${sortinoUp !== undefined ? (parseFloat(sortinoUp) >= 0 ? 'text-emerald-600' : 'text-rose-500') : 'text-slate-400'}`}>
+                                                {sortinoUp !== undefined ? `${parseFloat(sortinoUp) >= 0 ? '+' : ''}${sortinoUp}` : '—'}
                                               </td>
                                             </tr>
                                           </tbody>

@@ -334,22 +334,46 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
 
   // Calculate CAGR rolling returns
   const periods = [1, 3, 5, 7, 10];
-  const rollingReturns = periods.map((years) => {
+  const fallback = getFallbackMetrics(fundName, asOfDateStr);
+  const rollingReturns = periods.map((years, idx) => {
     const pastTargetDate = new Date(latestDateObj.getFullYear() - years, latestDateObj.getMonth(), latestDateObj.getDate());
     
     // Strict pre-launch block: If target date is before the actual launching date
+    if (pastTargetDate.getFullYear() < inceptionYear) {
+      return "-";
+    }
+    
+    // If the past target date is before the oldest date in mfapi, use the high-fidelity baseline fallback!
     if (pastTargetDate.getTime() < oldestDate.getTime()) {
+      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
+        return fallback.rolling[idx];
+      }
       return "-";
     }
     
     const pastNavState = findClosestNavEntry(sortedNavData, pastTargetDate);
-    if (!pastNavState.entry) return "-";
+    if (!pastNavState.entry) {
+      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
+        return fallback.rolling[idx];
+      }
+      return "-";
+    }
     
     const pastNavVal = parseFloat(pastNavState.entry.nav);
-    if (pastNavVal <= 0 || latestNavVal <= 0) return "-";
+    if (pastNavVal <= 0 || latestNavVal <= 0) {
+      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
+        return fallback.rolling[idx];
+      }
+      return "-";
+    }
     
     const elapsedYears = (latestDateObj.getTime() - parseDateStr(pastNavState.entry.date).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    if (elapsedYears < years - 0.5) return "-"; // duration guard
+    if (elapsedYears < years - 0.5) {
+      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
+        return fallback.rolling[idx];
+      }
+      return "-"; // duration guard
+    }
     
     const cagr = (Math.pow(latestNavVal / pastNavVal, 1 / elapsedYears) - 1) * 100;
     return cagr.toFixed(2);

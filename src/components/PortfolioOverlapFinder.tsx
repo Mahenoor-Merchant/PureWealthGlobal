@@ -267,6 +267,42 @@ const STATIC_FUNDS_DB: FundHolding[] = [
     description: 'Employs a proprietary momentum-based VLRT model. Features dynamic, high-churn market tactical shifts.'
   },
   {
+    ticker: 'QUANT-LMC',
+    name: 'Quant Large & Mid Cap Fund',
+    category: 'Large & Midcap',
+    ter: 1.76,
+    sharpe: 1.48,
+    sortino: 1.62,
+    rolling3Y: 22.4,
+    rolling5Y: 23.5,
+    rolling7Y: 20.2,
+    rolling10Y: 19.4,
+    exitLoad: '1.0% if redeemed within 15 days',
+    exitLoadPercent: 0.01,
+    taxType: 'Equity',
+    topHoldings: [
+      { name: 'Reliance Industries', weight: 7.5 },
+      { name: 'HDFC Bank', weight: 6.0 },
+      { name: 'Adani Power', weight: 5.0 },
+      { name: 'Jio Financial Corp', weight: 4.5 },
+      { name: 'SAIL', weight: 3.5 },
+      { name: 'ITC Ltd', weight: 3.2 },
+      { name: 'TCS', weight: 3.0 },
+      { name: 'Tata Motors', weight: 2.8 },
+      { name: 'Aurobindo Pharma', weight: 2.5 },
+      { name: 'Broadcom Inc', weight: 2.0 }
+    ],
+    sectors: [
+      { name: 'Financial Services', weight: 18.0 },
+      { name: 'Energy & Utilities', weight: 20.0 },
+      { name: 'Industrials', weight: 12.0 },
+      { name: 'Materials', weight: 10.0 },
+      { name: 'Technology', weight: 8.0 },
+      { name: 'Others', weight: 32.0 }
+    ],
+    description: 'Employs Quants momentum-based VLRT model on Large and Mid-cap high-momentum equities for robust capital appreciation.'
+  },
+  {
     ticker: 'MIRAE-LM',
     name: 'Mirae Asset Large & Midcap Fund',
     category: 'Large & Midcap',
@@ -643,8 +679,8 @@ function generateEvaluationDatesOnRange(start: Date, end: Date, frequency: strin
 
 export default function PortfolioOverlapFinder() {
   const [selectedFunds, setSelectedFunds] = useState<SelectedFundState[]>([
-    { ticker: 'HDFC-T100', allocation: 10000 },
-    { ticker: 'SBI-BC', allocation: 10000 }
+    { ticker: 'QUANT-LMC', allocation: 10000 },
+    { ticker: 'PP-FC', allocation: 10000 }
   ]);
   
   const [allocationMode, setAllocationMode] = useState<'Amount' | 'Percent'>('Amount');
@@ -668,6 +704,7 @@ export default function PortfolioOverlapFinder() {
   const [startDateApplied, setStartDateApplied] = useState<Date>(() => parseDDMMYYYY('03/01/2005') || new Date(2005, 0, 3));
   const [endDateApplied, setEndDateApplied] = useState<Date>(() => parseDDMMYYYY('19/06/2019') || new Date(2019, 5, 19));
   const [dateError, setDateError] = useState<string | null>(null);
+  const [visibleDatesLimit, setVisibleDatesLimit] = useState(10);
 
   const activeEvaluationDates = useMemo(() => {
     return generateEvaluationDatesOnRange(startDateApplied, endDateApplied, dataFrequency);
@@ -705,6 +742,7 @@ export default function PortfolioOverlapFinder() {
     setDateError(null);
     setStartDateApplied(parsedS);
     setEndDateApplied(parsedE);
+    setVisibleDatesLimit(10);
   };
 
   // Real-time AMFI live metrics state
@@ -2814,9 +2852,6 @@ export default function PortfolioOverlapFinder() {
                             })}
                           </LineChart>
                         </ResponsiveContainer>
-                        <div className="absolute bottom-1 right-2 text-[9px] font-bold text-slate-400 select-none uppercase tracking-wider flex items-center gap-1 font-mono">
-                          <span>📈</span> PrimeInvestor.in
-                        </div>
                       </div>
                     </div>
 
@@ -2914,7 +2949,7 @@ export default function PortfolioOverlapFinder() {
                       <h4 className="text-sm font-bold text-slate-900 tracking-tight mb-3">Granular Historical Date-wise Rolling Returns</h4>
                     </div>
 
-                    {activeEvaluationDates.slice(0, 10).map((dateStr) => {
+                    {activeEvaluationDates.slice(0, visibleDatesLimit).map((dateStr) => {
                       return (
                         <div key={dateStr} className="overflow-hidden border border-slate-200 rounded-2xl shadow-3xs bg-white text-left font-sans">
                           <table className="w-full text-xs border-collapse">
@@ -2982,15 +3017,38 @@ export default function PortfolioOverlapFinder() {
                     })}
 
                     {activeEvaluationDates.length > 10 && (
-                      <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
-                        <span className="text-xs text-slate-500 block mb-2">
-                          Showing first 10 dates of {activeEvaluationDates.length} total cycles.
+                      <div className="bg-slate-55 border border-slate-200 p-4 rounded-2xl text-center flex flex-wrap items-center justify-center gap-3">
+                        <span className="text-xs text-slate-500 w-full mb-1">
+                          Showing {Math.min(visibleDatesLimit, activeEvaluationDates.length)} of {activeEvaluationDates.length} total cycles.
                         </span>
+                        {activeEvaluationDates.length > visibleDatesLimit ? (
+                          <>
+                            <button
+                              onClick={() => setVisibleDatesLimit(prev => Math.min(prev + 10, activeEvaluationDates.length))}
+                              className="py-1.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                            >
+                              Show 10 More Dates
+                            </button>
+                            <button
+                              onClick={() => setVisibleDatesLimit(activeEvaluationDates.length)}
+                              className="py-1.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                            >
+                              Show All {activeEvaluationDates.length} Dates
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setVisibleDatesLimit(10)}
+                            className="py-1.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                          >
+                            Show Less (First 10)
+                          </button>
+                        )}
                         <button
                           onClick={handleDownloadData}
-                          className="py-1.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                          className="py-1.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-250 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
                         >
-                          Export Full CSV to view all {activeEvaluationDates.length} Dates
+                          Export Full CSV
                         </button>
                       </div>
                     )}

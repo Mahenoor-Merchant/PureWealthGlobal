@@ -686,6 +686,34 @@ const POPULAR_REG_OVERMAPPING: Record<string, PopularOverride> = {
     exitLoadPercent: 0.01,
     taxType: "Equity"
   },
+  "quantlargemidcapfund": {
+    ticker: "QUANT-LMC",
+    category: "Large & Midcap",
+    ter: 1.76,
+    sharpe: 1.48,
+    sortino: 1.62,
+    rolling3Y: 22.4,
+    rolling5Y: 23.5,
+    rolling7Y: 20.2,
+    rolling10Y: 19.4,
+    exitLoad: "1.0% if redeemed within 15 days",
+    exitLoadPercent: 0.01,
+    taxType: "Equity"
+  },
+  "quantlarge&midcapfund": {
+    ticker: "QUANT-LMC",
+    category: "Large & Midcap",
+    ter: 1.76,
+    sharpe: 1.48,
+    sortino: 1.62,
+    rolling3Y: 22.4,
+    rolling5Y: 23.5,
+    rolling7Y: 20.2,
+    rolling10Y: 19.4,
+    exitLoad: "1.0% if redeemed within 15 days",
+    exitLoadPercent: 0.01,
+    taxType: "Equity"
+  },
   "canararobecosmallcapfund": {
     ticker: "CANARA-SM",
     category: "Small Cap",

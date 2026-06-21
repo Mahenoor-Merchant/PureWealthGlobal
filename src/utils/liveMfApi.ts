@@ -197,37 +197,16 @@ export async function fetchNavHistory(schemeCode: string): Promise<{ date: strin
 
 /**
  * Deterministic helper to generate correct, real conformed fallback metrics 
- * when the public API fails or doesn't list the queried fund.
+ * when the public API fails or doesn't list the queried fund. Returning completely
+ * empty records to guarantee no fake, mock or illustrative data is ever shown.
  */
 export function getFallbackMetrics(fundName: string, asOfDateStr: string): LiveMetrics {
   const inceptionYear = getFundInceptionYear(fundName);
-  const rolling = getRollingReturnsForDate(fundName, asOfDateStr);
-  
-  // Make Sharpe and Sortino ratios look realistic based on fund category characteristics
-  const hash = Math.abs(fundName.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0));
-  const isSmallCap = fundName.toLowerCase().includes("small");
-  const isDebt = fundName.toLowerCase().includes("debt") || fundName.toLowerCase().includes("liquid");
-  
-  let baseSharpe = 1.05;
-  let baseSortino = 1.25;
-  if (isSmallCap) {
-    baseSharpe = 1.38;
-    baseSortino = 1.62;
-  } else if (isDebt) {
-    baseSharpe = 0.85;
-    baseSortino = 1.02;
-  }
-  
-  const offset = ((hash % 31) - 15) / 100; // variance: -0.15 to +0.15
-  const finalSharpe = (baseSharpe + offset).toFixed(2);
-  const finalSortino = (baseSortino + offset * 1.2).toFixed(2);
-  
-  const isFlagship = fundName.toLowerCase().includes("nippon") || fundName.toLowerCase().includes("quant") || fundName.toLowerCase().includes("parag");
   
   return {
-    rolling,
-    sharpe: isFlagship ? finalSharpe : "—",
-    sortino: isFlagship ? finalSortino : "—",
+    rolling: ["-", "-", "-", "-", "-"],
+    sharpe: "—",
+    sortino: "—",
     realLaunchYear: inceptionYear
   };
 }
@@ -292,9 +271,22 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
     }
   }
   
-  // RECONCILE LAUNCH DATE:
-  // If the evaluation date (asOfDate) is before the actual launching date of the fund on mfapi,
-  // the fund was not launched yet! Return all hyphens with 100% precision.
+  // RECONCILE LAUNCH DATE & April 3, 2006 Cutoff:
+  const AMFI_CUTOFF_DATE = new Date(2006, 3, 3); // 03-Apr-2006
+  const inceptionYear = getFundInceptionYear(fundName);
+
+  if (asOfDate.getTime() < AMFI_CUTOFF_DATE.getTime()) {
+    const blindReturns: LiveMetrics = {
+      rolling: ["-", "-", "-", "-", "-"],
+      sharpe: "—",
+      sortino: "—",
+      realLaunchYear: inceptionYear
+    };
+    if (!metricsCache[fundName]) metricsCache[fundName] = {};
+    metricsCache[fundName][asOfDateStr] = blindReturns;
+    return blindReturns;
+  }
+  
   if (asOfDate.getTime() < oldestDate.getTime()) {
     const blindReturns: LiveMetrics = {
       rolling: ["-", "-", "-", "-", "-"],
@@ -321,7 +313,6 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
   
   // Strict pre-launch check: if the target year is before the fund's known inception year, it was not launched yet!
   const targetYear = latestDateObj.getFullYear();
-  const inceptionYear = getFundInceptionYear(fundName);
   
   if (targetYear < inceptionYear) {
     const blindReturns: LiveMetrics = {
@@ -337,7 +328,6 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
 
   // Calculate CAGR rolling returns
   const periods = [1, 3, 5, 7, 10];
-  const fallback = getFallbackMetrics(fundName, asOfDateStr);
   const rollingReturns = periods.map((years, idx) => {
     const pastTargetDate = new Date(latestDateObj.getFullYear() - years, latestDateObj.getMonth(), latestDateObj.getDate());
     
@@ -346,35 +336,28 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
       return "-";
     }
     
-    // If the past target date is before the oldest date in mfapi, use the high-fidelity baseline fallback!
+    // Strict cutoff check: if lookback target date is before AMFI April 3, 2006, must show "-"
+    if (pastTargetDate.getTime() < AMFI_CUTOFF_DATE.getTime()) {
+      return "-";
+    }
+    
+    // If the past target date is before the oldest date in mfapi, must show "-"
     if (pastTargetDate.getTime() < oldestDate.getTime()) {
-      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
-        return fallback.rolling[idx];
-      }
       return "-";
     }
     
     const pastNavState = findClosestNavEntry(sortedNavData, pastTargetDate);
     if (!pastNavState.entry) {
-      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
-        return fallback.rolling[idx];
-      }
       return "-";
     }
     
     const pastNavVal = parseFloat(pastNavState.entry.nav);
     if (pastNavVal <= 0 || latestNavVal <= 0) {
-      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
-        return fallback.rolling[idx];
-      }
       return "-";
     }
     
     const elapsedYears = (latestDateObj.getTime() - parseDateStr(pastNavState.entry.date).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
     if (elapsedYears < years - 0.5) {
-      if (fallback && fallback.rolling && fallback.rolling[idx] !== "-") {
-        return fallback.rolling[idx];
-      }
       return "-"; // duration guard
     }
     
@@ -388,8 +371,8 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
   
   const threeYrsAgo = new Date(latestDateObj.getFullYear() - 3, latestDateObj.getMonth(), latestDateObj.getDate());
   
-  // Only calculate and display Sharpe/Sortino ratios if fund has been active for at least 3 years
-  if (threeYrsAgo.getTime() >= oldestDate.getTime()) {
+  // Only calculate and display Sharpe/Sortino ratios if fund has been active for at least 3 years and starts after cutoff
+  if (threeYrsAgo.getTime() >= oldestDate.getTime() && threeYrsAgo.getTime() >= AMFI_CUTOFF_DATE.getTime()) {
     const startPoint = findClosestNavEntry(sortedNavData, threeYrsAgo);
     if (startPoint.index !== -1 && latestDateIdx > startPoint.index) {
       const activeSl = sortedNavData.slice(startPoint.index, latestDateIdx + 1);
@@ -421,8 +404,8 @@ export async function getLiveMetricsForFund(fundName: string, asOfDateStr: strin
             const riskFreeRate = 6.5; // Standard sovereign yield rate
             
             if (annStdDev > 0) {
-              const sharpe = (cagr3Y - riskFreeRate) / annStdDev;
-              sharpeStr = sharpe.toFixed(2);
+               const sharpe = (cagr3Y - riskFreeRate) / annStdDev;
+               sharpeStr = sharpe.toFixed(2);
             }
             
             // Sortino calculation (downside deviation only)

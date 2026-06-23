@@ -58,7 +58,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                 { id: 'services', label: 'Financial Services' },
                 { id: 'calculators', label: 'Wealth Calculators' },
                 { id: 'knowledge', label: 'Knowledge Hub' },
-                { id: 'connect', label: 'Book Consultation' },
+                { id: 'connect', label: 'Start SIP Now👍🏻✅' },
               ].map((link) => (
                 <li key={link.id}>
                   <button

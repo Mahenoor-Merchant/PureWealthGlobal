@@ -216,12 +216,12 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
             <div className="space-y-6 pt-4" id="hero-ctas-container">
               {/* Row 1: Primary Action Buttons */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-7">
-                {/* Schedule Executive Call */}
+                {/* Start SIP Now */}
                 <button
                   onClick={() => handlePageNavigation('connect')}
                   className="bg-[#0F172A] hover:bg-slate-850 text-white font-black text-[13px] sm:text-[13.5px] px-7 py-3 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-2 active:scale-[0.98] whitespace-nowrap h-[46px]"
                 >
-                  <span>Schedule Executive Call</span>
+                  <span>Start SIP Now👍🏻✅</span>
                   <span className="text-[14px]">→</span>
                 </button>
 

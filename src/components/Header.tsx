@@ -160,7 +160,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
               >
-                <span>Schedule a Call</span>
+                <span>Start SIP Now👍🏻✅</span>
                 {currentPage === 'connect' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
               </button>
 
@@ -317,7 +317,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                         : 'text-slate-655 hover:bg-slate-50'
                     }`}
                   >
-                    📅 Schedule a Call
+                    📅 Start SIP Now👍🏻✅
                   </button>
 
                   <button

@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { FAQS, AMFI_ARN_DETAILS } from '../data';
 import { FAQItem } from '../types';
+import { fundTypesCategories, fundTypesDetails } from '../data/fundTypesData';
 import {
   Search,
   BookMarked,
@@ -47,8 +48,24 @@ interface KnowledgeHubProps {
 }
 
 export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) {
-  const [activeTab, setActiveTab] = useState<'journey' | 'faq' | 'outlook'>('journey');
+  const [activeTab, setActiveTab] = useState<'journey' | 'faq' | 'outlook' | 'types'>('journey');
   const [selectedArticleId, setSelectedArticleId] = useState<'taxation' | 'active-alpha' | 'fees'>('taxation');
+
+  // Master sub-category selection for all 19 Mutual Fund Types
+  const [selectedSubTypeId, setSelectedSubTypeId] = useState<string>('large-cap');
+
+  // FAQ types section accordion
+  const [expandedTypeFaqId, setExpandedTypeFaqId] = useState<string | null>('tfaq-dyn-0');
+
+  // Helper method to dynamically render categories icons
+  const getCategoryIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'ShieldCheck': return <ShieldCheck className="w-3.5 h-3.5" />;
+      case 'Layers': return <Layers className="w-3.5 h-3.5" />;
+      case 'Coins': return <Coins className="w-3.5 h-3.5" />;
+      default: return <Layers className="w-3.5 h-3.5" />;
+    }
+  };
 
   // Synchronize state with location hash for deep linking
   useEffect(() => {
@@ -56,6 +73,15 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
       const hash = window.location.hash;
       if (hash === '#knowledge/faq') {
         setActiveTab('faq');
+      } else if (hash === '#knowledge/types' || hash.startsWith('#knowledge/types/')) {
+        setActiveTab('types');
+        const hashParts = hash.split('/');
+        if (hashParts.length > 2) {
+          const subId = hashParts[2];
+          if (fundTypesDetails[subId]) {
+            setSelectedSubTypeId(subId);
+          }
+        }
       } else if (hash.startsWith('#knowledge/outlook')) {
         setActiveTab('outlook');
         if (hash === '#knowledge/outlook/taxation') {
@@ -77,15 +103,26 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
     return () => window.removeEventListener('hashchange', handleHashCheck);
   }, []);
 
-  const handleTabChange = (tab: 'journey' | 'faq' | 'outlook') => {
+  const handleTabChange = (tab: 'journey' | 'faq' | 'outlook' | 'types') => {
     setActiveTab(tab);
     if (tab === 'outlook') {
       window.location.hash = `#knowledge/outlook/${selectedArticleId}`;
+    } else if (tab === 'types') {
+      window.location.hash = `#knowledge/types/${selectedSubTypeId}`;
     } else {
       window.location.hash = `#knowledge/${tab}`;
     }
     // Smooth scroll back to the tab selector bar so the user knows context has changed
     const element = document.getElementById('knowledge-tab-headers');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSubTypeChange = (subId: string) => {
+    setSelectedSubTypeId(subId);
+    window.location.hash = `#knowledge/types/${subId}`;
+    const element = document.getElementById('type-content-anchor');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -225,39 +262,53 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
       <div className="max-w-7xl mx-auto animate-fade-in animate-duration-300">
         
         {/* Dynamic Segmented Tab Headers */}
-        <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-2xl mx-auto mb-16 shadow-xs" id="knowledge-tab-headers">
+        <div className="grid grid-cols-2 lg:grid-cols-4 bg-white border border-slate-200 p-1.5 rounded-2xl max-w-4xl mx-auto mb-16 shadow-xs gap-1.5" id="knowledge-tab-headers">
           <button
             onClick={() => handleTabChange('journey')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2 py-3 px-1 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'journey' 
                 ? 'bg-[#0F172A] text-white shadow-xs' 
-                : 'text-slate-650 hover:text-slate-900 hover:bg-slate-50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
-            Your Journey with Us
+            <span>Your Journey</span>
           </button>
+          
+          <button
+            onClick={() => handleTabChange('types')}
+            className={`flex items-center justify-center gap-2 py-3 px-1 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
+              activeTab === 'types' 
+                ? 'bg-[#0F172A] text-white shadow-xs' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-blue-500" />
+            <span>Mutual Fund Types 📚</span>
+          </button>
+
           <button
             onClick={() => handleTabChange('faq')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2 py-3 px-1 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'faq' 
-                ? 'bg-[#0F172A] text-white shadow-[#0F172A]/10' 
-                : 'text-slate-650 hover:text-slate-900 hover:bg-slate-50'
+                ? 'bg-[#0F172A] text-white shadow-xs' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <HelpCircle className="w-4 h-4" />
-            Concepts & FAQ
+            <span>Concepts & FAQ</span>
           </button>
+
           <button
             onClick={() => handleTabChange('outlook')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-2 py-3 px-1 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'outlook' 
                 ? 'bg-[#0F172A] text-white shadow-xs' 
-                : 'text-slate-650 hover:text-slate-900 hover:bg-slate-50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <BookOpen className="w-4 h-4 text-emerald-500" />
-            Strategic Outlook & Essays
+            <span>Strategic Essays</span>
           </button>
         </div>
 
@@ -1673,6 +1724,392 @@ export default function KnowledgeHubView({ setCurrentPage }: KnowledgeHubProps) 
                     </div>
                   </article>
                 )}
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+                      {/* ==================== TAB 4: MUTUAL FUND TYPES DICTIONARY ==================== */}
+        {activeTab === 'types' && (
+          <div className="space-y-12 animate-fade-in text-left" id="types-tab-section">
+            
+            {/* Top Header Section */}
+            <div className="text-center max-w-4xl mx-auto space-y-4">
+              <span className="text-emerald-700 bg-emerald-50 border border-emerald-250 px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" /> High-Conviction Asset taxonomy
+              </span>
+              <h1 className="font-display font-extrabold text-3xl sm:text-5xl text-slate-950 tracking-tight leading-tight">
+                Taxonomy of Mutual Funds & Strategic Allocation
+              </h1>
+              <p className="text-slate-600 max-w-2xl mx-auto text-[14.5px] sm:text-[16px] leading-relaxed">
+                Explore an unmatched, detailed educational guide on mutual fund structures. Understand performance criteria, tax regimes, and holding periods before deploying active capital.
+              </p>
+            </div>
+
+            {/* Core Sidebar + Details Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-7xl mx-auto">
+              
+              {/* Left Sidebar Layout (mimicking Groww reference) */}
+              <div className="col-span-1 lg:col-span-3 bg-white border border-slate-200/85 rounded-2xl overflow-hidden shadow-xs shrink-0 self-start lg:sticky lg:top-24">
+                <div className="bg-slate-50 border-b border-slate-200 px-4 py-3.5">
+                  <h3 className="font-display font-black text-slate-900 text-[13px] uppercase tracking-wider flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-emerald-700" />
+                    Fund Categories
+                  </h3>
+                </div>
+                
+                <nav className="divide-y divide-slate-100 max-h-[75vh] overflow-y-auto">
+                  {fundTypesCategories.map((cat) => (
+                    <div key={cat.id} className="p-3 space-y-1">
+                      <div className="px-3 py-1.5 text-[11px] font-mono font-bold tracking-wider text-teal-700 flex items-center gap-1.5 uppercase">
+                        {getCategoryIcon(cat.icon)}
+                        <span>{cat.title}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {cat.subTypes.map((subType) => {
+                          const isSelected = selectedSubTypeId === subType.id;
+                          return (
+                            <button
+                              key={subType.id}
+                              onClick={() => handleSubTypeChange(subType.id)}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150 flex items-center justify-between cursor-pointer ${
+                                isSelected
+                                  ? 'bg-emerald-50/70 text-emerald-800 border-l-4 border-emerald-600 pl-2 shadow-2xs font-bold'
+                                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-950'
+                              }`}
+                            >
+                              <span>{subType.name}</span>
+                              <ChevronRight className={`w-3 h-3 transition-transform ${isSelected ? 'translate-x-[2px] text-emerald-700' : 'text-slate-400'}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Right Details Panel Layout */}
+              <div className="col-span-1 lg:col-span-9 space-y-10" id="type-content-anchor">
+                
+                {(() => {
+                  const currentDetail = fundTypesDetails[selectedSubTypeId] || fundTypesDetails['large-cap'];
+                  return (
+                    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-3xs space-y-10">
+                      
+                      {/* 1. Category Header Banner */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-150 pb-6">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold tracking-widest text-[#0F766E] bg-[#F0FDFA] border border-[#CCFBF1] px-3 py-1 rounded-full uppercase">
+                            Class Encyclopedia • {currentDetail.category}
+                          </span>
+                          <h2 className="text-2xl sm:text-3xl font-display font-black text-slate-900 mt-3 leading-tight">
+                            {currentDetail.name} Deep Dive
+                          </h2>
+                          <p className="text-slate-500 text-[13.5px] mt-1.5 leading-relaxed max-w-xl">
+                            {currentDetail.shortDesc}
+                          </p>
+                        </div>
+                        
+                        {/* Summary Metrics block */}
+                        <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 flex gap-6 text-left shrink-0">
+                          <div>
+                            <span className="text-[10px] text-slate-450 font-mono block uppercase tracking-wider">MACAULAY TIMELINE</span>
+                            <span className="text-[14px] font-extrabold text-slate-950 block mt-0.5">
+                              {currentDetail.recommendedTimeline}
+                            </span>
+                          </div>
+                          <div className="w-px bg-slate-205" />
+                          <div>
+                            <span className="text-[10px] text-slate-455 font-mono block uppercase tracking-wider">SHARPE RATIO</span>
+                            <span className="text-[14px] font-black text-slate-95 block mt-0.5 font-mono">
+                              {currentDetail.sharpeRatio}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. Strategy Analysis Block */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        
+                        {/* Left: Operations and Examples */}
+                        <div className="space-y-4">
+                          <h4 className="text-[15px] font-black text-slate-900">Operational Mechanics</h4>
+                          <p className="text-[13.5px] text-slate-650 leading-relaxed">
+                            {currentDetail.howItWorks}
+                          </p>
+                          
+                          <div className="bg-[#FFFBEB] border border-amber-100/90 rounded-2xl p-5 space-y-1">
+                            <span className="text-[10.5px] font-mono tracking-wider font-extrabold text-amber-800 uppercase flex items-center gap-1">
+                              <Info className="w-3.5 h-3.5" /> Practical Asset Example
+                            </span>
+                            <p className="text-[12.5px] text-slate-700 leading-relaxed pt-1.5 font-sans">
+                              {currentDetail.example}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right: Suitability and Alternatives */}
+                        <div className="bg-slate-50 border border-slate-150 rounded-3xl p-6 space-y-6">
+                          <h4 className="text-[15px] font-black text-slate-900 border-b border-slate-200 pb-2.5">Investor Suitability Matrix</h4>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <span className="text-[11px] font-mono text-emerald-700 font-bold uppercase bg-emerald-50 px-2.5 py-0.5 rounded">Who is this fund suited for?</span>
+                              <ul className="space-y-1.5 text-[12.5px] text-slate-650 mt-2 list-disc pl-4.5">
+                                {currentDetail.suitedFor.map((pointStr, idx) => (
+                                  <li key={idx}>{pointStr}</li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div className="h-px bg-slate-200" />
+
+                            <div>
+                              <span className="text-[11px] font-mono text-red-755 font-bold uppercase bg-red-50 px-2.5 py-0.5 rounded">Who should avoid this fund?</span>
+                              <p className="text-[12.5px] text-slate-650 mt-2 leading-relaxed">
+                                {currentDetail.shouldAvoid}
+                              </p>
+                            </div>
+
+                            <div className="bg-blue-50/50 border border-blue-100/55 p-4 rounded-2xl">
+                              <span className="text-[10.5px] font-mono font-bold text-blue-800 block uppercase">Better Alternative Strategy</span>
+                              <p className="text-[11.5px] text-blue-900 mt-1 leading-relaxed">
+                                {currentDetail.alternative}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* 3. High-Contrast Key Performance KPIs */}
+                      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 grid grid-cols-1 md:grid-cols-4 gap-6 text-center shadow-md">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-mono block uppercase">AVERAGE ROLLING RETURN</span>
+                          <span className="text-[18px] sm:text-[21px] font-black text-emerald-450 block font-display font-mono">
+                            {currentDetail.avgReturn}
+                          </span>
+                          <p className="text-[10px] text-slate-500">Robust historical averages</p>
+                        </div>
+                        
+                        <div className="space-y-1 md:border-l md:border-slate-800 md:pl-4">
+                          <span className="text-[10px] text-slate-400 font-mono block uppercase">SHARPE RATIO SPREAD</span>
+                          <span className="text-[18px] sm:text-[21px] font-black text-amber-400 block font-display font-mono">
+                            {currentDetail.sharpeRatio}
+                          </span>
+                          <p className="text-[10px] text-slate-500">Risk-adjusted outperformance</p>
+                        </div>
+
+                        <div className="space-y-1 md:border-l md:border-slate-800 md:pl-4">
+                          <span className="text-[10px] text-slate-400 font-mono block uppercase">RECOMMENDED TARGET</span>
+                          <span className="text-[18px] sm:text-[21px] font-black text-blue-400 block font-display font-mono">
+                            {currentDetail.recommendedTimeline}
+                          </span>
+                          <p className="text-[10px] text-slate-550 font-mono font-bold">Minimum holding parameter</p>
+                        </div>
+
+                        <div className="space-y-1 md:border-l md:border-slate-800 md:pl-4">
+                          <span className="text-[10px] text-slate-400 font-mono block uppercase">BENCHMARK TYPE INDEX</span>
+                          <span className="text-[12px] sm:text-[13px] font-bold text-slate-200 block mt-1 truncate px-1">
+                            {currentDetail.benchmark}
+                          </span>
+                          <p className="text-[10px] text-slate-500 mt-1">Relative tracking delta</p>
+                        </div>
+                      </div>
+
+                      {/* 4. Taxation vs Expense Matters */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        
+                        {/* Taxation Block */}
+                        <div className="bg-slate-50 border border-slate-150 rounded-3xl p-6 sm:p-8 space-y-4">
+                          <h4 className="text-[15px] font-black text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2.5">
+                            <Percent className="w-5 h-5 text-blue-600" /> Taxation Standards
+                          </h4>
+                          <p className="text-[12.5px] text-slate-500 leading-relaxed">
+                            Under the modern Indian Income Tax guidelines, capital gains from this mutual fund classification are declared as follows:
+                          </p>
+                          <p className="text-[12.5px] text-slate-700 leading-relaxed bg-white border border-slate-150 rounded-xl p-4 font-medium">
+                            {currentDetail.taxes}
+                          </p>
+                        </div>
+
+                        {/* Charges Block */}
+                        <div className="bg-slate-50 border border-slate-150 rounded-3xl p-6 sm:p-8 space-y-4">
+                          <h4 className="text-[15px] font-black text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2.5">
+                            <AlertTriangle className="w-5 h-5 text-amber-500" /> Expense Ratios & Exit Loads
+                          </h4>
+                          <ul className="space-y-3.5 text-[12.5px] text-slate-700">
+                            <li className="flex items-start gap-2.5">
+                              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 shrink-0" />
+                              <span><strong>Expense Load impact:</strong> {currentDetail.expenseRatio}</span>
+                            </li>
+                            <li className="flex items-start gap-2.5">
+                              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 shrink-0" />
+                              <span><strong>Exit Penalty criteria:</strong> {currentDetail.exitLoad}</span>
+                            </li>
+                            <li className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-450 italic">
+                              *NRIs can consult of double-taxation avoidance treaty (DTAA) filings with our AMFI desk to unlock high-yield conversions.
+                            </li>
+                          </ul>
+                        </div>
+
+                      </div>
+
+                      {/* 5. List of Vetted Schemes */}
+                      <div className="space-y-4">
+                        <h4 className="text-[15px] font-black text-slate-900">List of High-Conviction Certified Schemes Map</h4>
+                        <p className="text-[12.5px] text-slate-500">
+                          We continuously audit the entire domestic mutual fund registries. The following direct options represent premier performers evaluated under our proprietary active scorecards:
+                        </p>
+                        
+                        <div className="border border-slate-150 rounded-2xl overflow-hidden bg-white">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse min-w-[600px]">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-150 text-slate-550 font-mono tracking-wider text-[10px] uppercase">
+                                  <th className="p-3.5 pl-5">Vetted Scheme Name</th>
+                                  <th className="p-3.5">Risk Rating</th>
+                                  <th className="p-3.5">Primary Investment Focus</th>
+                                  <th className="p-3.5 pr-5 text-right">3-Year CAGR Returns</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-[13px] text-slate-700">
+                                {currentDetail.vettedSchemes.map((scheme, idx) => (
+                                  <tr key={idx}>
+                                    <td className="p-3.5 pl-5 font-bold text-slate-900">{scheme.name}</td>
+                                    <td className="p-3.5">
+                                      <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded text-[10px] font-bold">
+                                        {scheme.risk}
+                                      </span>
+                                    </td>
+                                    <td className="p-3.5 text-slate-500 text-[12px]">{scheme.focus}</td>
+                                    <td className="p-3.5 pr-5 text-right font-mono font-bold text-emerald-600">{scheme.return}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <p className="text-[10.5px] text-slate-400 font-mono italic text-center">
+                          Disclaimer: Past returns are not guarantee-laden indicators of tomorrow. Direct schemes are modeled strictly for curriculum mapping.
+                        </p>
+                      </div>
+
+                      {/* 6. Accordion FAQs */}
+                      <div className="space-y-4 border-t border-slate-100 pt-8">
+                        <h4 className="text-[15.5px] font-black text-slate-900 flex items-center gap-2">
+                          <HelpCircle className="w-5 h-5 text-emerald-700" />
+                          Category FAQs: Technical Inquiries
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          {currentDetail.faqs.map((faq, index) => {
+                            const faqId = `tfaq-dyn-${index}`;
+                            const isFaqExpanded = expandedTypeFaqId === faqId;
+                            return (
+                              <div key={index} className="border border-slate-150 rounded-2xl bg-white focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                                <button
+                                  onClick={() => setExpandedTypeFaqId(isFaqExpanded ? null : faqId)}
+                                  className="w-full text-left py-4.5 px-6 flex justify-between items-center gap-4 cursor-pointer select-none"
+                                >
+                                  <span className="font-bold text-[14px] sm:text-[14.5px] text-slate-850">
+                                    Q{index + 1}. {faq.q}
+                                  </span>
+                                  <ChevronRight className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isFaqExpanded ? 'rotate-90 text-blue-600' : ''}`} />
+                                </button>
+                                {isFaqExpanded && (
+                                  <div className="px-6 pb-5 text-[13.5px] text-slate-650 leading-relaxed border-t border-slate-100 pt-3">
+                                    {faq.a}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })()}
+
+                {/* INFLUENTIAL CONVERSION CALL TO ACTION COMPONENT (FOR CONVERTING USERS TO CLIENTS) */}
+                <div className="bg-[#0C1524] text-white rounded-3xl p-6 sm:p-10 text-left relative overflow-hidden shadow-xl border border-slate-800">
+                  <div className="absolute top-0 right-0 w-84 h-84 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
+                  
+                  <div className="relative z-10 space-y-6">
+                    <span className="text-[#EAB308] bg-amber-500/10 border border-amber-500/25 px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase font-bold inline-block font-sans">
+                      Asset Mapping & Onboarding Channels
+                    </span>
+                    
+                    <h3 className="font-display font-bold text-[20px] sm:text-[24px] text-white tracking-tight leading-tight">
+                      Ready to Align Your Mutual Fund Portfolio Compliance-wise?
+                    </h3>
+                    
+                    <p className="text-slate-350 text-[13px] sm:text-[14px] leading-relaxed font-sans">
+                      Our certified wealth distribution desk maps your active holding coordinates to the optimal direct categories. Experience absolute fee transparency, avoid intermediary commission surcharges, and ensure complete global compliance.
+                    </p>
+
+                    {/* Interactive Bento Navigation */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                      <button
+                        onClick={() => setCurrentPage?.('find-fund-type')}
+                        className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer text-left flex flex-col justify-between h-[150px] group"
+                      >
+                        <div>
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-405">
+                            <Layers className="w-4 h-4" />
+                          </div>
+                          <h5 className="font-bold text-[13px] text-white mt-3 group-hover:text-emerald-400">Find Fund Type</h5>
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1">Verify Category <ArrowRight className="w-3 h-3" /></span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentPage?.('overlap-finder')}
+                        className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer text-left flex flex-col justify-between h-[150px] group"
+                      >
+                        <div>
+                          <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400">
+                            <Search className="w-4 h-4" />
+                          </div>
+                          <h5 className="font-bold text-[13px] text-white mt-3 group-hover:text-pink-400">Overlap Finder</h5>
+                        </div>
+                        <span className="text-[11px] font-bold text-pink-500 flex items-center gap-1">Scan Overlap <ArrowRight className="w-3 h-3" /></span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentPage?.('portfolio-audit')}
+                        className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer text-left flex flex-col justify-between h-[150px] group"
+                      >
+                        <div>
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <h5 className="font-bold text-[13px] text-white mt-3 group-hover:text-blue-400">AI Portfolio Auditor</h5>
+                        </div>
+                        <span className="text-[11px] font-bold text-blue-500 flex items-center gap-1">Initiate Audit <ArrowRight className="w-3 h-3" /></span>
+                      </button>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-4 text-[12px] text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-450 shrink-0" />
+                        <span>Instant Access • Pure Direct-plan Strategy</span>
+                      </div>
+                      
+                      <button
+                        onClick={() => setCurrentPage?.('connect')}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-5 rounded-full cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 self-start"
+                      >
+                        <span>Start SIP Now 👍🏻✅</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
 
               </div>
 

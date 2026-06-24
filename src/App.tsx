@@ -56,13 +56,8 @@ export default function App() {
       const pathname = window.location.pathname.toLowerCase().replace(/\/$/, ""); // Normalize trailing slashes
       const hash = window.location.hash;
 
-      if (pathname === '/overlap' || pathname === '/overlap-finder') {
-        setCurrentPage('overlap-finder');
-      } else if (pathname === '/findfund' || pathname === '/find-fund-type') {
-        setCurrentPage('find-fund-type');
-      } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
-        setCurrentPage('portfolio-audit');
-      } else if (hash.startsWith('#knowledge')) {
+      // Prioritize hash routing so that hash-based pages can be opened regardless of the current path
+      if (hash.startsWith('#knowledge')) {
         setCurrentPage('knowledge');
       } else if (hash === '#about') {
         setCurrentPage('about');
@@ -82,8 +77,19 @@ export default function App() {
         setCurrentPage('overlap-finder');
       } else if (hash === '#portfolio-audit' || hash === '#audit') {
         setCurrentPage('portfolio-audit');
-      } else if (hash === '#home' || pathname === '') {
+      } else if (hash === '#home') {
         setCurrentPage('home');
+      } else {
+        // Fallback to path routing if there is no matching hash
+        if (pathname === '/overlap' || pathname === '/overlap-finder') {
+          setCurrentPage('overlap-finder');
+        } else if (pathname === '/findfund' || pathname === '/find-fund-type') {
+          setCurrentPage('find-fund-type');
+        } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
+          setCurrentPage('portfolio-audit');
+        } else if (pathname === '' || pathname === '/') {
+          setCurrentPage('home');
+        }
       }
     };
 
@@ -150,10 +156,10 @@ export default function App() {
         window.history.pushState(null, '', '/audit');
       } else if (newPage === 'knowledge') {
         if (!window.location.hash.startsWith('#knowledge/')) {
-          window.history.pushState(null, '', '#knowledge/journey');
+          window.history.pushState(null, '', '/#knowledge/journey');
         }
       } else {
-        window.history.pushState(null, '', `#${newPage}`);
+        window.history.pushState(null, '', `/#${newPage}`);
       }
     }
   };

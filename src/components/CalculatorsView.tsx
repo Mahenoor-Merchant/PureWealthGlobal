@@ -45,7 +45,8 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
   // SIP Math Computing
   const sipChartData = useMemo(() => {
     const data = [];
-    const monthlyRate = (expectedReturn / 100) / 12;
+    // True CAGR compounding method: (1 + monthlyRate)^12 = 1 + annualReturn
+    const monthlyRate = Math.pow(1 + expectedReturn / 100, 1 / 12) - 1;
     const stepUp = enableStepUp ? stepUpPercent / 100 : 0;
     const inflation = adjustInflation ? inflationRate / 100 : 0;
     
@@ -411,6 +412,9 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                 <div className="space-y-1.5 text-left">
                   <p className="text-[11.5px] text-slate-500 leading-relaxed">
                     Historically, high-quality equity mutual funds in India have delivered annualized compounding rates between <strong>14% and 18%</strong> over 5+ year cycles.
+                  </p>
+                  <p className="text-[11.5px] text-blue-800 font-medium leading-normal">
+                    🎯 <strong>True CAGR Compounding:</strong> Your regular SIP and lump-sum allocations grow using the exact geometric monthly rate formula: <code className="font-mono bg-blue-50/50 px-1 rounded text-[10.5px]">(1 + R)^(1/12) - 1</code>, precisely matching the industry's premium standards for true year-on-year growth.
                   </p>
                   {enableStepUp && (
                     <p className="text-[11px] text-emerald-700 font-medium leading-normal">

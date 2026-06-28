@@ -32,6 +32,10 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(0); // 0 INR
   const [expectedReturn, setExpectedReturn] = useState<number>(14); // 14%
   const [years, setYears] = useState<number>(15);
+  const [enableStepUp, setEnableStepUp] = useState<boolean>(false);
+  const [stepUpPercent, setStepUpPercent] = useState<number>(10); // 10% default
+  const [adjustInflation, setAdjustInflation] = useState<boolean>(false);
+  const [inflationRate, setInflationRate] = useState<number>(6); // 6% default
 
   // Calculator 2: Profiler Allocator State
   const [goalType, setGoalType] = useState<'wealth' | 'retirement' | 'education'>('wealth');
@@ -42,6 +46,8 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
   const sipChartData = useMemo(() => {
     const data = [];
     const monthlyRate = (expectedReturn / 100) / 12;
+    const stepUp = enableStepUp ? stepUpPercent / 100 : 0;
+    const inflation = adjustInflation ? inflationRate / 100 : 0;
     
     let totalInvested = lumpSumAmount;
     let totalWealth = lumpSumAmount;
@@ -55,25 +61,35 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
     });
 
     for (let y = 1; y <= years; y++) {
+      // Step-up increases the monthly contribution every year starting from Year 2
+      const currentYearSip = sipAmount * Math.pow(1 + stepUp, y - 1);
+
       // Monthly compounding of existing sum + new monthly payments
       for (let m = 0; m < 12; m++) {
         // Add monthly contribution
-        totalWealth += sipAmount;
+        totalWealth += currentYearSip;
         // Keep track of total principal invested
-        totalInvested += sipAmount;
+        totalInvested += currentYearSip;
         // Compound existing wealth (including new contribution) by monthly interest rate
         totalWealth = totalWealth * (1 + monthlyRate);
       }
       
+      const discountFactor = adjustInflation ? Math.pow(1 + inflation, y) : 1;
+      const displayWealth = Math.round(totalWealth / discountFactor);
+      const displayInvested = Math.round(totalInvested / discountFactor);
+      const displayGain = Math.max(0, displayWealth - displayInvested);
+
       data.push({
         year: y,
-        invested: Math.round(totalInvested),
-        wealth: Math.round(totalWealth),
-        gain: Math.max(0, Math.round(totalWealth - totalInvested))
+        invested: displayInvested,
+        wealth: displayWealth,
+        gain: displayGain,
+        nominalInvested: Math.round(totalInvested),
+        nominalWealth: Math.round(totalWealth)
       });
     }
     return data;
-  }, [sipAmount, lumpSumAmount, expectedReturn, years]);
+  }, [sipAmount, lumpSumAmount, expectedReturn, years, enableStepUp, stepUpPercent, adjustInflation, inflationRate]);
 
   const sipFinalMetrics = useMemo(() => {
     const lastRow = sipChartData[sipChartData.length - 1];
@@ -300,11 +316,113 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                 </div>
               </div>
 
+              {/* Annual Step-Up Toggle and Control */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="enable-step-up"
+                      checked={enableStepUp}
+                      onChange={(e) => setEnableStepUp(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                    />
+                    <label htmlFor="enable-step-up" className="text-[13px] font-semibold text-slate-700 cursor-pointer select-none">
+                      Enable Annual Step-up
+                    </label>
+                  </div>
+                  {enableStepUp && (
+                    <span className="text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
+                      +{stepUpPercent}% / yr
+                    </span>
+                  )}
+                </div>
+
+                {enableStepUp && (
+                  <div className="pl-6 space-y-2 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[11.5px] text-slate-500">
+                      <span>Annual Increment</span>
+                      <span className="font-mono font-bold">{stepUpPercent}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="25"
+                      step="1"
+                      value={stepUpPercent}
+                      onChange={(e) => setStepUpPercent(Number(e.target.value))}
+                      className="w-full accent-blue-605 cursor-pointer h-1 bg-slate-100 rounded-full appearance-none accent-blue-600"
+                    />
+                    <div className="flex justify-between items-center text-[9.5px] text-slate-400 font-mono">
+                      <span>1%</span>
+                      <span>25%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Inflation Adjustment Toggle and Control */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="adjust-inflation"
+                      checked={adjustInflation}
+                      onChange={(e) => setAdjustInflation(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                    />
+                    <label htmlFor="adjust-inflation" className="text-[13px] font-semibold text-slate-700 cursor-pointer select-none">
+                      Adjust for Inflation
+                    </label>
+                  </div>
+                  {adjustInflation && (
+                    <span className="text-[11px] font-mono font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded">
+                      {inflationRate}% Inflation
+                    </span>
+                  )}
+                </div>
+
+                {adjustInflation && (
+                  <div className="pl-6 space-y-2 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[11.5px] text-slate-500">
+                      <span>Expected Inflation Rate</span>
+                      <span className="font-mono font-bold">{inflationRate}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max="12"
+                      step="0.5"
+                      value={inflationRate}
+                      onChange={(e) => setInflationRate(Number(e.target.value))}
+                      className="w-full accent-blue-605 cursor-pointer h-1 bg-slate-100 rounded-full appearance-none accent-blue-600"
+                    />
+                    <div className="flex justify-between items-center text-[9.5px] text-slate-400 font-mono">
+                      <span>2%</span>
+                      <span>12%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex gap-2.5 items-start">
                 <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                  Historically, high-quality equity mutual funds in India have delivered annualized compounding rates between <strong>14% and 18%</strong> over 5+ year cycles.
-                </p>
+                <div className="space-y-1.5 text-left">
+                  <p className="text-[11.5px] text-slate-500 leading-relaxed">
+                    Historically, high-quality equity mutual funds in India have delivered annualized compounding rates between <strong>14% and 18%</strong> over 5+ year cycles.
+                  </p>
+                  {enableStepUp && (
+                    <p className="text-[11px] text-emerald-700 font-medium leading-normal">
+                      📈 <strong>Step-up SIP:</strong> Increasing your SIP by {stepUpPercent}% annually significantly accelerates compounding, boosting your final wealth target with rising career incomes.
+                    </p>
+                  )}
+                  {adjustInflation && (
+                    <p className="text-[11px] text-rose-700 font-medium leading-normal">
+                      🎈 <strong>Inflation Adjustment:</strong> Value is discounted at {inflationRate}% annually to show the actual purchasing power of your final returns in today's money.
+                    </p>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -315,28 +433,63 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
               {/* Top Grid showing final numbers */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 
-                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-left">
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Principal Capital Outlay</p>
+                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                    {adjustInflation ? "Real Capital Outlay" : "Principal Capital Outlay"}
+                  </p>
                   <p className="text-[20px] font-display font-bold text-slate-900 mt-1">{formatCurrencyINR(sipFinalMetrics.invested)}</p>
+                  {adjustInflation && (
+                    <span className="absolute top-2 right-2 text-[8.5px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-mono">
+                      Real Value
+                    </span>
+                  )}
                 </div>
 
-                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-left">
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Estimated Wealth Earnings</p>
+                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                    {adjustInflation ? "Real Wealth Earnings" : "Estimated Wealth Earnings"}
+                  </p>
                   <p className="text-[20px] font-display font-bold text-blue-600 mt-1">+{formatCurrencyINR(sipFinalMetrics.gains)}</p>
+                  {adjustInflation && (
+                    <span className="absolute top-2 right-2 text-[8.5px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-mono">
+                      Real Gain
+                    </span>
+                  )}
                 </div>
 
-                <div className="bg-[#0F172A] text-white p-5 rounded-2xl shadow-xs text-left">
-                  <p className="text-[11px] text-slate-300 font-bold uppercase tracking-wider">Target Portfolio Valuation</p>
+                <div className="bg-[#0F172A] text-white p-5 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                  <p className="text-[11px] text-slate-300 font-bold uppercase tracking-wider">
+                    {adjustInflation ? "Real Portfolio Value" : "Target Portfolio Valuation"}
+                  </p>
                   <p className="text-[20px] font-display font-bold mt-1 text-slate-50">{formatCurrencyINR(sipFinalMetrics.wealth)}</p>
+                  {adjustInflation && (
+                    <span className="absolute top-2 right-2 text-[8.5px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-mono border border-amber-500/20">
+                      Real Power
+                    </span>
+                  )}
                 </div>
 
               </div>
 
               {/* Area Chart mapping year details */}
               <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 shadow-sm" id="sip-chart-panel">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-[14px] font-bold text-slate-900">Wealth Accrual Curve</span>
-                  <span className="text-[11px] font-mono font-bold bg-slate-50 text-slate-500 px-2.5 py-1 rounded">INR (₹) Representation</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-6 text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[14px] font-bold text-slate-900">Wealth Accrual Curve</span>
+                    {enableStepUp && (
+                      <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-mono">
+                        +{stepUpPercent}% Step-up
+                      </span>
+                    )}
+                    {adjustInflation && (
+                      <span className="text-[9.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full font-mono">
+                        {inflationRate}% Inflation Adjusted
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-mono font-bold bg-slate-50 text-slate-500 px-2.5 py-1 rounded self-start sm:self-auto">
+                    INR (₹) {adjustInflation ? "Real Value" : "Nominal Representation"}
+                  </span>
                 </div>
                 <div className="w-full h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -378,7 +531,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                       />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
                       <Area 
-                        name="Compounded Wealth Valuation" 
+                        name={adjustInflation ? "Inflation-Adjusted Wealth" : "Compounded Wealth Valuation"} 
                         type="monotone" 
                         dataKey="wealth" 
                         stroke="#3B82F6" 
@@ -387,7 +540,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                         fill="url(#colorWealth)" 
                       />
                       <Area 
-                        name="Outlaid Capital Principal" 
+                        name={adjustInflation ? "Inflation-Adjusted Principal" : "Outlaid Capital Principal"} 
                         type="monotone" 
                         dataKey="invested" 
                         stroke="#475569" 

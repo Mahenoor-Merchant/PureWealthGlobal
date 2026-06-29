@@ -29,13 +29,35 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
 
 // Ensure database file exists
 const LEADS_FILE_PATH = path.join(process.cwd(), "leads.json");
 
-// In-memory cache as source of truth for reliable performance across serverless environments
+// Firebase config
+let firestoreInstance: any = null;
+
+function getDb() {
+  if (!firestoreInstance) {
+    try {
+      if (getApps().length === 0) {
+        initializeApp({
+          projectId: "axial-enigma-z0bnn"
+        });
+      }
+      firestoreInstance = getFirestore("ai-studio-purewealthglobal-b89abb59-0a6a-4a9e-9251-9892ddacb121");
+      console.log("[Firebase] Admin SDK & Firestore database initialized successfully.");
+    } catch (err) {
+      console.error("[Firebase] Initialization failed:", err);
+    }
+  }
+  return firestoreInstance;
+}
+
+// In-memory cache as source of truth / fallback for reliable performance across serverless environments
 let inMemoryLeads: any[] = [];
 try {
   if (fs.existsSync(LEADS_FILE_PATH)) {
@@ -75,11 +97,57 @@ function writeLeads(leads: any[]) {
   }
 }
 
+async function readLeadsFromFirestore(): Promise<any[]> {
+  const db = getDb();
+  if (db) {
+    try {
+      const snapshot = await db.collection("leads").orderBy("timestamp", "desc").get();
+      const leads: any[] = [];
+      snapshot.forEach((doc: any) => {
+        leads.push(doc.data());
+      });
+      inMemoryLeads = leads;
+      return leads;
+    } catch (err) {
+      console.warn("[Firebase] Firestore read failed, falling back to local file/memory database:", err);
+    }
+  }
+  return readLeads();
+}
+
+async function saveLeadToFirestore(lead: any) {
+  const db = getDb();
+  if (db) {
+    try {
+      await db.collection("leads").doc(lead.id).set(lead);
+      console.log(`[Firebase] Lead ${lead.id} successfully saved to Firestore.`);
+    } catch (err) {
+      console.error("[Firebase] Firestore write failed:", err);
+    }
+  }
+}
+
+async function clearLeadsFromFirestore() {
+  const db = getDb();
+  if (db) {
+    try {
+      const snapshot = await db.collection("leads").get();
+      const batch = db.batch();
+      snapshot.docs.forEach((doc: any) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      console.log("[Firebase] All leads cleared successfully from Firestore.");
+    } catch (err) {
+      console.error("[Firebase] Firestore clear failed:", err);
+    }
+  }
+}
+
 // Leads collection API
-app.post("/api/leads", (req, res) => {
+app.post("/api/leads", async (req, res) => {
   try {
     const { type, name, phone, email, date, timeSlot, calculatorData } = req.body;
-    const leads = readLeads();
     
     const newLead = {
       id: "lead_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
@@ -93,8 +161,13 @@ app.post("/api/leads", (req, res) => {
       calculatorData: calculatorData || null
     };
     
-    leads.push(newLead);
-    writeLeads(leads);
+    // Save locally
+    const localLeads = readLeads();
+    localLeads.push(newLead);
+    writeLeads(localLeads);
+    
+    // Save to Firestore persistently
+    await saveLeadToFirestore(newLead);
     
     // Simulate team notification logs & email transmission
     console.log("\n==================================================");
@@ -122,18 +195,19 @@ app.post("/api/leads", (req, res) => {
   }
 });
 
-app.get("/api/leads", (req, res) => {
+app.get("/api/leads", async (req, res) => {
   try {
-    const leads = readLeads();
+    const leads = await readLeadsFromFirestore();
     return res.json(leads);
   } catch (error: any) {
     return res.status(500).json({ error: error.message || "Failed to fetch leads" });
   }
 });
 
-app.post("/api/leads/clear", (req, res) => {
+app.post("/api/leads/clear", async (req, res) => {
   try {
     writeLeads([]);
+    await clearLeadsFromFirestore();
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || "Failed to clear leads" });

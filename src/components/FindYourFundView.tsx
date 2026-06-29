@@ -16,6 +16,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieC
 import { AMFI_ARN_DETAILS } from '../data';
 import { SharedSurveyData } from '../types';
 import PasswordDialog from './PasswordDialog';
+import TakeActionTodayForm from './TakeActionTodayForm';
 
 import { generateRealFundDetails } from '../funds/master_generator';
 
@@ -4174,6 +4175,21 @@ export default function FindYourFundView({
                 </div>
               </div>
             </div>
+
+            <TakeActionTodayForm
+              toolName="Find Exact Fund"
+              title="Ready to Deploy Your Customized Portfolio?"
+              description="Coordinate with an AMFI-registered certified advisor to lock down your exact mutual fund selections, process NRI KYC/regular KYC clearances, and initiate seamless capital routing."
+              customData={{
+                matchedPortfolio: activePortfolio?.name,
+                expectedReturns: `${activePortfolio?.expectedReturnMin}% - ${activePortfolio?.expectedReturnMax}%`,
+                capitalType,
+                capitalAmount,
+                timeHorizon: surveyData.timeHorizon,
+                goal: surveyData.goal,
+                riskCapacity: surveyData.riskCapacity
+              }}
+            />
 
           </div>
         )}

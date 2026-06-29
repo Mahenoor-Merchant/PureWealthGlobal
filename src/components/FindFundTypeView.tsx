@@ -16,6 +16,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
 import { motion } from 'motion/react';
 import { SharedSurveyData } from '../types';
 import PasswordDialog from './PasswordDialog';
+import TakeActionTodayForm from './TakeActionTodayForm';
 
 // Structuring Category Diagnosis Output
 interface FundCategoryDetails {
@@ -3920,7 +3921,7 @@ export default function FindFundTypeView({
                   <h3 className="text-xl sm:text-2xl font-black font-sans leading-tight">
                     Deploy Your Customized Strategy Model
                   </h3>
-                  <p className="text-xs sm:text-[13px] text-slate-350 mt-2 font-light leading-relaxed">
+                  <p className="text-xs sm:text-[13px] text-slate-355 text-slate-350 mt-2 font-light leading-relaxed">
                     You've calibrated your compatible asset classes. Now select how you'd like to fund your portfolio: utilize our direct automated technology partner or schedule a personalized callback.
                   </p>
                 </div>
@@ -3937,6 +3938,20 @@ export default function FindFundTypeView({
                 </button>
               </div>
             </div>
+
+            <TakeActionTodayForm
+              toolName="Find Fund Type"
+              title="Ready to Secure Your Strategic Mutual Fund Assets?"
+              description="Coordinate with an AMFI-registered certified advisor to lock down your optimal fund categories, process KYC verification, and initiate secure monthly allocations with confidence."
+              customData={{
+                recommendedCategory: currentCategory?.name,
+                capitalType,
+                capitalAmount,
+                timeHorizon,
+                goal,
+                riskCapacity
+              }}
+            />
 
             </>
             )}

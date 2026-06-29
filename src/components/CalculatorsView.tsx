@@ -29,46 +29,6 @@ interface CalculatorsViewProps {
 export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps) {
   const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>('sip');
 
-  // Leads DB System States
-  const [savedLeads, setSavedLeads] = useState<any[]>([]);
-  const [showAdminLeads, setShowAdminLeads] = useState<boolean>(false);
-  const [loadingLeads, setLoadingLeads] = useState<boolean>(false);
-
-  const fetchLeads = async () => {
-    try {
-      setLoadingLeads(true);
-      const res = await fetch('/api/leads');
-      if (res.ok) {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await res.json();
-          setSavedLeads(data);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching leads:', err);
-    } finally {
-      setLoadingLeads(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeads();
-  }, []);
-
-  const clearLeads = async () => {
-    if (!window.confirm("Are you sure you want to clear all leads? This cannot be undone.")) return;
-    try {
-      const res = await fetch('/api/leads/clear', { method: 'POST' });
-      if (res.ok) {
-        fetchLeads();
-        alert("Leads database successfully cleared.");
-      }
-    } catch (err) {
-      console.error("Error clearing leads:", err);
-    }
-  };
-
   const handleLeadSubmit = async (e: React.FormEvent, type: 'consult' | 'pdf' | 'whatsapp') => {
     e.preventDefault();
     setLeadFormError('');
@@ -115,7 +75,6 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
       }
 
       setLeadFormSuccess(true);
-      fetchLeads(); // Refresh CRM portal
       
       // Clear fields
       setLeadName('');
@@ -1955,94 +1914,6 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
 
                   </div>
 
-                </div>
-
-                {/* THE LIVE LEADS DATABASE / ADMIN CRM PORTAL (SOLVES USER QUERY IN REAL-TIME) */}
-                <div className="bg-slate-100 rounded-2xl border border-slate-200 p-4 text-left">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdminLeads(!showAdminLeads)}
-                      className="text-xs font-bold text-slate-700 bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Terminal className="w-3.5 h-3.5 text-slate-600" />
-                      {showAdminLeads ? 'Hide Leads Database Portal' : 'Show Leads Database Portal (Team CRM)'}
-                    </button>
-                    {showAdminLeads && savedLeads.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={clearLeads}
-                        className="text-[10px] font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
-                      >
-                        🗑 Clear Database
-                      </button>
-                    )}
-                  </div>
-
-                  {showAdminLeads && (
-                    <div className="mt-3.5 pt-3.5 border-t border-slate-200 space-y-3.5 animate-fade-in">
-                      <div className="bg-white p-3 rounded-xl border border-slate-200 flex gap-2 items-start text-xs">
-                        <ShieldPlus className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                        <div className="space-y-1 text-slate-600 leading-relaxed">
-                          <p className="font-bold text-slate-800">Where is the lead data saved?</p>
-                          <p>
-                            All lead capture records are persistently saved to <strong>leads.json</strong> at the server root. When booking a VIP Advisory, Callback, or requesting a PDF Blueprint, the data is synced instantly.
-                          </p>
-                          <p className="font-bold text-slate-800 mt-1">Who from the team is notified and how?</p>
-                          <p>
-                            The server emits simulated email dispatches (logged inside the Node terminal console) and triggers instant WebSocket advisory state logs. In production, this integrates with SMTP relays (e.g., SendGrid) to dispatch direct emails to the core team.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        {loadingLeads ? (
-                          <div className="text-center py-4 text-slate-400 text-xs font-mono">
-                            Synchronizing leads datastore...
-                          </div>
-                        ) : savedLeads.length === 0 ? (
-                          <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl font-mono">
-                            The leads database is currently empty. Submit a form above to see records populate here in real-time!
-                          </div>
-                        ) : (
-                          savedLeads.map((l: any, idx: number) => (
-                            <div key={idx} className="bg-white border border-slate-200 p-3 rounded-xl text-xs space-y-1.5 shadow-2xs font-mono relative">
-                              <span className="absolute top-3 right-3 text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
-                                {idx + 1}
-                              </span>
-                              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-slate-100 pb-1.5">
-                                <span className="font-bold text-slate-900">{l.name}</span>
-                                <span className={`text-[9px] font-bold uppercase px-1.5 rounded ${
-                                  l.type === 'pdf' ? 'bg-indigo-50 text-indigo-700' : l.type === 'whatsapp' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                                }`}>
-                                  {l.type === 'pdf' ? 'PDF Blueprint' : l.type === 'whatsapp' ? 'Callback' : 'VIP Advisory'}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-slate-600 text-[11px]">
-                                <div>📞 Phone: <strong>{l.phone}</strong></div>
-                                <div>✉ Email: <strong>{l.email}</strong></div>
-                                {l.date && <div>📅 Date: <strong>{l.date}</strong></div>}
-                                {l.timeSlot && <div>🕒 Time: <strong>{l.timeSlot}</strong></div>}
-                                <div className="sm:col-span-2 text-slate-400 text-[9px] mt-1 border-t border-slate-50 pt-1">
-                                  Captured: {new Date(l.createdAt).toLocaleString()}
-                                </div>
-                              </div>
-                              {l.metadata && (
-                                <div className="bg-slate-50 p-2 rounded border border-slate-100 text-[10px] text-slate-500 space-y-0.5 mt-1.5">
-                                  <div className="font-bold text-slate-700 uppercase tracking-wider text-[8px] mb-0.5">Retirement Metadata Parameters:</div>
-                                  <div>• Current Age: <strong>{l.metadata.currentAge}</strong> | Retire Age: <strong>{l.metadata.retirementAge}</strong></div>
-                                  <div>• Target Corpus: <strong>{formatCurrencyINR(l.metadata.requiredCorpusAtRetirement)}</strong></div>
-                                  <div>• Needed SIP: <strong>{formatCurrencyINR(l.metadata.requiredMonthlySip)}/mo</strong></div>
-                                  <div>• Wealth Score: <strong>{l.metadata.wealthScore}/100</strong></div>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                    </div>
-                  )}
                 </div>
 
               </div>

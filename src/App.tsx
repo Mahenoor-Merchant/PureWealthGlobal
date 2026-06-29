@@ -17,6 +17,7 @@ import FindYourFundView from './components/FindYourFundView';
 import FindFundTypeView from './components/FindFundTypeView';
 import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
 import PortfolioAuditor from './components/PortfolioAuditor';
+import DatabasePortalView from './components/DatabasePortalView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
@@ -77,6 +78,8 @@ export default function App() {
         setCurrentPage('overlap-finder');
       } else if (hash === '#portfolio-audit' || hash === '#audit') {
         setCurrentPage('portfolio-audit');
+      } else if (hash === '#database-portal' || hash === '#database') {
+        setCurrentPage('database-portal');
       } else if (hash === '#home') {
         setCurrentPage('home');
       } else {
@@ -87,6 +90,8 @@ export default function App() {
           setCurrentPage('find-fund-type');
         } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
           setCurrentPage('portfolio-audit');
+        } else if (pathname === '/database' || pathname === '/database-portal') {
+          setCurrentPage('database-portal');
         } else if (pathname === '' || pathname === '/') {
           setCurrentPage('home');
         }
@@ -154,6 +159,8 @@ export default function App() {
         window.history.pushState(null, '', '/findfund');
       } else if (newPage === 'portfolio-audit') {
         window.history.pushState(null, '', '/audit');
+      } else if (newPage === 'database-portal') {
+        window.history.pushState(null, '', '/database');
       } else if (newPage === 'knowledge') {
         if (!window.location.hash.startsWith('#knowledge/')) {
           window.history.pushState(null, '', '/#knowledge/journey');
@@ -252,6 +259,8 @@ export default function App() {
         return <PortfolioOverlapFinder />;
       case 'portfolio-audit':
         return <PortfolioAuditor />;
+      case 'database-portal':
+        return <DatabasePortalView />;
       default:
         return (
           <HomeView 

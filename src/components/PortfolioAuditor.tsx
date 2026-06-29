@@ -47,6 +47,7 @@ import {
   Tooltip,
   Legend
 } from "recharts";
+import TakeActionTodayForm from "./TakeActionTodayForm";
 
 // ==========================================
 // Types and Interfaces
@@ -3306,6 +3307,19 @@ export default function PortfolioAuditor() {
                     <strong>Statutory MFD Record Clause:</strong> Mutual fund investments are subject to market risks. Disclosures on regular plan distribution commission structures are detailed in standard offer documents. We facilitate transactions and distribution assistance securely without direct advisory fee billing under SEBI distribution status guidelines.
                   </div>
                 </div>
+
+                <TakeActionTodayForm
+                  toolName="AI Portfolio Auditor"
+                  title="Ready to Transition Your Portfolio Compliantly?"
+                  description="Connect with an AMFI-registered certified advisor to double-audit your holdings, eliminate regular-plan drag, and implement a tax-efficient transition blueprint."
+                  customData={{
+                    diversificationScore: result?.diversificationScore,
+                    totalFunds: result?.totalFunds,
+                    investorName: result?.investorName,
+                    totalInvested: result?.totalInvested,
+                    currentValue: result?.currentValue
+                  }}
+                />
 
               </motion.div>
               )}

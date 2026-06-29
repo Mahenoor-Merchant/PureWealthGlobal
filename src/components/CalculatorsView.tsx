@@ -18,6 +18,8 @@ import {
   Cell 
 } from 'recharts';
 import { Calculator, Coins, ShieldPlus, TrendingUp, Info, ArrowUpRight, Briefcase, Milestone, Sparkles, HelpCircle, RefreshCw, Layers, Activity, Check, Phone, ArrowRight, ChevronRight, ChevronLeft, Calendar, Clock, Mail, FileText, CheckCircle2, Zap, MessageSquare, AlertTriangle, Terminal } from 'lucide-react';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import FundFinderPromoBanner from './FundFinderPromoBanner';
 
 interface CalculatorsViewProps {
@@ -71,11 +73,15 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
     e.preventDefault();
     setLeadFormError('');
     try {
+      const submittedName = leadName;
+      const submittedEmail = type === 'pdf' ? pdfEmail : leadEmail;
+      const submittedPhone = leadPhone;
+
       const payload = {
         type,
-        name: leadName,
-        phone: type === 'pdf' ? '' : leadPhone,
-        email: type === 'pdf' ? pdfEmail : leadEmail,
+        name: submittedName,
+        phone: submittedPhone,
+        email: submittedEmail,
         date: type === 'consult' ? leadDate : '',
         timeSlot: type === 'consult' ? leadTimeSlot : '',
         calculatorData: {
@@ -118,6 +124,10 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
       setPdfEmail('');
       setLeadDate('');
       setLeadTimeSlot('');
+
+      if (type === 'pdf') {
+        generateAndDownloadPdf(submittedName, submittedEmail, submittedPhone);
+      }
     } catch (err: any) {
       setLeadFormError(err.message || 'An unexpected error occurred. Please try again.');
     }
@@ -138,8 +148,259 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
   const [pdfSuccess, setPdfSuccess] = useState<boolean>(false);
   const [callbackRequested, setCallbackRequested] = useState<boolean>(false);
   const [callbackPhone, setCallbackPhone] = useState<string>('');
+  const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
 
-  // Calculator 1: SIP & Lump Sum State
+  const formatCurrencyForPdf = (val: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(val);
+  };
+
+  const generateAndDownloadPdf = (name: string, email: string, phone: string) => {
+    setGeneratingPdf(true);
+    const element = document.createElement('div');
+    element.style.width = '790px';
+    element.style.fontFamily = '"Inter", sans-serif';
+    element.style.color = '#1e293b';
+    element.style.backgroundColor = '#ffffff';
+
+    const wealthScore = Math.max(15, Math.min(100, Math.round((retirementData.currentMonthlySurplus / Math.max(1, retirementData.requiredMonthlySip)) * 100)));
+    
+    element.innerHTML = `
+      <!-- PAGE 1: COVER PAGE -->
+      <div style="padding: 50px 40px; height: 1040px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(to right, #3b82f6, #4f46e5, #10b981);"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-top: 10px;">
+          <div style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #4f46e5;">FINANCIAL FREEDOM ROADMAP</div>
+          <div style="font-size: 10px; font-weight: bold; color: #64748b; font-family: monospace; letter-spacing: 0.5px;">CONFIDENTIAL ADVISORY DOCUMENT</div>
+        </div>
+
+        <div style="margin-top: 120px; margin-bottom: 120px;">
+          <div style="font-size: 10px; font-weight: 800; background-color: #f59e0b; color: #0f172a; padding: 5px 12px; border-radius: 4px; display: inline-block; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
+            Structured Decumulation Strategy
+          </div>
+          <h1 style="font-size: 38px; font-weight: 800; color: #0f172a; line-height: 1.25; margin: 0; letter-spacing: -0.5px;">
+            PERSONAL RETIREMENT<br/><span style="color: #4f46e5;">FREEDOM BLUEPRINT</span>
+          </h1>
+          <p style="font-size: 14px; color: #475569; margin-top: 20px; max-width: 540px; line-height: 1.6;">
+            A high-precision capital preservation and compounding roadmap engineered to convert your lifetime savings into a bulletproof monthly salary loop.
+          </p>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="text-align: left;">
+            <div style="font-size: 9px; font-weight: bold; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">PREPARED FOR</div>
+            <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 5px;">${name}</div>
+            <div style="font-size: 12px; color: #475569; margin-top: 3px;">Email: ${email} | Contact: ${phone}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 15px; font-weight: 500;">Analysis Date: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>
+          <div style="text-align: center; background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 18px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 180px;">
+            <div style="font-size: 9px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.5px;">FREEDOM SCORE</div>
+            <div style="font-size: 40px; font-weight: 900; color: ${wealthScore >= 75 ? '#10b981' : wealthScore >= 45 ? '#f59e0b' : '#ef4444'}; margin-top: 3px; line-height: 1;">${wealthScore}<span style="font-size: 18px; color: #94a3b8; font-weight: 500;">/100</span></div>
+            <div style="font-size: 11px; color: #475569; font-weight: bold; margin-top: 6px;">${wealthScore >= 75 ? 'Excellent Runway' : wealthScore >= 45 ? 'Action Advised' : 'Capital Warning'}</div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
+          <div>Page 1 of 3</div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: PARAMETERS & EXECUTIVE SUMMARY -->
+      <div style="padding: 50px 40px; height: 1040px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(to right, #3b82f6, #4f46e5, #10b981);"></div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase;">I. FINANCIAL PARAMETERS & RETIREMENT GAP</div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">RUNWAY DATA</div>
+          </div>
+
+          <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 25px; letter-spacing: -0.5px;">Executive Financial Metrics Summary</h2>
+          <p style="font-size: 12.5px; color: #475569; margin-top: 6px; line-height: 1.5;">
+            Calculated instantly based on your target decumulation profile and assumed pre-retirement/post-retirement CAGR values.
+          </p>
+
+          <div style="margin-top: 25px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                  <th style="padding: 14px 18px; font-weight: 700; color: #475569; width: 60%;">Financial Parameter</th>
+                  <th style="padding: 14px 18px; font-weight: 700; color: #475569; text-align: right;">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Current Age / Planned Retirement Age</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #0f172a;">${currentAge} Years / ${retirementAge} Years</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Planned Accumulation Window (Savings Runway)</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #4f46e5;">${retirementData.yearsToRetirement} Years of Compounding</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Living Expenses Today (Monthly)</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #0f172a;">${formatCurrencyForPdf(currentMonthlyExpense)} / month</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Assumed Annual Inflation Rate</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #ef4444;">${inflationRateRetirement}% per year</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Living Expenses at Retirement (Inflation-Adjusted)</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #e11d48; background-color: #fff1f2;">${formatCurrencyForPdf(retirementData.futureMonthlyExpense)} / month</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Expected Investment Return rate (Pre-Retirement / Post-Retirement)</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #10b981;">${preRetirementReturn}% / 8.5% CAGR</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9; background-color: #f8fafc;">
+                  <td style="padding: 13px 18px; color: #0f172a; font-weight: 800;">TOTAL REQUIRED CORPUS AT RETIREMENT AGE</td>
+                  <td style="padding: 13px 18px; font-weight: 900; text-align: right; color: #1e3a8a; font-size: 13px;">${formatCurrencyForPdf(retirementData.totalRequiredCorpusAtRetirement)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Existing Nest-Egg Projected Value at Retirement</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #0f172a;">${formatCurrencyForPdf(retirementData.futureValueOfExistingSavings)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Net Retirement Capital Gap to be Met</td>
+                  <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #ef4444;">${formatCurrencyForPdf(retirementData.netCorpusGap)}</td>
+                </tr>
+                <tr style="background-color: #f0fdf4;">
+                  <td style="padding: 14px 18px; color: #166534; font-weight: 800;">REQUIRED MONTHLY SIP SAVINGS PLAN</td>
+                  <td style="padding: 14px 18px; font-weight: 900; text-align: right; color: #15803d; font-size: 14px;">${formatCurrencyForPdf(retirementData.requiredMonthlySip)} / month</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Feasibility Callout -->
+          <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-top: 25px; text-align: left; display: flex; gap: 15px; align-items: start;">
+            <div style="font-size: 22px; line-height: 1;">💡</div>
+            <div>
+              <h4 style="font-size: 13px; font-weight: 800; color: #1e3a8a; margin: 0;">Roadmap Feasibility Analysis</h4>
+              <p style="font-size: 11.5px; color: #1e40af; line-height: 1.5; margin-top: 5px; margin-bottom: 0;">
+                Your reported monthly financial surplus is <strong>${formatCurrencyForPdf(retirementData.currentMonthlySurplus)}</strong>.
+                ${retirementData.currentMonthlySurplus >= retirementData.requiredMonthlySip 
+                  ? `Excellent! Your current monthly surplus comfortably covers the target monthly SIP of <strong>${formatCurrencyForPdf(retirementData.requiredMonthlySip)}</strong>. Your retirement strategy is fully funded.`
+                  : `Your target monthly SIP of <strong>${formatCurrencyForPdf(retirementData.requiredMonthlySip)}</strong> is larger than your current monthly surplus. We recommend initiating a <strong>Step-Up SIP</strong> (increasing monthly savings by 10% each year) to close this gap easily without changing your lifestyle.`
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
+          <div>Page 2 of 3</div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: 3-BUCKET SYSTEM -->
+      <div style="padding: 50px 40px; height: 1040px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(to right, #3b82f6, #4f46e5, #10b981);"></div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase;">II. THE 3-BUCKET TACTICAL ALLOCATION STRATEGY</div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">DECUMULATION MODEL</div>
+          </div>
+
+          <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 25px; letter-spacing: -0.5px;">The Self-Restoring Decumulation Loop</h2>
+          <p style="font-size: 12.5px; color: #475569; margin-top: 6px; line-height: 1.5;">
+            By separating your total corpus of <strong>${formatCurrencyForPdf(retirementData.totalRequiredCorpusAtRetirement)}</strong> into three distinct risk-stratified buckets, you prevent panic-selling during stock market recessions.
+          </p>
+
+          <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
+            <!-- Bucket 1 -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #f8fafc;">
+              <div style="width: 70%; text-align: left;">
+                <span style="font-size: 9px; font-weight: 800; color: #475569; bg-color: #f1f5f9; background-color: #e2e8f0; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 1: Cash/Liquidity (Years 1-5 payouts)</span>
+                <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 8px; margin-bottom: 4px;">Immediate Income Buffer</h4>
+                <p style="font-size: 11px; color: #475569; line-height: 1.4; margin: 0;">
+                  Placed in highly stable arbitrage and liquid mutual funds targeting <strong>~6.5% CAGR</strong>. Provides uninterrupted monthly cash flows for your first 5 years of retirement, insulating you from short-term volatility.
+                </p>
+              </div>
+              <div style="text-align: right; background-color: #ffffff; border-left: 4px solid #64748b; padding: 10px 15px; border-radius: 0 8px 8px 0; width: 25%; box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-size: 9px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">SIZE</div>
+                <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 3px;">${formatCurrencyForPdf(retirementData.bucket1Arbitrage)}</div>
+              </div>
+            </div>
+
+            <!-- Bucket 2 -->
+            <div style="border: 1px solid #e0e7ff; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #faf5ff; background-color: #f5f3ff;">
+              <div style="width: 70%; text-align: left;">
+                <span style="font-size: 9px; font-weight: 800; color: #4f46e5; background-color: #e0e7ff; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 2: Conservative Hybrid (Years 6-10 payouts)</span>
+                <h4 style="font-size: 14px; font-weight: 700; color: #4338ca; margin-top: 8px; margin-bottom: 4px;">The Inflation Bridge</h4>
+                <p style="font-size: 11px; color: #5b21b6; line-height: 1.4; margin: 0;">
+                  Invested in conservative or equity savings hybrid mutual funds targeting <strong>~8.5% CAGR</strong>. Left untouched to compound quietly during Years 1-5, then systematically transferred to fund Years 6-10.
+                </p>
+              </div>
+              <div style="text-align: right; background-color: #ffffff; border-left: 4px solid #4f46e5; padding: 10px 15px; border-radius: 0 8px 8px 0; width: 25%; box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-size: 9px; color: #a78bfa; font-weight: 700; text-transform: uppercase;">SIZE</div>
+                <div style="font-size: 15px; font-weight: 800; color: #5b21b6; margin-top: 3px;">${formatCurrencyForPdf(retirementData.bucket2Hybrid)}</div>
+              </div>
+            </div>
+
+            <!-- Bucket 3 -->
+            <div style="border: 1px solid #fef3c7; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #fffbeb;">
+              <div style="width: 70%; text-align: left;">
+                <span style="font-size: 9px; font-weight: 800; color: #b45309; background-color: #fef3c7; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 3: Diversified Equity (Years 11-15+ payouts)</span>
+                <h4 style="font-size: 14px; font-weight: 700; color: #b45309; margin-top: 8px; margin-bottom: 4px;">Generational Wealth Compounder</h4>
+                <p style="font-size: 11px; color: #92400e; line-height: 1.4; margin: 0;">
+                  Invested in highly diversified flexi-cap or multi-cap active equity mutual funds targeting <strong>~12% CAGR</strong>. Left untouched for 10-15 years to compound massively.
+                </p>
+              </div>
+              <div style="text-align: right; background-color: #ffffff; border-left: 4px solid #f59e0b; padding: 10px 15px; border-radius: 0 8px 8px 0; width: 25%; box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-size: 9px; color: #f59e0b; font-weight: 700; text-transform: uppercase;">SIZE</div>
+                <div style="font-size: 15px; font-weight: 800; color: #b45309; margin-top: 3px;">${formatCurrencyForPdf(retirementData.bucket3Equity)}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loop explanation -->
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; margin-top: 25px; text-align: left; display: flex; gap: 15px; align-items: start;">
+            <div style="font-size: 22px; line-height: 1;">🔄</div>
+            <div>
+              <h4 style="font-size: 13px; font-weight: 800; color: #166534; margin: 0;">The Loop: Bucket 3 Restoration Effect</h4>
+              <p style="font-size: 11.5px; color: #15803d; line-height: 1.5; margin-top: 5px; margin-bottom: 0;">
+                By Year 15, Buckets 1 and 2 are fully liquidated. However, your active Bucket 3 (Equity) has compounded untouched for 15 years, growing from <strong>${formatCurrencyForPdf(retirementData.bucket3Equity)}</strong> into a massive <strong>${formatCurrencyForPdf(retirementData.bucket3FutureValue15Years)}</strong>! This fully restores your original starting capital to begin the cycle again, ensuring a lifelong, self-funding retirement.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
+          <div>Page 3 of 3</div>
+        </div>
+      </div>
+    `;
+
+    const opt: any = {
+      margin:       0,
+      filename:     `Financial_Freedom_Blueprint_${name.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+        setGeneratingPdf(false);
+      })
+      .catch((err: any) => {
+        console.error("PDF download failed:", err);
+        setGeneratingPdf(false);
+      });
+  };
   const [sipAmount, setSipAmount] = useState<number>(25000); // 25,000 INR
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(0); // 0 INR
   const [expectedReturn, setExpectedReturn] = useState<number>(14); // 14%
@@ -1573,7 +1834,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                         <h5 className="font-bold text-sm text-slate-900 font-display">Action Confirmed Successfully!</h5>
                         <p className="text-[11.5px] text-slate-500 max-w-sm mx-auto leading-relaxed">
                           {activeLeadOption === 'pdf' 
-                            ? `Your custom PDF Financial Freedom Blueprint is being assembled & dispatched. A verification copy is logged in the Team Portal!`
+                            ? `Your custom 3-Page Financial Freedom Blueprint PDF has been compiled and downloaded to your device! A registration copy has been saved in the CRM portal.`
                             : activeLeadOption === 'whatsapp'
                               ? `Your fastback callback request has been received. Our senior wealth manager will call you back within 15 minutes!`
                               : `Your VIP Advisory session has been booked. Our Senior Advisor has been allocated your exact financial runway details & will connect at your chosen time slot.`
@@ -1611,19 +1872,17 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                             />
                           </div>
 
-                          {activeLeadOption !== 'pdf' && (
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number <span className="text-rose-500">*</span></label>
-                              <input
-                                type="tel"
-                                required
-                                value={leadPhone}
-                                onChange={(e) => setLeadPhone(e.target.value)}
-                                placeholder="e.g. +91 98765 43210"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
-                              />
-                            </div>
-                          )}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number <span className="text-rose-500">*</span></label>
+                            <input
+                              type="tel"
+                              required
+                              value={leadPhone}
+                              onChange={(e) => setLeadPhone(e.target.value)}
+                              placeholder="e.g. +91 98765 43210"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                            />
+                          </div>
 
                           {(activeLeadOption === 'pdf' || activeLeadOption === 'consult') && (
                             <div className="space-y-1">
@@ -2627,6 +2886,23 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
         )}
 
         <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
+
+        {generatingPdf && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm text-center space-y-4 border border-slate-100 mx-4">
+              <div className="relative flex items-center justify-center">
+                <RefreshCw className="w-10 h-10 text-indigo-600 animate-spin" />
+                <FileText className="w-5 h-5 text-indigo-500 absolute" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-sm text-slate-900 font-display">Assembling Your PDF Blueprint</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  We are calculating your decumulation buckets, computing your wealth score, and generating your high-precision custom report. Download will start in a moment.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

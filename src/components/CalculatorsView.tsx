@@ -37,8 +37,11 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
       setLoadingLeads(true);
       const res = await fetch('/api/leads');
       if (res.ok) {
-        const data = await res.json();
-        setSavedLeads(data);
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json();
+          setSavedLeads(data);
+        }
       }
     } catch (err) {
       console.error('Error fetching leads:', err);
@@ -92,9 +95,17 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
         body: JSON.stringify(payload)
       });
 
+      let resData: any = null;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        resData = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text.slice(0, 150) || `Request failed with status ${res.status}`);
+      }
+
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to submit form');
+        throw new Error(resData?.error || 'Failed to submit form');
       }
 
       setLeadFormSuccess(true);

@@ -35,23 +35,43 @@ import path from "path";
 // Ensure database file exists
 const LEADS_FILE_PATH = path.join(process.cwd(), "leads.json");
 
-function readLeads() {
-  try {
-    if (fs.existsSync(LEADS_FILE_PATH)) {
-      const raw = fs.readFileSync(LEADS_FILE_PATH, "utf8");
-      return JSON.parse(raw);
-    }
-  } catch (err) {
-    console.error("Error reading leads file:", err);
+// In-memory cache as source of truth for reliable performance across serverless environments
+let inMemoryLeads: any[] = [];
+try {
+  if (fs.existsSync(LEADS_FILE_PATH)) {
+    const raw = fs.readFileSync(LEADS_FILE_PATH, "utf8");
+    inMemoryLeads = JSON.parse(raw);
   }
-  return [];
+} catch (err) {
+  console.warn("Initial load of leads.json skipped or failed:", err);
+}
+
+function readLeads() {
+  if (inMemoryLeads.length === 0) {
+    try {
+      if (fs.existsSync(LEADS_FILE_PATH)) {
+        const raw = fs.readFileSync(LEADS_FILE_PATH, "utf8");
+        inMemoryLeads = JSON.parse(raw);
+      }
+    } catch (err) {
+      // Ignore
+    }
+  }
+  return inMemoryLeads;
 }
 
 function writeLeads(leads: any[]) {
+  inMemoryLeads = leads;
   try {
     fs.writeFileSync(LEADS_FILE_PATH, JSON.stringify(leads, null, 2), "utf8");
   } catch (err) {
     console.error("Error writing leads file:", err);
+    // Ephemeral /tmp fallback for Serverless read-only filesystems
+    try {
+      fs.writeFileSync("/tmp/leads.json", JSON.stringify(leads, null, 2), "utf8");
+    } catch (tmpErr) {
+      // Ignore
+    }
   }
 }
 

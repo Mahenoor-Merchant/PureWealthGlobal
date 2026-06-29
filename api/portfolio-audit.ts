@@ -29,6 +29,97 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+import fs from "fs";
+import path from "path";
+
+// Ensure database file exists
+const LEADS_FILE_PATH = path.join(process.cwd(), "leads.json");
+
+function readLeads() {
+  try {
+    if (fs.existsSync(LEADS_FILE_PATH)) {
+      const raw = fs.readFileSync(LEADS_FILE_PATH, "utf8");
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error("Error reading leads file:", err);
+  }
+  return [];
+}
+
+function writeLeads(leads: any[]) {
+  try {
+    fs.writeFileSync(LEADS_FILE_PATH, JSON.stringify(leads, null, 2), "utf8");
+  } catch (err) {
+    console.error("Error writing leads file:", err);
+  }
+}
+
+// Leads collection API
+app.post("/api/leads", (req, res) => {
+  try {
+    const { type, name, phone, email, date, timeSlot, calculatorData } = req.body;
+    const leads = readLeads();
+    
+    const newLead = {
+      id: "lead_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      type,
+      name: name || "Anonymous",
+      phone: phone || "",
+      email: email || "",
+      date: date || "",
+      timeSlot: timeSlot || "",
+      timestamp: new Date().toISOString(),
+      calculatorData: calculatorData || null
+    };
+    
+    leads.push(newLead);
+    writeLeads(leads);
+    
+    // Simulate team notification logs & email transmission
+    console.log("\n==================================================");
+    console.log(`✨ [TEAM NOTIFICATION] NEW RETIREMENT ROADMAP LEAD CAPTURED`);
+    console.log(`📌 Source: Financial Freedom & Retirement Calculator`);
+    console.log(`🏷️ Lead Type: ${type.toUpperCase()}`);
+    console.log(`👤 Name: ${newLead.name}`);
+    console.log(`📞 Contact Mobile: ${newLead.phone || "Not specified"}`);
+    console.log(`✉️ Contact Email: ${newLead.email || "Not specified"}`);
+    if (date) {
+      console.log(`📅 VIP Date: ${newLead.date} (${newLead.timeSlot})`);
+    }
+    if (calculatorData) {
+      console.log(`📈 Accumulation runway: ${calculatorData.yearsToRetirement} Years`);
+      console.log(`🏦 Projected Corpus Target: ₹${Math.round(calculatorData.totalRequiredCorpusAtRetirement || 0).toLocaleString('en-IN')}`);
+      console.log(`💸 Recommended Retirement SIP: ₹${Math.round(calculatorData.requiredMonthlySip || 0).toLocaleString('en-IN')}/mo`);
+    }
+    console.log(`✉️ Email Simulation: Sending full custom PDF blueprint report to ${newLead.email || "client"}... [SUCCESS]`);
+    console.log("==================================================\n");
+    
+    return res.json({ success: true, lead: newLead });
+  } catch (error: any) {
+    console.error("Error saving lead:", error);
+    return res.status(500).json({ error: error.message || "Failed to save lead" });
+  }
+});
+
+app.get("/api/leads", (req, res) => {
+  try {
+    const leads = readLeads();
+    return res.json(leads);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to fetch leads" });
+  }
+});
+
+app.post("/api/leads/clear", (req, res) => {
+  try {
+    writeLeads([]);
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to clear leads" });
+  }
+});
+
 function normalizeFundName(name: string): string {
   if (!name) return "";
   let s = name.toLowerCase();

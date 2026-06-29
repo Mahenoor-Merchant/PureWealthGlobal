@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -17,7 +17,7 @@ import {
   Pie, 
   Cell 
 } from 'recharts';
-import { Calculator, Coins, ShieldPlus, TrendingUp, Info, ArrowUpRight } from 'lucide-react';
+import { Calculator, Coins, ShieldPlus, TrendingUp, Info, ArrowUpRight, Briefcase, Milestone, Sparkles, HelpCircle, RefreshCw, Layers, Activity, Check, Phone, ArrowRight, ChevronRight, ChevronLeft, Calendar, Clock, Mail, FileText, CheckCircle2, Zap, MessageSquare, AlertTriangle, Terminal } from 'lucide-react';
 import FundFinderPromoBanner from './FundFinderPromoBanner';
 
 interface CalculatorsViewProps {
@@ -25,7 +25,108 @@ interface CalculatorsViewProps {
 }
 
 export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps) {
-  const [activeTab, setActiveTab] = useState<'sip' | 'allocator'>('sip');
+  const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>('sip');
+
+  // Leads DB System States
+  const [savedLeads, setSavedLeads] = useState<any[]>([]);
+  const [showAdminLeads, setShowAdminLeads] = useState<boolean>(false);
+  const [loadingLeads, setLoadingLeads] = useState<boolean>(false);
+
+  const fetchLeads = async () => {
+    try {
+      setLoadingLeads(true);
+      const res = await fetch('/api/leads');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedLeads(data);
+      }
+    } catch (err) {
+      console.error('Error fetching leads:', err);
+    } finally {
+      setLoadingLeads(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+  }, []);
+
+  const clearLeads = async () => {
+    if (!window.confirm("Are you sure you want to clear all leads? This cannot be undone.")) return;
+    try {
+      const res = await fetch('/api/leads/clear', { method: 'POST' });
+      if (res.ok) {
+        fetchLeads();
+        alert("Leads database successfully cleared.");
+      }
+    } catch (err) {
+      console.error("Error clearing leads:", err);
+    }
+  };
+
+  const handleLeadSubmit = async (e: React.FormEvent, type: 'consult' | 'pdf' | 'whatsapp') => {
+    e.preventDefault();
+    setLeadFormError('');
+    try {
+      const payload = {
+        type,
+        name: leadName,
+        phone: type === 'pdf' ? '' : leadPhone,
+        email: type === 'pdf' ? pdfEmail : leadEmail,
+        date: type === 'consult' ? leadDate : '',
+        timeSlot: type === 'consult' ? leadTimeSlot : '',
+        calculatorData: {
+          currentAge,
+          retirementAge,
+          requiredCorpusAtRetirement: retirementData.totalRequiredCorpusAtRetirement,
+          requiredMonthlySip: retirementData.requiredMonthlySip,
+          wealthScore: Math.max(15, Math.min(100, Math.round((retirementData.currentMonthlySurplus / Math.max(1, retirementData.requiredMonthlySip)) * 100)))
+        }
+      };
+
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to submit form');
+      }
+
+      setLeadFormSuccess(true);
+      fetchLeads(); // Refresh CRM portal
+      
+      // Clear fields
+      setLeadName('');
+      setLeadPhone('');
+      setLeadEmail('');
+      setPdfEmail('');
+      setLeadDate('');
+      setLeadTimeSlot('');
+    } catch (err: any) {
+      setLeadFormError(err.message || 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  // Calculator 3 Onboarding Wizard & Lead Capture States
+  const [retirementStep, setRetirementStep] = useState<number>(1);
+  const [showRetirementResults, setShowRetirementResults] = useState<boolean>(true); // Defaults to true since inputs and results are on the same page now!
+  const [leadName, setLeadName] = useState<string>('');
+  const [leadPhone, setLeadPhone] = useState<string>('');
+  const [leadEmail, setLeadEmail] = useState<string>('');
+  const [leadDate, setLeadDate] = useState<string>('');
+  const [leadTimeSlot, setLeadTimeSlot] = useState<string>('');
+  const [leadFormSuccess, setLeadFormSuccess] = useState<boolean>(false);
+  const [leadFormError, setLeadFormError] = useState<string>('');
+  const [activeLeadOption, setActiveLeadOption] = useState<'consult' | 'pdf' | 'whatsapp'>('consult');
+  const [pdfEmail, setPdfEmail] = useState<string>('');
+  const [pdfSuccess, setPdfSuccess] = useState<boolean>(false);
+  const [callbackRequested, setCallbackRequested] = useState<boolean>(false);
+  const [callbackPhone, setCallbackPhone] = useState<string>('');
 
   // Calculator 1: SIP & Lump Sum State
   const [sipAmount, setSipAmount] = useState<number>(25000); // 25,000 INR
@@ -41,6 +142,190 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
   const [goalType, setGoalType] = useState<'wealth' | 'retirement' | 'education'>('wealth');
   const [timeHorizon, setTimeHorizon] = useState<'short' | 'medium' | 'long'>('long');
   const [riskFactor, setRiskFactor] = useState<'moderate' | 'aggressive'>('aggressive');
+
+  // Calculator 3: Financial Freedom & Retirement State
+  const [currentAge, setCurrentAge] = useState<number>(35);
+  const [retirementAge, setRetirementAge] = useState<number>(60);
+  const [lifeExpectancy, setLifeExpectancy] = useState<number>(85);
+  const [currentMonthlyIncome, setCurrentMonthlyIncome] = useState<number>(150000); // 1.5 Lakhs default
+  const [currentMonthlyExpense, setCurrentMonthlyExpense] = useState<number>(50000); // 50,000 INR
+  const [inflationRateRetirement, setInflationRateRetirement] = useState<number>(6); // 6%
+  const [estateAmount, setEstateAmount] = useState<number>(0); // want to leave any estate? Default 0
+  const [existingSavings, setExistingSavings] = useState<number>(1500000); // 15 Lakhs default
+  const [expectedLumpSum, setExpectedLumpSum] = useState<number>(5000000); // 50 Lakhs default
+  const [preRetirementReturn, setPreRetirementReturn] = useState<number>(10); // 10% expected return on pre-retirement SIP/Savings
+  const [oneTimeRetirementGoal, setOneTimeRetirementGoal] = useState<number>(2000000); // 20 Lakhs default for "amount required at the time of retirement"
+
+  // Loan & EMI States
+  const [totalLoanAmount, setTotalLoanAmount] = useState<number>(1500000); // 15 Lakhs default
+  const [emi1Amount, setEmi1Amount] = useState<number>(15000);
+  const [emi1Years, setEmi1Years] = useState<number>(5);
+  const [emi2Amount, setEmi2Amount] = useState<number>(0);
+  const [emi2Years, setEmi2Years] = useState<number>(0);
+  const [emi3Amount, setEmi3Amount] = useState<number>(0);
+  const [emi3Years, setEmi3Years] = useState<number>(0);
+
+  const handleCurrentAgeChange = (val: number) => {
+    setCurrentAge(val);
+  };
+
+  const handleCurrentAgeBlur = () => {
+    const val = Math.max(18, Math.min(80, currentAge || 18));
+    setCurrentAge(val);
+    if (val >= retirementAge) {
+      const nextRetire = val + 5;
+      setRetirementAge(nextRetire);
+      if (nextRetire >= lifeExpectancy) {
+        setLifeExpectancy(nextRetire + 15);
+      }
+    }
+  };
+
+  const handleRetirementAgeChange = (val: number) => {
+    setRetirementAge(val);
+  };
+
+  const handleRetirementAgeBlur = () => {
+    const val = Math.max(currentAge + 1, Math.min(90, retirementAge || (currentAge + 5)));
+    setRetirementAge(val);
+    if (val >= lifeExpectancy) {
+      setLifeExpectancy(val + 5);
+    }
+  };
+
+  const handleLifeExpectancyChange = (val: number) => {
+    setLifeExpectancy(val);
+  };
+
+  const handleLifeExpectancyBlur = () => {
+    const val = Math.max(retirementAge + 1, Math.min(110, lifeExpectancy || (retirementAge + 15)));
+    setLifeExpectancy(val);
+  };
+
+  // Retirement Math & Bucketing Strategy Computing
+  const retirementData = useMemo(() => {
+    // Sanitize values for calculation to prevent layout issues / negative timelines during typing
+    const safeCurrentAge = Math.max(1, currentAge || 18);
+    const safeRetirementAge = Math.max(safeCurrentAge + 1, retirementAge || (safeCurrentAge + 5));
+    const safeLifeExpectancy = Math.max(safeRetirementAge + 1, lifeExpectancy || (safeRetirementAge + 15));
+
+    const yearsToRetirement = Math.max(1, safeRetirementAge - safeCurrentAge);
+    const yearsInRetirement = Math.max(1, safeLifeExpectancy - safeRetirementAge);
+    
+    // Future Monthly Expense in the first year of retirement
+    const futureMonthlyExpense = currentMonthlyExpense * Math.pow(1 + inflationRateRetirement / 100, yearsToRetirement);
+    
+    // Total retirement corpus including inflation adjustment
+    // Using a 2% real rate of return as defined by the industry-standard expert planning guidelines
+    const realAnnualRate = 0.02; 
+    const r_real_monthly = realAnnualRate / 12;
+    const totalMonths = yearsInRetirement * 12;
+    
+    // Present Value of an annuity due (withdrawing at the beginning of each month)
+    const annuityFactor = (1 - Math.pow(1 + r_real_monthly, -totalMonths)) / r_real_monthly;
+    const requiredCorpusForExpenses = futureMonthlyExpense * annuityFactor * (1 + r_real_monthly);
+    
+    // Future estate value discounted back to age 60 (at 2% real rate of return)
+    const estateDiscountFactor = Math.pow(1 + realAnnualRate, -yearsInRetirement);
+    const requiredEstateCorpus = estateAmount * estateDiscountFactor;
+    
+    // Total required corpus including expenses corpus, estate corpus AND oneTimeRetirementGoal required exactly at retirement age
+    const totalRequiredCorpusAtRetirement = requiredCorpusForExpenses + requiredEstateCorpus + oneTimeRetirementGoal;
+    
+    // Future Value of existing savings at preRetirementReturn CAGR
+    const futureValueOfExistingSavings = existingSavings * Math.pow(1 + preRetirementReturn / 100, yearsToRetirement);
+    
+    // Lump sums expected at retirement (NPS, EPF, Gratuity, etc.)
+    const lumpSumsAtRetirement = expectedLumpSum;
+    
+    // Net gap to be met by new SIP
+    const netCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - futureValueOfExistingSavings - lumpSumsAtRetirement);
+    
+    // Required Monthly SIP to cover the net gap (True CAGR compounding formula)
+    const preRetirementMonthlyRate = Math.pow(1 + preRetirementReturn / 100, 1 / 12) - 1;
+    const preRetirementMonths = yearsToRetirement * 12;
+    
+    const sipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, preRetirementMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
+    const requiredMonthlySip = netCorpusGap > 0 ? (netCorpusGap / sipFvFactor) : 0;
+
+    // --- FOMO Scenario 1: Started 5 Years Earlier ---
+    const earlyYearsToRetirement = yearsToRetirement + 5;
+    const earlyFutureValueOfExistingSavings = existingSavings * Math.pow(1 + preRetirementReturn / 100, earlyYearsToRetirement);
+    const earlyNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - earlyFutureValueOfExistingSavings - lumpSumsAtRetirement);
+    const earlyMonths = earlyYearsToRetirement * 12;
+    const earlySipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, earlyMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
+    const requiredMonthlySipEarly = earlyNetCorpusGap > 0 ? (earlyNetCorpusGap / earlySipFvFactor) : 0;
+
+    // --- FOMO Scenario 2: Starting 5 Years Later ---
+    const lateYearsToRetirement = Math.max(1, yearsToRetirement - 5);
+    const lateFutureValueOfExistingSavings = existingSavings * Math.pow(1 + preRetirementReturn / 100, lateYearsToRetirement);
+    const lateNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - lateFutureValueOfExistingSavings - lumpSumsAtRetirement);
+    const lateMonths = lateYearsToRetirement * 12;
+    const lateSipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, lateMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
+    const requiredMonthlySipLate = lateNetCorpusGap > 0 ? (lateNetCorpusGap / lateSipFvFactor) : 0;
+    
+    // Bucketing Strategy Division:
+    // Bucket 1 (Liquidity / Arbitrage): 3 years of first-year living expenses
+    const bucket1Arbitrage = Math.min(totalRequiredCorpusAtRetirement, 3 * 12 * futureMonthlyExpense);
+    
+    // Bucket 3 (Wealth / Equity): 20% of the total accumulated corpus
+    const bucket3Equity = totalRequiredCorpusAtRetirement * 0.20;
+    
+    // Bucket 2 (Income / Hybrid): Remaining balance
+    const bucket2Hybrid = Math.max(0, totalRequiredCorpusAtRetirement - bucket1Arbitrage - bucket3Equity);
+    
+    // Future Value of Bucket 3 after 15 years at an expected 12% equity CAGR return rate
+    const bucket3FutureValue15Years = bucket3Equity * Math.pow(1 + 0.12, 15);
+
+    // Debt & Surplus Calculations
+    const totalCurrentEmi = emi1Amount + emi2Amount + emi3Amount;
+    const currentMonthlySurplus = Math.max(0, currentMonthlyIncome - currentMonthlyExpense - totalCurrentEmi);
+    const maxEmiYears = Math.max(
+      emi1Amount > 0 ? emi1Years : 0,
+      emi2Amount > 0 ? emi2Years : 0,
+      emi3Amount > 0 ? emi3Years : 0
+    );
+    
+    return {
+      yearsToRetirement,
+      yearsInRetirement,
+      futureMonthlyExpense,
+      requiredCorpusForExpenses,
+      requiredEstateCorpus,
+      totalRequiredCorpusAtRetirement,
+      futureValueOfExistingSavings,
+      lumpSumsAtRetirement,
+      netCorpusGap,
+      requiredMonthlySip,
+      requiredMonthlySipEarly,
+      requiredMonthlySipLate,
+      bucket1Arbitrage,
+      bucket2Hybrid,
+      bucket3Equity,
+      bucket3FutureValue15Years,
+      totalCurrentEmi,
+      currentMonthlySurplus,
+      maxEmiYears
+    };
+  }, [
+    currentAge,
+    retirementAge,
+    lifeExpectancy,
+    currentMonthlyExpense,
+    inflationRateRetirement,
+    estateAmount,
+    existingSavings,
+    expectedLumpSum,
+    preRetirementReturn,
+    oneTimeRetirementGoal,
+    currentMonthlyIncome,
+    emi1Amount,
+    emi1Years,
+    emi2Amount,
+    emi2Years,
+    emi3Amount,
+    emi3Years
+  ]);
 
   // SIP Math Computing
   const sipChartData = useMemo(() => {
@@ -189,7 +474,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
         <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
         {/* Tab Selection (Pristine minimalism sliders look) */}
-        <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-md mx-auto mb-10 shadow-sm" id="calc-tab-headers">
+        <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-xl mx-auto mb-10 shadow-sm" id="calc-tab-headers">
           <button
             onClick={() => setActiveTab('sip')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
@@ -211,6 +496,17 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
           >
             <ShieldPlus className="w-4 h-4" />
             NRI Risk Profiler
+          </button>
+          <button
+            onClick={() => setActiveTab('retirement')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+              activeTab === 'retirement' 
+                ? 'bg-[#0F172A] text-white shadow-sm' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Milestone className="w-4 h-4" />
+            Retirement & Freedom
           </button>
         </div>
 
@@ -707,6 +1003,1614 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
               </div>
 
             </div>
+
+          </div>
+        )}
+
+        {/* Tab 3: Financial Freedom & Retirement Calculator */}
+        {activeTab === 'retirement' && (
+          <div className="space-y-8 animate-fade-in" id="retirement-calculator">
+            
+            {/* Real-time Dashboard Header */}
+            <div className="text-left bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 relative overflow-hidden shadow-sm">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Milestone className="w-48 h-48 rotate-12" />
+              </div>
+              <div className="relative space-y-1">
+                <span className="text-[9px] font-mono font-bold bg-amber-400 text-slate-950 px-2.5 py-1 rounded uppercase tracking-wider">
+                  Real-time Freedom Planner
+                </span>
+                <h3 className="text-xl sm:text-2xl font-bold font-display tracking-tight mt-1 flex items-center gap-2">
+                  <Milestone className="w-6 h-6 text-amber-400" />
+                  Financial Freedom & Retirement Blueprint
+                </h3>
+                <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
+                  Calibrate your inputs on the left. Your 15-year decumulation bucket strategy, readiness score, and compounding targets will recalculate <strong>instantly in real time</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Left Column (5 Cols) - INPUTS DASHBOARD PANEL */}
+              <div className="lg:col-span-5 space-y-4 text-left">
+                
+                {/* Panel 1: Timeline & Target ROI */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-4.5 shadow-xs space-y-3.5">
+                  <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                    <Calendar className="w-4 h-4 text-indigo-600" />
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">1. Timeline & ROI</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current Age</label>
+                      <input type="number" min="18" max="74" value={currentAge || ''} onChange={(e) => handleCurrentAgeChange(Number(e.target.value))} onBlur={handleCurrentAgeBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center text-xs font-bold text-slate-800 focus:ring-1 focus:ring-indigo-500" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Retire Age</label>
+                      <input type="number" min={currentAge + 1} max="80" value={retirementAge || ''} onChange={(e) => handleRetirementAgeChange(Number(e.target.value))} onBlur={handleRetirementAgeBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center text-xs font-bold text-slate-800 focus:ring-1 focus:ring-indigo-500" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Life Expect</label>
+                      <input type="number" min={retirementAge + 1} max="110" value={lifeExpectancy || ''} onChange={(e) => handleLifeExpectancyChange(Number(e.target.value))} onBlur={handleLifeExpectancyBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center text-xs font-bold text-slate-800 focus:ring-1 focus:ring-indigo-500" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[11px] text-slate-600">
+                      <span>Accumulation Runway</span>
+                      <span className="font-mono text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded">{retirementData.yearsToRetirement} Years</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span className="text-slate-600 font-bold">Pre-Retirement ROI Target</span>
+                      <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">{preRetirementReturn}% CAGR</span>
+                    </div>
+                    <input type="range" min="6" max="25" step="0.5" value={preRetirementReturn} onChange={(e) => setPreRetirementReturn(Number(e.target.value))} className="w-full accent-emerald-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+                </div>
+
+                {/* Panel 2: Income, Expenses & Inflation */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-4.5 shadow-xs space-y-3.5">
+                  <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                    <Activity className="w-4 h-4 text-emerald-600" />
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">2. Income, Expenses & Inflation</h4>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-700">Monthly Net Income Today</label>
+                      <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                        {formatCurrencyINR(currentMonthlyIncome)}
+                      </span>
+                    </div>
+                    <input type="range" min="20000" max="1000000" step="10000" value={currentMonthlyIncome} onChange={(e) => setCurrentMonthlyIncome(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-700">Monthly Living Expenses Today</label>
+                      <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                        {formatCurrencyINR(currentMonthlyExpense)}
+                      </span>
+                    </div>
+                    <input type="range" min="10000" max="500000" step="5000" value={currentMonthlyExpense} onChange={(e) => setCurrentMonthlyExpense(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-[11px]">
+                      <label className="font-bold text-slate-700">Assumed Average Inflation Rate</label>
+                      <span className="font-mono text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">{inflationRateRetirement}%</span>
+                    </div>
+                    <input type="range" min="4" max="12" step="0.5" value={inflationRateRetirement} onChange={(e) => setInflationRateRetirement(Number(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+                </div>
+
+                {/* Panel 3: Existing Wealth & Future Goals */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-4.5 shadow-xs space-y-3.5">
+                  <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">3. Savings & Future Goals</h4>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-700">Existing Investments & Savings</label>
+                      <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        {formatCurrencyINR(existingSavings)}
+                      </span>
+                    </div>
+                    <input type="range" min="0" max="20000000" step="50000" value={existingSavings} onChange={(e) => setExistingSavings(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-700">Corporate Accumulations (EPF, NPS)</label>
+                      <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        {formatCurrencyINR(expectedLumpSum)}
+                      </span>
+                    </div>
+                    <input type="range" min="0" max="20000000" step="50000" value={expectedLumpSum} onChange={(e) => setExpectedLumpSum(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">One-Time Goal (₹)</label>
+                      <input type="number" value={oneTimeRetirementGoal || ''} onChange={(e) => setOneTimeRetirementGoal(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-800" placeholder="e.g. travel" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Legacy Estate (₹)</label>
+                      <input type="number" value={estateAmount || ''} onChange={(e) => setEstateAmount(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-800" placeholder="for kids" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Panel 4: Outstanding Liabilities & EMIs */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-4.5 shadow-xs space-y-3.5">
+                  <div className="flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-500" />
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">4. Outstanding Debt & EMIs</h4>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-700">Total Outstanding Loan Debt (₹)</label>
+                      <input 
+                        type="number"
+                        min="0"
+                        max="100000000"
+                        value={totalLoanAmount || 0}
+                        onChange={(e) => setTotalLoanAmount(Number(e.target.value))}
+                        className="w-28 bg-rose-50/50 border border-rose-200 rounded-lg p-1 text-right text-xs font-mono font-bold text-rose-700 focus:outline-hidden focus:ring-1 focus:ring-rose-400"
+                      />
+                    </div>
+                    <input type="range" min="0" max="30000000" step="10000" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(Number(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Identify Active Monthly EMIs (Up to 3):</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 space-y-0.5">
+                        <span className="text-[8px] text-slate-400 font-bold block">EMI 1 (₹)</span>
+                        <input type="number" value={emi1Amount || ''} onChange={(e) => setEmi1Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-250 rounded p-1 text-[11px] font-bold text-slate-800 text-center" />
+                        <select value={emi1Years} onChange={(e) => setEmi1Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-0.5 text-[9px] text-slate-700">
+                          {[1,2,3,4,5,7,10,15,20,25].map(y => (
+                            <option key={y} value={y}>{y} yr{y > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 space-y-0.5">
+                        <span className="text-[8px] text-slate-400 font-bold block">EMI 2 (₹)</span>
+                        <input type="number" value={emi2Amount || ''} onChange={(e) => setEmi2Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-250 rounded p-1 text-[11px] font-bold text-slate-800 text-center" />
+                        <select value={emi2Years} onChange={(e) => setEmi2Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-0.5 text-[9px] text-slate-700">
+                          {[0,1,2,3,4,5,7,10,15,20,25].map(y => (
+                            <option key={y} value={y}>{y === 0 ? 'None' : `${y} yrs`}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 space-y-0.5">
+                        <span className="text-[8px] text-slate-400 font-bold block">EMI 3 (₹)</span>
+                        <input type="number" value={emi3Amount || ''} onChange={(e) => setEmi3Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-250 rounded p-1 text-[11px] font-bold text-slate-800 text-center" />
+                        <select value={emi3Years} onChange={(e) => setEmi3Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-0.5 text-[9px] text-slate-700">
+                          {[0,1,2,3,4,5,7,10,15,20,25].map(y => (
+                            <option key={y} value={y}>{y === 0 ? 'None' : `${y} yrs`}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column (7 Cols) - RESULTS VIEWPORT */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* Score & Diagnostic Card */}
+                {(() => {
+                  const requiredSip = retirementData.requiredMonthlySip;
+                  const surplus = retirementData.currentMonthlySurplus;
+                  const score = Math.max(15, Math.min(100, Math.round((surplus / Math.max(1, requiredSip)) * 100)));
+                  const isHealthy = surplus >= requiredSip;
+                  const isSevere = surplus < requiredSip * 0.4;
+                  
+                  return (
+                    <div className={`border rounded-3xl p-5 text-left relative overflow-hidden shadow-xs transition-all ${
+                      isHealthy 
+                        ? 'bg-emerald-50/75 border-emerald-200 text-emerald-950' 
+                        : isSevere 
+                          ? 'bg-rose-50/75 border-rose-200 text-rose-950' 
+                          : 'bg-amber-50/75 border-amber-200 text-amber-950'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                        <div className="space-y-1.5 max-w-md">
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                            isHealthy ? 'bg-emerald-100 text-emerald-800' : isSevere ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {isHealthy ? '✓ Surplus is Healthy!' : isSevere ? '🚨 Restructuring Required' : '⚠ Action Recommended'}
+                          </span>
+                          <h4 className="text-[17px] font-bold font-display tracking-tight leading-snug">
+                            {isHealthy 
+                              ? "Your current investible surplus easily covers your recommended retirement SIP! You are in an excellent position to compound generational wealth."
+                              : isSevere
+                                ? `Your recommended retirement SIP is ${formatCurrencyINR(requiredSip)}/mo, leaving a severe deficit. Restructuring outstanding loans or expenses is highly advised.`
+                                : `Your recommended retirement SIP is ${formatCurrencyINR(requiredSip)}/mo. You have a partial surplus, but optimizing expenses by ${formatCurrencyINR(requiredSip - surplus)}/mo will secure your timeline.`
+                            }
+                          </h4>
+                          <p className="text-[11.5px] opacity-80 leading-relaxed">
+                            A healthy surplus score means you can comfortably finance your retirement corpus without altering your current lifestyle.
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center justify-center bg-white border border-slate-100 rounded-2xl p-4.5 shadow-sm min-w-[110px] text-center shrink-0">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">Freedom Score</span>
+                          <span className={`text-3xl font-display font-extrabold mt-1 block ${
+                            isHealthy ? 'text-emerald-600' : isSevere ? 'text-rose-600' : 'text-amber-600'
+                          }`}>
+                            {score}
+                          </span>
+                          <span className="text-[9.5px] text-slate-500 font-bold mt-1 font-mono">out of 100</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Core Metrics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                  <div className="bg-white border border-slate-150 p-4.5 rounded-2xl shadow-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Inflation-Adjusted Monthly Cost</span>
+                    <p className="text-lg font-display font-bold text-slate-900 mt-1">
+                      {formatCurrencyINR(retirementData.futureMonthlyExpense)}
+                      <span className="text-xs text-slate-400 font-normal">/mo</span>
+                    </p>
+                    <span className="text-[10.5px] text-slate-400 mt-1 block">At age {retirementAge} (with {inflationRateRetirement}% inflation)</span>
+                  </div>
+
+                  <div className="bg-white border border-slate-150 p-4.5 rounded-2xl shadow-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Retirement Corpus</span>
+                    <p className="text-lg font-display font-bold text-indigo-600 mt-1">
+                      {formatCurrencyINR(retirementData.totalRequiredCorpusAtRetirement)}
+                    </p>
+                    <span className="text-[10.5px] text-slate-400 mt-1 block">Net gap after existing assets & legacy targets</span>
+                  </div>
+
+                  <div className="bg-white border border-slate-150 p-4.5 rounded-2xl shadow-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Required Monthly SIP</span>
+                    <p className="text-lg font-display font-bold text-emerald-600 mt-1">
+                      {formatCurrencyINR(retirementData.requiredMonthlySip)}
+                      <span className="text-xs text-emerald-500 font-normal">/mo</span>
+                    </p>
+                    <span className="text-[10.5px] text-slate-400 mt-1 block">Compounding at {preRetirementReturn}% pre-retire ROI</span>
+                  </div>
+                </div>
+
+                {/* Cash Flow Breakdown Panel */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-5 text-left shadow-xs">
+                  <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                    <TrendingUp className="w-4 h-4 text-slate-500" />
+                    Current Monthly Budget Distribution
+                  </h4>
+                  <div className="mt-4 space-y-3">
+                    <div className="flex justify-between text-xs text-slate-600 font-mono">
+                      <span>Total Net Income: {formatCurrencyINR(currentMonthlyIncome)}</span>
+                      <span>100%</span>
+                    </div>
+                    
+                    {/* Visual Bar Graph */}
+                    <div className="h-4 bg-slate-100 rounded-lg overflow-hidden flex font-mono text-[9px] text-white font-bold">
+                      <div className="bg-rose-500 h-full flex items-center justify-center transition-all" style={{ width: `${Math.max(8, (currentMonthlyExpense / currentMonthlyIncome) * 100)}%` }} title="Living Expenses">
+                        {((currentMonthlyExpense / currentMonthlyIncome) * 100).toFixed(0)}% Exp
+                      </div>
+                      {retirementData.totalCurrentEmi > 0 && (
+                        <div className="bg-amber-500 h-full flex items-center justify-center border-l border-white transition-all" style={{ width: `${Math.max(8, (retirementData.totalCurrentEmi / currentMonthlyIncome) * 100)}%` }} title="EMIs & Debts">
+                          {((retirementData.totalCurrentEmi / currentMonthlyIncome) * 100).toFixed(0)}% Debt
+                        </div>
+                      )}
+                      <div className="bg-emerald-500 h-full flex items-center justify-center border-l border-white transition-all flex-1" title="Surplus">
+                        {((retirementData.currentMonthlySurplus / currentMonthlyIncome) * 100).toFixed(0)}% Surplus
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1.5 text-[11px] font-mono">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-xs" />
+                        <span className="text-slate-500">Income: <strong>{formatCurrencyINR(currentMonthlyIncome)}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-rose-500 rounded-xs" />
+                        <span className="text-slate-500">Living Exp: <strong>{formatCurrencyINR(currentMonthlyExpense)}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-amber-500 rounded-xs" />
+                        <span className="text-slate-500">Active EMIs: <strong>{formatCurrencyINR(retirementData.totalCurrentEmi)}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-emerald-500 rounded-xs" />
+                        <span className="text-slate-500">Net Surplus: <strong className="text-emerald-600">{formatCurrencyINR(retirementData.currentMonthlySurplus)}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* THE ULTIMATE COST OF DELAY FOMO ANALYSIS PANEL */}
+                <div className="bg-slate-900 text-white rounded-3xl p-5.5 text-left relative overflow-hidden border border-slate-800 shadow-lg">
+                  <div className="absolute top-0 right-0 p-6 opacity-5">
+                    <Sparkles className="w-40 h-40" />
+                  </div>
+                  
+                  <div className="space-y-1 relative z-10">
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      ⚠ Urgent: Compounding Dynamics
+                    </div>
+                    <h4 className="text-lg font-bold font-display tracking-tight text-white mt-1">
+                      The Severe Cost of Waiting: See What 5 Years Can Do!
+                    </h4>
+                    <p className="text-slate-400 text-[11.5px] leading-relaxed max-w-2xl">
+                      Compounding is heavily back-loaded. Waiting just 5 years to start investing forces you to commit a dramatically larger amount of money each month to achieve the exact same retirement lifestyle.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5 relative z-10">
+                    
+                    {/* Started 5 Years Earlier */}
+                    <div className="bg-slate-950/65 border border-emerald-500/20 p-4 rounded-2xl relative overflow-hidden group hover:border-emerald-500/40 transition-all text-center sm:text-left">
+                      <div className="absolute -top-3 -right-3 w-10 h-10 bg-emerald-500/5 rounded-full" />
+                      <span className="text-[9px] font-bold text-emerald-400 font-mono uppercase tracking-wider block">5 Years Earlier</span>
+                      <p className="text-xl font-display font-black text-slate-100 mt-1">
+                        {formatCurrencyINR(retirementData.requiredMonthlySipEarly)}
+                        <span className="text-xs text-slate-400 font-normal">/mo</span>
+                      </p>
+                      <span className="text-[10px] text-emerald-400/90 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                        ✓ Save {Math.round(((retirementData.requiredMonthlySip - retirementData.requiredMonthlySipEarly) / retirementData.requiredMonthlySip) * 100)}% Monthly!
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                        Compounding did the heavy lifting early on. Easy, stress-free path.
+                      </p>
+                    </div>
+
+                    {/* Start Today */}
+                    <div className="bg-slate-950/65 border border-indigo-500/20 p-4 rounded-2xl relative overflow-hidden group hover:border-indigo-500/40 transition-all text-center sm:text-left shadow-md">
+                      <div className="absolute top-2 right-2 bg-indigo-500 text-slate-950 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono uppercase">
+                        Current Target
+                      </div>
+                      <span className="text-[9px] font-bold text-indigo-400 font-mono uppercase tracking-wider block">Start Today</span>
+                      <p className="text-xl font-display font-black text-white mt-1">
+                        {formatCurrencyINR(retirementData.requiredMonthlySip)}
+                        <span className="text-xs text-indigo-300 font-normal">/mo</span>
+                      </p>
+                      <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                        Baseline Benchmark
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                        Your absolute baseline target starting right now at Age {currentAge}.
+                      </p>
+                    </div>
+
+                    {/* Start 5 Years Later */}
+                    <div className="bg-slate-950/65 border border-rose-500/20 p-4 rounded-2xl relative overflow-hidden group hover:border-rose-500/40 transition-all text-center sm:text-left">
+                      <div className="absolute -top-3 -right-3 w-10 h-10 bg-rose-500/5 rounded-full" />
+                      <span className="text-[9px] font-bold text-rose-400 font-mono uppercase tracking-wider block">5 Years Later</span>
+                      <p className="text-xl font-display font-black text-slate-100 mt-1">
+                        {formatCurrencyINR(retirementData.requiredMonthlySipLate)}
+                        <span className="text-xs text-slate-400 font-normal">/mo</span>
+                      </p>
+                      <span className="text-[10px] text-rose-400/90 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                        🚨 Cost Jumps +{Math.round(((retirementData.requiredMonthlySipLate - retirementData.requiredMonthlySip) / retirementData.requiredMonthlySip) * 100)}%!
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                        You must commit <strong>{formatCurrencyINR(retirementData.requiredMonthlySipLate - retirementData.requiredMonthlySip)}/mo more</strong> for the rest of your life!
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="bg-slate-950/40 border border-slate-800 p-3 rounded-xl mt-4 relative z-10 flex items-center gap-2 text-[10.5px] text-slate-300 justify-center">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Every single day of delay increases your future compounding burden. Lock in your current rates today!</span>
+                  </div>
+                </div>
+
+                {/* 15-YEAR DECUMULATION BUCKET STRATEGY */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-5 text-left shadow-xs space-y-4">
+                  <div className="border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest font-mono">Innovative Capital Safeguard</span>
+                    <h4 className="text-[15.5px] font-bold font-display text-slate-900 mt-0.5">
+                      Your Customized 15-Year Decumulation Bucket Strategy
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                      Rather than placing your entire <strong>{formatCurrencyINR(retirementData.totalRequiredCorpusAtRetirement)}</strong> corpus in low-yield fixed assets, we divide your wealth into three distinct tactical buckets to combat inflation while securing monthly cash flows:
+                    </p>
+                  </div>
+
+                  <div className="space-y-4.5 pt-1">
+                    
+                    {/* Bucket 1 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                          Bucket 1: Arbitrage & Liquid (Years 1-5 Payouts)
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                          {formatCurrencyINR(retirementData.bucket1Arbitrage)} (30%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="bg-slate-700 h-full rounded-full" style={{ width: '30%' }} />
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                        Placed in stable arbitrage & ultra-short debt mutual funds yielding ~6.5% CAGR. This funds your immediate monthly cash flows for the first 5 years of retirement, insulating you fully from market crashes.
+                      </p>
+                    </div>
+
+                    {/* Bucket 2 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+                          Bucket 2: Conservative Hybrid (Years 6-10 Payouts)
+                        </span>
+                        <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                          {formatCurrencyINR(retirementData.bucket2Hybrid)} (30%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="bg-indigo-600 h-full rounded-full" style={{ width: '30%' }} />
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                        Invested in debt-oriented conservative hybrid funds targeting ~8.5% CAGR. Left untouched for 5 years to compound, then systematically liquidated during Years 6-10.
+                      </p>
+                    </div>
+
+                    {/* Bucket 3 */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                          Bucket 3: Diversified Equity (Years 11-15 & Beyond)
+                        </span>
+                        <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                          {formatCurrencyINR(retirementData.bucket3Equity)} (40%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="bg-amber-500 h-full rounded-full" style={{ width: '40%' }} />
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                        Invested in highly diversified multi-cap or large-and-mid mutual funds targeting ~12.5% pre-retirement returns. 
+                        By Year 15, Buckets 1 & 2 are exhausted, but Bucket 3 has compounded untouched, growing from <strong className="text-slate-800">{formatCurrencyINR(retirementData.bucket3Equity)}</strong> into a massive <strong className="text-emerald-600">{formatCurrencyINR(retirementData.bucket3FutureValue15Years)}</strong>! This fully restores your original starting capital, keeping your retirement safe indefinitely.
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* THE TAKE ACTION TODAY - CONVERTING OPTION HUB */}
+                <div className="bg-slate-50 border border-slate-150 rounded-3xl p-5 text-left shadow-sm">
+                  
+                  {/* Lead Magnet Option Selector Tab */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded uppercase tracking-wider">
+                      Take Action Today
+                    </span>
+                    <h4 className="text-[17px] font-bold font-display text-slate-900 mt-1.5">
+                      Ready to Secure Your Retirement Journey?
+                    </h4>
+                    <p className="text-slate-500 text-xs">
+                      Choose one of our premium, 100% confidential wealth advisory tools below. Start your journey with absolute confidence.
+                    </p>
+                  </div>
+
+                  {/* Form Selectors */}
+                  <div className="grid grid-cols-3 gap-2 mt-4 px-1 py-1 bg-slate-100/90 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLeadOption('pdf');
+                        setLeadFormSuccess(false);
+                        setLeadFormError('');
+                      }}
+                      className={`py-2 px-1 text-center rounded-lg text-[10.5px] sm:text-xs font-bold transition-all cursor-pointer ${
+                        activeLeadOption === 'pdf' 
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200' 
+                          : 'text-slate-600 hover:text-slate-900 font-semibold'
+                      }`}
+                    >
+                      📩 PDF Blueprint
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLeadOption('whatsapp');
+                        setLeadFormSuccess(false);
+                        setLeadFormError('');
+                      }}
+                      className={`py-2 px-1 text-center rounded-lg text-[10.5px] sm:text-xs font-bold transition-all cursor-pointer ${
+                        activeLeadOption === 'whatsapp' 
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200' 
+                          : 'text-slate-600 hover:text-slate-900 font-semibold'
+                      }`}
+                    >
+                      ⚡ Fast Callback
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLeadOption('consult');
+                        setLeadFormSuccess(false);
+                        setLeadFormError('');
+                      }}
+                      className={`py-2 px-1 text-center rounded-lg text-[10.5px] sm:text-xs font-bold transition-all cursor-pointer ${
+                        activeLeadOption === 'consult' 
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200' 
+                          : 'text-slate-600 hover:text-slate-900 font-semibold'
+                      }`}
+                    >
+                      🤝 VIP Advisory
+                    </button>
+                  </div>
+
+                  {/* Lead Capture Body */}
+                  <div className="mt-5 bg-white border border-slate-100 p-4 rounded-2xl shadow-xs relative">
+                    
+                    {leadFormSuccess ? (
+                      <div className="py-6 text-center space-y-3 animate-fade-in">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 text-xl font-bold">
+                          ✓
+                        </div>
+                        <h5 className="font-bold text-sm text-slate-900 font-display">Action Confirmed Successfully!</h5>
+                        <p className="text-[11.5px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+                          {activeLeadOption === 'pdf' 
+                            ? `Your custom PDF Financial Freedom Blueprint is being assembled & dispatched. A verification copy is logged in the Team Portal!`
+                            : activeLeadOption === 'whatsapp'
+                              ? `Your fastback callback request has been received. Our senior wealth manager will call you back within 15 minutes!`
+                              : `Your VIP Advisory session has been booked. Our Senior Advisor has been allocated your exact financial runway details & will connect at your chosen time slot.`
+                          }
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setLeadFormSuccess(false)}
+                          className="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                        >
+                          Book Another Action
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={(e) => handleLeadSubmit(e, activeLeadOption)} className="space-y-3 text-left">
+                        
+                        {leadFormError && (
+                          <div className="bg-rose-50 border border-rose-200 text-rose-800 p-2.5 rounded-xl text-xs font-semibold leading-relaxed flex items-center gap-1.5">
+                            <span className="text-base leading-none">⚠</span>
+                            <span>{leadFormError}</span>
+                          </div>
+                        )}
+
+                        {/* Standard Inputs */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Full Name <span className="text-rose-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              value={leadName}
+                              onChange={(e) => setLeadName(e.target.value)}
+                              placeholder="e.g. Rajesh Kumar"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                            />
+                          </div>
+
+                          {activeLeadOption !== 'pdf' && (
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number <span className="text-rose-500">*</span></label>
+                              <input
+                                type="tel"
+                                required
+                                value={leadPhone}
+                                onChange={(e) => setLeadPhone(e.target.value)}
+                                placeholder="e.g. +91 98765 43210"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                              />
+                            </div>
+                          )}
+
+                          {(activeLeadOption === 'pdf' || activeLeadOption === 'consult') && (
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Email Address <span className="text-rose-500">*</span></label>
+                              <input
+                                type="email"
+                                required
+                                value={activeLeadOption === 'pdf' ? pdfEmail : leadEmail}
+                                onChange={(e) => activeLeadOption === 'pdf' ? setPdfEmail(e.target.value) : setLeadEmail(e.target.value)}
+                                placeholder="e.g. rajesh@gmail.com"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Booking Fields for VIP Consult */}
+                        {activeLeadOption === 'consult' && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Preferred Advisory Date <span className="text-rose-500">*</span></label>
+                              <input
+                                type="date"
+                                required
+                                value={leadDate}
+                                onChange={(e) => setLeadDate(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Preferred Time Slot <span className="text-rose-500">*</span></label>
+                              <select
+                                required
+                                value={leadTimeSlot}
+                                onChange={(e) => setLeadTimeSlot(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 text-slate-700"
+                              >
+                                <option value="">Select Time Slot</option>
+                                <option value="10:00 AM - 11:30 AM">10:00 AM - 11:30 AM</option>
+                                <option value="11:30 AM - 01:00 PM">11:30 AM - 01:00 PM</option>
+                                <option value="02:30 PM - 04:00 PM">02:30 PM - 04:00 PM</option>
+                                <option value="04:00 PM - 05:30 PM">04:00 PM - 05:30 PM</option>
+                                <option value="06:00 PM - 07:30 PM">06:00 PM - 07:30 PM</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          className="w-full mt-3 flex items-center justify-center gap-2 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-500 py-3 rounded-xl transition-all cursor-pointer shadow-sm font-display"
+                        >
+                          {activeLeadOption === 'pdf' && (
+                            <>📩 Send My PDF Freedom Blueprint Now</>
+                          )}
+                          {activeLeadOption === 'whatsapp' && (
+                            <>⚡ Request Callback within 15 mins</>
+                          )}
+                          {activeLeadOption === 'consult' && (
+                            <>🤝 Schedule VIP Advisory Session & Book Now</>
+                          )}
+                        </button>
+
+                        <div className="pt-2 text-center text-[10px] text-slate-400">
+                          🔒 Regulated secure wealth service. No spam. Unsubscribe at any time.
+                        </div>
+
+                      </form>
+                    )}
+
+                  </div>
+
+                </div>
+
+                {/* THE LIVE LEADS DATABASE / ADMIN CRM PORTAL (SOLVES USER QUERY IN REAL-TIME) */}
+                <div className="bg-slate-100 rounded-2xl border border-slate-200 p-4 text-left">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminLeads(!showAdminLeads)}
+                      className="text-xs font-bold text-slate-700 bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Terminal className="w-3.5 h-3.5 text-slate-600" />
+                      {showAdminLeads ? 'Hide Leads Database Portal' : 'Show Leads Database Portal (Team CRM)'}
+                    </button>
+                    {showAdminLeads && savedLeads.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearLeads}
+                        className="text-[10px] font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        🗑 Clear Database
+                      </button>
+                    )}
+                  </div>
+
+                  {showAdminLeads && (
+                    <div className="mt-3.5 pt-3.5 border-t border-slate-200 space-y-3.5 animate-fade-in">
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 flex gap-2 items-start text-xs">
+                        <ShieldPlus className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                        <div className="space-y-1 text-slate-600 leading-relaxed">
+                          <p className="font-bold text-slate-800">Where is the lead data saved?</p>
+                          <p>
+                            All lead capture records are persistently saved to <strong>leads.json</strong> at the server root. When booking a VIP Advisory, Callback, or requesting a PDF Blueprint, the data is synced instantly.
+                          </p>
+                          <p className="font-bold text-slate-800 mt-1">Who from the team is notified and how?</p>
+                          <p>
+                            The server emits simulated email dispatches (logged inside the Node terminal console) and triggers instant WebSocket advisory state logs. In production, this integrates with SMTP relays (e.g., SendGrid) to dispatch direct emails to the core team.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        {loadingLeads ? (
+                          <div className="text-center py-4 text-slate-400 text-xs font-mono">
+                            Synchronizing leads datastore...
+                          </div>
+                        ) : savedLeads.length === 0 ? (
+                          <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl font-mono">
+                            The leads database is currently empty. Submit a form above to see records populate here in real-time!
+                          </div>
+                        ) : (
+                          savedLeads.map((l: any, idx: number) => (
+                            <div key={idx} className="bg-white border border-slate-200 p-3 rounded-xl text-xs space-y-1.5 shadow-2xs font-mono relative">
+                              <span className="absolute top-3 right-3 text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
+                                {idx + 1}
+                              </span>
+                              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-slate-100 pb-1.5">
+                                <span className="font-bold text-slate-900">{l.name}</span>
+                                <span className={`text-[9px] font-bold uppercase px-1.5 rounded ${
+                                  l.type === 'pdf' ? 'bg-indigo-50 text-indigo-700' : l.type === 'whatsapp' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                }`}>
+                                  {l.type === 'pdf' ? 'PDF Blueprint' : l.type === 'whatsapp' ? 'Callback' : 'VIP Advisory'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-slate-600 text-[11px]">
+                                <div>📞 Phone: <strong>{l.phone}</strong></div>
+                                <div>✉ Email: <strong>{l.email}</strong></div>
+                                {l.date && <div>📅 Date: <strong>{l.date}</strong></div>}
+                                {l.timeSlot && <div>🕒 Time: <strong>{l.timeSlot}</strong></div>}
+                                <div className="sm:col-span-2 text-slate-400 text-[9px] mt-1 border-t border-slate-50 pt-1">
+                                  Captured: {new Date(l.createdAt).toLocaleString()}
+                                </div>
+                              </div>
+                              {l.metadata && (
+                                <div className="bg-slate-50 p-2 rounded border border-slate-100 text-[10px] text-slate-500 space-y-0.5 mt-1.5">
+                                  <div className="font-bold text-slate-700 uppercase tracking-wider text-[8px] mb-0.5">Retirement Metadata Parameters:</div>
+                                  <div>• Current Age: <strong>{l.metadata.currentAge}</strong> | Retire Age: <strong>{l.metadata.retirementAge}</strong></div>
+                                  <div>• Target Corpus: <strong>{formatCurrencyINR(l.metadata.requiredCorpusAtRetirement)}</strong></div>
+                                  <div>• Needed SIP: <strong>{formatCurrencyINR(l.metadata.requiredMonthlySip)}/mo</strong></div>
+                                  <div>• Wealth Score: <strong>{l.metadata.wealthScore}/100</strong></div>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )}
+        {activeTab === 'retirement' && false && (
+          <div className="space-y-8 animate-fade-in" id="retirement-calculator-wizard-legacy">
+            
+            {/* WIZARD MODE: Enter your metrics */}
+            {!showRetirementResults ? (
+              <div className="max-w-2xl mx-auto bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden text-left">
+                {/* Wizard Header */}
+                <div className="bg-slate-900 p-6 text-white relative">
+                  <div className="absolute top-4 right-4 bg-amber-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+                    Lead Magnet
+                  </div>
+                  <h3 className="text-[18px] font-bold font-display flex items-center gap-2">
+                    <Milestone className="w-5 h-5 text-amber-400" />
+                    Build Your Financial Freedom Blueprint
+                  </h3>
+                  <p className="text-slate-300 text-xs mt-1">
+                    Complete this 4-step wizard to see your custom retirement payout roadmap & Wealth Freedom Score.
+                  </p>
+                  {/* Step Tracker */}
+                  <div className="mt-5 flex items-center justify-between text-xs font-mono">
+                    <span className="text-amber-400 font-bold uppercase">
+                      Step {retirementStep} of 4: {
+                        retirementStep === 1 ? 'Timeline & ROI' :
+                        retirementStep === 2 ? 'Income & Expenses' :
+                        retirementStep === 3 ? 'Assets & Savings' :
+                        'Outstanding Debts'
+                      }
+                    </span>
+                    <span className="text-slate-400">{retirementStep * 25}% Complete</span>
+                  </div>
+                  <div className="mt-2 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div className="bg-amber-400 h-full transition-all duration-300" style={{ width: `${retirementStep * 25}%` }} />
+                  </div>
+                </div>
+
+                {/* Wizard Body */}
+                <div className="p-6 space-y-5">
+                  {retirementStep === 1 && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100 flex gap-2.5 items-start">
+                        <Zap className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-[11.5px] text-blue-800 leading-relaxed">
+                          <strong>Your Time Runway:</strong> Defining your accumulation window is the first step. More time allows compounding to do the heavy lifting, drastically reducing your required monthly savings.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Current Age</label>
+                          <input type="number" min="18" max="74" value={currentAge || ''} onChange={(e) => handleCurrentAgeChange(Number(e.target.value))} onBlur={handleCurrentAgeBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center text-sm font-bold text-slate-800" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Retire Age</label>
+                          <input type="number" min={currentAge + 1} max="80" value={retirementAge || ''} onChange={(e) => handleRetirementAgeChange(Number(e.target.value))} onBlur={handleRetirementAgeBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center text-sm font-bold text-slate-800" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Life Expect</label>
+                          <input type="number" min={retirementAge + 1} max="110" value={lifeExpectancy || ''} onChange={(e) => handleLifeExpectancyChange(Number(e.target.value))} onBlur={handleLifeExpectancyBlur} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-center text-sm font-bold text-slate-800" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-xs">
+                          <label className="font-bold text-slate-700">Pre-Retirement ROI Expectation</label>
+                          <span className="font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">{preRetirementReturn}%</span>
+                        </div>
+                        <input type="range" min="6" max="25" step="0.5" value={preRetirementReturn} onChange={(e) => setPreRetirementReturn(Number(e.target.value))} className="w-full accent-emerald-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                    </div>
+                  )}
+
+                  {retirementStep === 2 && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="bg-amber-50/50 p-3.5 rounded-xl border border-amber-100 flex gap-2.5 items-start">
+                        <Activity className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-[11.5px] text-amber-800 leading-relaxed">
+                          <strong>Inflation Defense:</strong> To secure your lifestyle, your corpus must outgrow inflation. A budget of ₹50k today requires over ₹2.1 Lakhs/mo in 25 years at 6% inflation.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-700">Monthly Net Income Today</label>
+                          <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded">
+                            {formatCurrencyINR(currentMonthlyIncome)}
+                          </span>
+                        </div>
+                        <input type="range" min="20000" max="1000000" step="10000" value={currentMonthlyIncome} onChange={(e) => setCurrentMonthlyIncome(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-700">Monthly Expenses Today (Excl. EMIs)</label>
+                          <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded">
+                            {formatCurrencyINR(currentMonthlyExpense)}
+                          </span>
+                        </div>
+                        <input type="range" min="10000" max="500000" step="5000" value={currentMonthlyExpense} onChange={(e) => setCurrentMonthlyExpense(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-xs">
+                          <label className="font-bold text-slate-700">Assumed Average Inflation Rate</label>
+                          <span className="font-mono text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded">{inflationRateRetirement}%</span>
+                        </div>
+                        <input type="range" min="4" max="12" step="0.5" value={inflationRateRetirement} onChange={(e) => setInflationRateRetirement(Number(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                    </div>
+                  )}
+
+                  {retirementStep === 3 && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex gap-2.5 items-start">
+                        <Coins className="w-4 h-4 text-slate-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-[11.5px] text-slate-600 leading-relaxed">
+                          <strong>Existing Foundations:</strong> Any mutual funds, EPF, NPS, or savings you already hold will compound over your runway, substantially lowering your required new monthly savings.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-700">Existing Investments & Savings Today</label>
+                          <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded">
+                            {formatCurrencyINR(existingSavings)}
+                          </span>
+                        </div>
+                        <input type="range" min="0" max="20000000" step="50000" value={existingSavings} onChange={(e) => setExistingSavings(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-700">Corporate Accumulations (EPF, NPS, Gratuity)</label>
+                          <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded">
+                            {formatCurrencyINR(expectedLumpSum)}
+                          </span>
+                        </div>
+                        <input type="range" min="0" max="20000000" step="50000" value={expectedLumpSum} onChange={(e) => setExpectedLumpSum(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">One-Time Retirement Goal</label>
+                          <input type="number" value={oneTimeRetirementGoal || ''} onChange={(e) => setOneTimeRetirementGoal(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800" placeholder="e.g. travel, wedding" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Legacy Estate for Kids</label>
+                          <input type="number" value={estateAmount || ''} onChange={(e) => setEstateAmount(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800" placeholder="Leave legacy estate" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {retirementStep === 4 && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="bg-rose-50/50 p-3.5 rounded-xl border border-rose-100 flex gap-2.5 items-start">
+                        <ShieldPlus className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-[11.5px] text-rose-800 leading-relaxed">
+                          <strong>Liabilities & EMIs:</strong> Active loans drain your investible surplus. Understanding this allows our system to factor in loan closeouts, automatically freeing up cash flow to accelerate retirement wealth.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-slate-700">Total Outstanding Loan Debt</label>
+                          <span className="font-mono text-xs font-bold bg-rose-50 text-rose-700 px-2.5 py-1 rounded">
+                            {formatCurrencyINR(totalLoanAmount)}
+                          </span>
+                        </div>
+                        <input type="range" min="0" max="30000000" step="10000" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(Number(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <span className="text-[11px] font-bold text-slate-600 block">Identify current active monthly EMIs (Up to 3):</span>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase block">EMI 1</span>
+                            <input type="number" value={emi1Amount || ''} onChange={(e) => setEmi1Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-200 rounded p-1 text-xs font-bold text-slate-800 text-center" />
+                            <select value={emi1Years} onChange={(e) => setEmi1Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-1 text-[10px] text-slate-700">
+                              {[1,2,3,4,5,7,10,15,20,25].map(y => (
+                                <option key={y} value={y}>{y} {y === 1 ? 'yr left' : 'yrs left'}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase block">EMI 2</span>
+                            <input type="number" value={emi2Amount || ''} onChange={(e) => setEmi2Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-200 rounded p-1 text-xs font-bold text-slate-800 text-center" />
+                            <select value={emi2Years} onChange={(e) => setEmi2Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-1 text-[10px] text-slate-700">
+                              {[0,1,2,3,4,5,7,10,15,20,25].map(y => (
+                                <option key={y} value={y}>{y === 0 ? 'None' : `${y} yrs left`}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase block">EMI 3</span>
+                            <input type="number" value={emi3Amount || ''} onChange={(e) => setEmi3Amount(Number(e.target.value))} placeholder="Amount" className="w-full bg-white border border-slate-200 rounded p-1 text-xs font-bold text-slate-800 text-center" />
+                            <select value={emi3Years} onChange={(e) => setEmi3Years(Number(e.target.value))} className="w-full bg-white border border-slate-200 rounded p-1 text-[10px] text-slate-700">
+                              {[0,1,2,3,4,5,7,10,15,20,25].map(y => (
+                                <option key={y} value={y}>{y === 0 ? 'None' : `${y} yrs left`}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Wizard Footer */}
+                <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                  {retirementStep > 1 ? (
+                    <button onClick={() => setRetirementStep(prev => prev - 1)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl transition-all cursor-pointer">
+                      <ChevronLeft className="w-4 h-4" /> Back
+                    </button>
+                  ) : <div />}
+
+                  {retirementStep < 4 ? (
+                    <button onClick={() => setRetirementStep(prev => prev + 1)} className="flex items-center gap-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-5 py-2.5 rounded-xl transition-all cursor-pointer">
+                      Continue <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setShowRetirementResults(true);
+                        setTimeout(() => {
+                          document.getElementById('retirement-calculator')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-500 px-6 py-3 rounded-xl transition-all cursor-pointer animate-pulse-once font-display"
+                    >
+                      <Sparkles className="w-4 h-4" /> Generate Freedom Blueprint
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* RESULTS MODE: 2-column layout */
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Column (7 Cols) - Results & Custom Decumulation roadmap */}
+                <div className="lg:col-span-7 space-y-6">
+                  
+                  {/* Results Control Header */}
+                  <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                        Blueprint Unlocked
+                      </span>
+                      <h4 className="text-[16px] font-bold text-slate-900 mt-1 font-display">
+                        Your Custom Financial Freedom Blueprint
+                      </h4>
+                      <p className="text-[11.5px] text-slate-500">Age {currentAge} runway to Age {retirementAge} Retirement target.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowRetirementResults(false);
+                        setRetirementStep(1);
+                      }}
+                      className="text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                      Edit Inputs
+                    </button>
+                  </div>
+
+                  {/* Readiness Score Card */}
+                  <div className="bg-[#0F172A] text-white rounded-2xl p-6 shadow-sm text-left relative overflow-hidden border border-slate-800">
+                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl" />
+                    <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl" />
+                    
+                    <div className="flex flex-col sm:flex-row gap-6 items-center">
+                      <div className="relative flex items-center justify-center flex-shrink-0">
+                        <svg className="w-24 h-24 transform -rotate-90">
+                          <circle cx="48" cy="48" r="42" stroke="#1E293B" strokeWidth="6" fill="transparent" />
+                          <circle cx="48" cy="48" r="42" stroke="#10B981" strokeWidth="6" fill="transparent"
+                            strokeDasharray={263.8}
+                            strokeDashoffset={263.8 - (263.8 * Math.min(100, Math.max(10, Math.round((retirementData.currentMonthlySurplus / Math.max(1, retirementData.requiredMonthlySip)) * 100)))) / 100} 
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute text-center">
+                          <span className="text-[20px] font-display font-black text-white block">
+                            {Math.min(100, Math.max(0, Math.round((retirementData.currentMonthlySurplus / Math.max(1, retirementData.requiredMonthlySip)) * 100)))}%
+                          </span>
+                          <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest block mt-0.5">Readiness</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                          Freedom Readiness Diagnosis
+                        </span>
+                        <h4 className="text-[15px] font-bold text-slate-100">
+                          {retirementData.currentMonthlySurplus >= retirementData.requiredMonthlySip 
+                            ? "✅ Ready for financial independence!" 
+                            : "⚠️ Cash flow optimization recommended."
+                          }
+                        </h4>
+                        <p className="text-[11.5px] text-slate-300 leading-relaxed">
+                          {retirementData.currentMonthlySurplus >= retirementData.requiredMonthlySip 
+                            ? `Your monthly investible surplus of ${formatCurrencyINR(retirementData.currentMonthlySurplus)} easily covers your recommended retirement SIP of ${formatCurrencyINR(retirementData.requiredMonthlySip)}. Commencing today is highly recommended.`
+                            : `Your recommended retirement SIP is ${formatCurrencyINR(retirementData.requiredMonthlySip)}/mo, while your current surplus is ${formatCurrencyINR(retirementData.currentMonthlySurplus)}. Optimizing debts or expenses can bridge this ${formatCurrencyINR(retirementData.requiredMonthlySip - retirementData.currentMonthlySurplus)}/mo gap.`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Inflated Budget at {retirementAge}</p>
+                      <p className="text-[18px] font-display font-bold text-slate-900 mt-1">{formatCurrencyINR(retirementData.futureMonthlyExpense)}<span className="text-xs text-slate-500 font-normal">/mo</span></p>
+                      <span className="absolute top-2 right-2 text-[8px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-mono">
+                        {inflationRateRetirement}% Inflated
+                      </span>
+                    </div>
+
+                    <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Required Corpus Goal</p>
+                      <p className="text-[18px] font-display font-bold text-blue-600 mt-1">{formatCurrencyINR(retirementData.totalRequiredCorpusAtRetirement)}</p>
+                      <span className="absolute top-2 right-2 text-[8px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-mono">
+                        Target Capital
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl shadow-xs text-left relative overflow-hidden">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Recommended SIP</p>
+                      <p className="text-[18px] font-display font-bold mt-1 text-emerald-600">{formatCurrencyINR(retirementData.requiredMonthlySip)}<span className="text-xs text-slate-500 font-normal">/mo</span></p>
+                      <span className="absolute top-2 right-2 text-[8px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
+                        Best Rate
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Budget Allocation Progress */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-left space-y-3">
+                    <h4 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
+                      <Activity className="w-4 h-4 text-indigo-500" />
+                      Monthly Budget Allocation & EMIs
+                    </h4>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[10.5px] text-slate-400">
+                        <span>Current Income Breakdown</span>
+                        <span>Total Monthly Income: {formatCurrencyINR(currentMonthlyIncome)}</span>
+                      </div>
+                      <div className="h-4 w-full bg-slate-100 rounded-lg overflow-hidden flex">
+                        <div style={{ width: `${Math.min(100, (currentMonthlyExpense / currentMonthlyIncome) * 100)}%` }} className="bg-blue-500 h-full hover:opacity-95" title="Living Expenses" />
+                        <div style={{ width: `${Math.min(100 - (currentMonthlyExpense / currentMonthlyIncome) * 100, (retirementData.totalCurrentEmi / currentMonthlyIncome) * 100)}%` }} className="bg-red-500 h-full hover:opacity-95" title="EMIs" />
+                        <div style={{ width: `${Math.max(0, 100 - (currentMonthlyExpense / currentMonthlyIncome) * 100 - (retirementData.totalCurrentEmi / currentMonthlyIncome) * 100)}%` }} className="bg-emerald-500 h-full hover:opacity-95" title="Surplus" />
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 pt-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span>
+                          <span>Expenses: {formatCurrencyINR(currentMonthlyExpense)} ({((currentMonthlyExpense / currentMonthlyIncome) * 100).toFixed(0)}%)</span>
+                        </div>
+                        {retirementData.totalCurrentEmi > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded bg-red-500 inline-block"></span>
+                            <span>EMIs: {formatCurrencyINR(retirementData.totalCurrentEmi)} ({((retirementData.totalCurrentEmi / currentMonthlyIncome) * 100).toFixed(0)}%)</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>
+                          <span>Surplus: {formatCurrencyINR(retirementData.currentMonthlySurplus)} ({((retirementData.currentMonthlySurplus / currentMonthlyIncome) * 100).toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FOMO: Cost of delay compounding multiplier */}
+                  {retirementData.requiredMonthlySip > 0 && (
+                    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-left space-y-4">
+                      <div className="flex items-center gap-1.5 justify-between">
+                        <span className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
+                          <Zap className="w-4 h-4 text-amber-500" />
+                          The Cost of Waiting: Why Starting Today is Critical
+                        </span>
+                        <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200/60 px-2 py-0.5 rounded font-bold font-mono">
+                          Time Multiplier
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Started 5 Yrs Early */}
+                        <div className="p-3 bg-emerald-50/40 border border-emerald-100 rounded-xl space-y-1 relative overflow-hidden">
+                          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider block">Started 5 Yrs Earlier</span>
+                          <div className="text-[14px] font-bold text-emerald-800">
+                            {formatCurrencyINR(retirementData.requiredMonthlySipEarly)}<span className="text-[10px] font-normal text-emerald-600">/mo</span>
+                          </div>
+                          {retirementData.requiredMonthlySip > retirementData.requiredMonthlySipEarly && (
+                            <span className="text-[10px] text-emerald-700 block font-semibold leading-tight pt-1">
+                              Save <strong>{Math.round(((retirementData.requiredMonthlySip - retirementData.requiredMonthlySipEarly) / retirementData.requiredMonthlySip) * 100)}%</strong> (or {formatCurrencyINR(retirementData.requiredMonthlySip - retirementData.requiredMonthlySipEarly)}/mo less!)
+                            </span>
+                          )}
+                          <Clock className="absolute bottom-2 right-2 w-4 h-4 text-emerald-300" />
+                        </div>
+
+                        {/* Start Today */}
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1 relative overflow-hidden ring-2 ring-blue-100/50">
+                          <span className="text-[9px] font-bold text-blue-700 uppercase tracking-wider block">Start Today (Age {currentAge})</span>
+                          <div className="text-[14px] font-bold text-blue-800">
+                            {formatCurrencyINR(retirementData.requiredMonthlySip)}<span className="text-[10px] font-normal text-blue-600">/mo</span>
+                          </div>
+                          <span className="text-[10px] text-blue-700 block font-semibold leading-tight pt-1">
+                            Lock in maximum compounding window today.
+                          </span>
+                          <span className="absolute top-0 right-0 bg-blue-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl uppercase font-mono">Best Time</span>
+                        </div>
+
+                        {/* Delay by 5 Years */}
+                        <div className="p-3 bg-rose-50/40 border border-rose-100 rounded-xl space-y-1 relative overflow-hidden">
+                          <span className="text-[9px] font-bold text-rose-700 uppercase tracking-wider block">Delay by 5 Years</span>
+                          <div className="text-[14px] font-bold text-rose-800">
+                            {formatCurrencyINR(retirementData.requiredMonthlySipLate)}<span className="text-[10px] font-normal text-rose-600">/mo</span>
+                          </div>
+                          {retirementData.requiredMonthlySipLate > retirementData.requiredMonthlySip && (
+                            <span className="text-[10px] text-rose-700 block font-semibold leading-tight pt-1">
+                              Cost jumps: <strong>+{Math.round(((retirementData.requiredMonthlySipLate - retirementData.requiredMonthlySip) / retirementData.requiredMonthlySip) * 100)}%</strong> (+{formatCurrencyINR(retirementData.requiredMonthlySipLate - retirementData.requiredMonthlySip)}/mo!)
+                            </span>
+                          )}
+                          <AlertTriangle className="absolute bottom-2 right-2 w-4 h-4 text-rose-300" />
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 italic leading-relaxed text-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        ⌛ Delaying just 5 years shrinks your growth window, forcing you to save <strong>+{Math.round(((retirementData.requiredMonthlySipLate - retirementData.requiredMonthlySip) / retirementData.requiredMonthlySip) * 100)}% more</strong> monthly to reach the exact same target.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Detailed Diagnostics */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-left">
+                    <h4 className="text-[14px] font-bold text-slate-900 mb-3 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      Freedom Blueprint Diagnostics
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">Accumulation Runway:</span>
+                          <span className="font-bold text-slate-800">{retirementData.yearsToRetirement} Years</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">Survival Window:</span>
+                          <span className="font-bold text-slate-800">{retirementData.yearsInRetirement} Years</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">Current Living Expenses:</span>
+                          <span className="font-bold text-slate-800">{formatCurrencyINR(currentMonthlyExpense)}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">FV of Existing Savings:</span>
+                          <span className="font-bold text-emerald-600">+{formatCurrencyINR(retirementData.futureValueOfExistingSavings)}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">Corporate Accumulations:</span>
+                          <span className="font-bold text-slate-700">+{formatCurrencyINR(retirementData.lumpSumsAtRetirement)}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-50 pb-1.5">
+                          <span className="text-slate-500">Accumulation Gap (Deficit):</span>
+                          <span className="font-bold text-rose-600">{formatCurrencyINR(retirementData.netCorpusGap)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Strategic Decumulation Buckets */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm text-left space-y-4">
+                    <div>
+                      <h4 className="text-[14.5px] font-bold text-slate-900 flex items-center gap-1.5">
+                        <Layers className="w-5 h-5 text-indigo-500" />
+                        Decumulation Bucketing Strategy
+                      </h4>
+                      <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                        Rather than placing your entire <strong>{formatCurrencyINR(retirementData.totalRequiredCorpusAtRetirement)}</strong> corpus in low-yield assets, we structure your wealth into three compounding buckets to maintain payouts forever:
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {/* Bucket 1 */}
+                      <div className="border border-slate-100 bg-slate-50/50 rounded-xl p-3.5 space-y-2 flex flex-col justify-between text-xs">
+                        <div>
+                          <div className="flex justify-between items-center text-[9px] font-bold font-mono text-slate-400">
+                            <span>BUCKET 1</span>
+                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">0-3 Yrs</span>
+                          </div>
+                          <h5 className="font-bold text-slate-900 mt-1">Arbitrage & Liquid</h5>
+                          <p className="text-[10.5px] text-slate-500 leading-normal mt-0.5">
+                            Protects immediate payouts. Completely safe, zero-volatility liquid holdings.
+                          </p>
+                        </div>
+                        <div className="pt-1.5 border-t border-slate-100">
+                          <span className="text-[9px] text-slate-400 block font-semibold uppercase">Size</span>
+                          <span className="font-mono font-bold text-slate-800">{formatCurrencyINR(retirementData.bucket1Arbitrage)}</span>
+                        </div>
+                      </div>
+
+                      {/* Bucket 2 */}
+                      <div className="border border-indigo-100 bg-indigo-50/20 rounded-xl p-3.5 space-y-2 flex flex-col justify-between text-xs">
+                        <div>
+                          <div className="flex justify-between items-center text-[9px] font-bold font-mono text-indigo-400">
+                            <span>BUCKET 2</span>
+                            <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">3-15 Yrs</span>
+                          </div>
+                          <h5 className="font-bold text-slate-900 mt-1">Systematic Income</h5>
+                          <p className="text-[10.5px] text-slate-500 leading-normal mt-0.5">
+                            Conservative hybrid assets feeding monthly systematic withdrawal plans.
+                          </p>
+                        </div>
+                        <div className="pt-1.5 border-t border-slate-100">
+                          <span className="text-[9px] text-slate-400 block font-semibold uppercase">Size</span>
+                          <span className="font-mono font-bold text-indigo-600">{formatCurrencyINR(retirementData.bucket2Hybrid)}</span>
+                        </div>
+                      </div>
+
+                      {/* Bucket 3 */}
+                      <div className="border border-amber-100 bg-amber-50/20 rounded-xl p-3.5 space-y-2 flex flex-col justify-between text-xs">
+                        <div>
+                          <div className="flex justify-between items-center text-[9px] font-bold font-mono text-amber-400">
+                            <span>BUCKET 3</span>
+                            <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">15+ Yrs</span>
+                          </div>
+                          <h5 className="font-bold text-slate-900 mt-1">Generational Growth</h5>
+                          <p className="text-[10.5px] text-slate-500 leading-normal mt-0.5">
+                            Active growth equities left untouched to compound over 15+ years.
+                          </p>
+                        </div>
+                        <div className="pt-1.5 border-t border-slate-100">
+                          <span className="text-[9px] text-slate-400 block font-semibold uppercase">Size</span>
+                          <span className="font-mono font-bold text-amber-600">{formatCurrencyINR(retirementData.bucket3Equity)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-900 text-slate-200 rounded-xl p-4.5 border border-slate-800 space-y-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                        <h5 className="font-bold text-slate-100">The Power of the Self-Restoring Loop</h5>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-slate-300">
+                        At the end of Year 15, Buckets 1 & 2 are spent, but Bucket 3 (Equity) has compounded at <strong>12% CAGR</strong>, growing from <span className="text-amber-400 font-semibold">{formatCurrencyINR(retirementData.bucket3Equity)}</span> to an astonishing <span className="text-emerald-400 font-bold">{formatCurrencyINR(retirementData.bucket3FutureValue15Years)}</span>! Your capital is fully restored to start the cycle again.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Right Column (5 Cols) - LEAD CAPTURE ENGINE */}
+                <div className="lg:col-span-5 space-y-6">
+                  
+                  {/* Lead Generation Action Hub */}
+                  <div className="bg-white border-2 border-blue-500/20 rounded-2xl shadow-md overflow-hidden text-left relative">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+                    
+                    <div className="p-6 space-y-5">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-blue-600 font-mono tracking-wider uppercase block">Take Action Today</span>
+                        <h3 className="text-[17px] font-bold font-display text-slate-900">Activate Your Retirement Roadmap</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Your custom blueprint is ready. Choose an option below to secure your roadmap and begin compounding with complete confidence.
+                        </p>
+                      </div>
+
+                      {/* Lead Tab Headers */}
+                      <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 gap-1">
+                        <button
+                          onClick={() => {
+                            setActiveLeadOption('consult');
+                            setLeadFormSuccess(false);
+                            setLeadFormError('');
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'consult' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📅 1:1 VIP Call
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveLeadOption('pdf');
+                            setPdfSuccess(false);
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'pdf' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📨 PDF Blueprint
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveLeadOption('whatsapp');
+                            setCallbackRequested(false);
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'whatsapp' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          💬 Fast-Track
+                        </button>
+                      </div>
+
+                      {/* LEAD FORM 1: BOOK VIP CALL */}
+                      {activeLeadOption === 'consult' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {!leadFormSuccess ? (
+                            <div className="space-y-3">
+                              <p className="text-[11px] text-slate-600 leading-relaxed bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                                🤝 Book a complimentary 1-on-1 private advisory call with our senior portfolio architects to structuralize your decumulation buckets tax-efficiently.
+                              </p>
+
+                              {leadFormError && (
+                                <p className="text-[10.5px] text-red-600 font-semibold bg-red-50 p-2 rounded border border-red-200">
+                                  ⚠️ {leadFormError}
+                                </p>
+                              )}
+
+                              <div className="space-y-2.5">
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Full Name</label>
+                                  <input
+                                    type="text"
+                                    value={leadName}
+                                    onChange={(e) => setLeadName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mobile Number</label>
+                                  <input
+                                    type="tel"
+                                    value={leadPhone}
+                                    onChange={(e) => setLeadPhone(e.target.value)}
+                                    placeholder="+91 XXXXX XXXXX"
+                                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Preferred Date</label>
+                                    <input
+                                      type="date"
+                                      value={leadDate}
+                                      onChange={(e) => setLeadDate(e.target.value)}
+                                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Time Slot</label>
+                                    <select
+                                      value={leadTimeSlot}
+                                      onChange={(e) => setLeadTimeSlot(e.target.value)}
+                                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none"
+                                    >
+                                      <option value="">Select slot</option>
+                                      <option value="10 AM - 12 PM">Morning (10AM - 12PM)</option>
+                                      <option value="12 PM - 3 PM">Mid-day (12PM - 3PM)</option>
+                                      <option value="3 PM - 6 PM">Afternoon (3PM - 6PM)</option>
+                                      <option value="6 PM - 8 PM">Evening (6PM - 8PM)</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  if (!leadName || !leadPhone || !leadDate || !leadTimeSlot) {
+                                    setLeadFormError('Please fill in all details to confirm your advisory session.');
+                                    return;
+                                  }
+                                  setLeadFormSuccess(true);
+                                  setLeadFormError('');
+                                }}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm mt-2 cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Secure Free Consultation Call
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-xl text-center space-y-3 animate-fade-in">
+                              <span className="text-2xl block">🎉</span>
+                              <h4 className="font-bold text-xs text-emerald-900">VIP Booking Confirmed!</h4>
+                              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                                Thank you, <strong>{leadName}</strong>. Your roadmap consultation is secured for <strong>{leadDate}</strong> during <strong>{leadTimeSlot}</strong>.
+                              </p>
+                              <div className="text-[10px] text-emerald-700 font-mono bg-white p-2 rounded border border-emerald-100">
+                                Call Number: {leadPhone}
+                              </div>
+                              <p className="text-[10px] text-emerald-600 leading-normal">
+                                A meeting confirmation has been logged. We look forward to working with you!
+                              </p>
+                              <button onClick={() => { setLeadFormSuccess(false); setLeadName(''); setLeadPhone(''); }} className="text-[10px] font-bold text-emerald-800 underline cursor-pointer">
+                                Book another call
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* LEAD FORM 2: EMAIL PDF ROADMAP */}
+                      {activeLeadOption === 'pdf' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {!pdfSuccess ? (
+                            <div className="space-y-3">
+                              <p className="text-[11px] text-slate-600 leading-relaxed bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                                📨 Enter your email address to receive your 12-page comprehensive Financial Freedom Roadmap PDF containing structured allocations, fund analysis, and decumulation guides directly.
+                              </p>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Email Address</label>
+                                <input
+                                  type="email"
+                                  value={pdfEmail}
+                                  onChange={(e) => setPdfEmail(e.target.value)}
+                                  placeholder="yourname@example.com"
+                                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  if (!pdfEmail || !pdfEmail.includes('@')) {
+                                    alert('Please enter a valid email address.');
+                                    return;
+                                  }
+                                  setPdfSuccess(true);
+                                }}
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                              >
+                                <FileText className="w-4 h-4" />
+                                Send PDF Blueprint Report
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-xl text-center space-y-2 animate-fade-in">
+                              <span className="text-2xl block">📨</span>
+                              <h4 className="font-bold text-xs text-emerald-900">Blueprint Sent Successfully!</h4>
+                              <p className="text-[11px] text-emerald-800 leading-normal">
+                                We've generated and emailed your customized 12-page roadmap to:
+                              </p>
+                              <div className="font-mono text-xs text-slate-700 bg-white p-2 rounded border border-emerald-100 font-bold">
+                                {pdfEmail}
+                              </div>
+                              <p className="text-[10px] text-emerald-600 leading-normal">
+                                Please check your email inbox (and spam/promotions folders) in 2 minutes.
+                              </p>
+                              <button onClick={() => { setPdfSuccess(false); setPdfEmail(''); }} className="text-[10px] font-bold text-emerald-800 underline cursor-pointer">
+                                Send to another email
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* LEAD FORM 3: FAST CALLBACK & WHATSAPP CHAT */}
+                      {activeLeadOption === 'whatsapp' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {!callbackRequested ? (
+                            <div className="space-y-3">
+                              <p className="text-[11px] text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+                                ⚡ Need answers right now? Enter your mobile number below and a senior mutual fund specialist will call you back in <strong>15 minutes</strong>.
+                              </p>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Your Mobile Number</label>
+                                <input
+                                  type="tel"
+                                  value={callbackPhone}
+                                  onChange={(e) => setCallbackPhone(e.target.value)}
+                                  placeholder="+91 XXXXX XXXXX"
+                                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  if (!callbackPhone) {
+                                    alert('Please enter a phone number.');
+                                    return;
+                                  }
+                                  setCallbackRequested(true);
+                                }}
+                                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                              >
+                                <Phone className="w-4 h-4" />
+                                Call Me in 15 Minutes
+                              </button>
+
+                              <div className="border-t border-slate-150 pt-3 text-center space-y-2">
+                                <span className="text-[11px] text-slate-400 block">Or join our live advisors instantly:</span>
+                                <a
+                                  href="https://wa.me/919999999999?text=Hello%2C%20I%20just%20used%20your%20Financial%20Freedom%20Calculator%20and%20would%20like%20to%20discuss%20my%20retirement%20SIP%2520blueprint."
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-2 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm inline-block text-center cursor-pointer"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                  Chat on WhatsApp Now
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-xl text-center space-y-2.5 animate-fade-in">
+                              <span className="text-2xl block">📞</span>
+                              <h4 className="font-bold text-xs text-emerald-900">Advisory Callback Queued!</h4>
+                              <p className="text-[11px] text-emerald-800 leading-normal">
+                                We have queued your instant callback request for:
+                              </p>
+                              <div className="font-mono text-xs text-slate-700 bg-white p-2 rounded border border-emerald-100 font-bold">
+                                {callbackPhone}
+                              </div>
+                              <p className="text-[10px] text-emerald-600 leading-normal">
+                                A senior advisor will call you within <strong>15 minutes</strong> to answer all your decumulation & SIP compounding questions.
+                              </p>
+                              <button onClick={() => { setCallbackRequested(false); setCallbackPhone(''); }} className="text-[10px] font-bold text-emerald-800 underline cursor-pointer">
+                                Use different number
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Security Compliance Box */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-1.5 text-[11px] text-slate-500">
+                    <span className="font-bold text-slate-700 block flex items-center gap-1">
+                      <ShieldPlus className="w-3.5 h-3.5 text-emerald-600" />
+                      Regulated, Secure Wealth Advisory
+                    </span>
+                    <p className="leading-relaxed">
+                      We operate in strict accordance with mutual fund regulatory guidelines. Recommendations are customized to optimize capital efficiency and minimize tax liabilities.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
 
           </div>
         )}

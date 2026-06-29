@@ -29,8 +29,8 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, collection, doc, getDocs, setDoc, writeBatch, query, orderBy } from "firebase/firestore";
 import fs from "fs";
 import path from "path";
 
@@ -43,15 +43,12 @@ let firestoreInstance: any = null;
 function getDb() {
   if (!firestoreInstance) {
     try {
-      if (getApps().length === 0) {
-        initializeApp({
-          projectId: "axial-enigma-z0bnn"
-        });
-      }
-      firestoreInstance = getFirestore("ai-studio-purewealthglobal-b89abb59-0a6a-4a9e-9251-9892ddacb121");
-      console.log("[Firebase] Admin SDK & Firestore database initialized successfully.");
+      const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8"));
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+      firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+      console.log("[Firebase] Client SDK & Firestore database initialized successfully.");
     } catch (err) {
-      console.error("[Firebase] Initialization failed:", err);
+      console.error("[Firebase] Client SDK Initialization failed:", err);
     }
   }
   return firestoreInstance;
@@ -101,7 +98,9 @@ async function readLeadsFromFirestore(): Promise<any[]> {
   const db = getDb();
   if (db) {
     try {
-      const snapshot = await db.collection("leads").orderBy("timestamp", "desc").get();
+      const leadsCol = collection(db, "leads");
+      const q = query(leadsCol, orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
       const leads: any[] = [];
       snapshot.forEach((doc: any) => {
         leads.push(doc.data());
@@ -109,7 +108,7 @@ async function readLeadsFromFirestore(): Promise<any[]> {
       inMemoryLeads = leads;
       return leads;
     } catch (err) {
-      console.warn("[Firebase] Firestore read failed, falling back to local file/memory database:", err);
+      console.warn("[Firebase] Client SDK Firestore read failed, falling back to local file/memory database:", err);
     }
   }
   return readLeads();
@@ -119,10 +118,11 @@ async function saveLeadToFirestore(lead: any) {
   const db = getDb();
   if (db) {
     try {
-      await db.collection("leads").doc(lead.id).set(lead);
-      console.log(`[Firebase] Lead ${lead.id} successfully saved to Firestore.`);
+      const leadDocRef = doc(db, "leads", lead.id);
+      await setDoc(leadDocRef, lead);
+      console.log(`[Firebase] Lead ${lead.id} successfully saved to Firestore via Client SDK.`);
     } catch (err) {
-      console.error("[Firebase] Firestore write failed:", err);
+      console.error("[Firebase] Client SDK Firestore write failed:", err);
     }
   }
 }
@@ -131,15 +131,16 @@ async function clearLeadsFromFirestore() {
   const db = getDb();
   if (db) {
     try {
-      const snapshot = await db.collection("leads").get();
-      const batch = db.batch();
+      const leadsCol = collection(db, "leads");
+      const snapshot = await getDocs(leadsCol);
+      const batch = writeBatch(db);
       snapshot.docs.forEach((doc: any) => {
         batch.delete(doc.ref);
       });
       await batch.commit();
-      console.log("[Firebase] All leads cleared successfully from Firestore.");
+      console.log("[Firebase] All leads cleared successfully from Firestore via Client SDK.");
     } catch (err) {
-      console.error("[Firebase] Firestore clear failed:", err);
+      console.error("[Firebase] Client SDK Firestore clear failed:", err);
     }
   }
 }

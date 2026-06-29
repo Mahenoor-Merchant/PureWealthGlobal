@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "Captured lead information across financial diagnostic tools",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the lead"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of lead action (pdf, whatsapp, consult)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the client"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the client"
+        },
+        "date": {
+          "type": "string",
+          "description": "Preferred advisory appointment date"
+        },
+        "timeSlot": {
+          "type": "string",
+          "description": "Preferred advisory appointment time slot"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of lead creation"
+        },
+        "calculatorData": {
+          "type": "object",
+          "description": "Diagnostic payload parameters of the financial tool"
+        }
+      },
+      "required": ["id", "type", "name", "timestamp"]
+    }
+  },
+  "firestore": {
+    "leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Leads directory for CRM"
+    }
+  }
+}

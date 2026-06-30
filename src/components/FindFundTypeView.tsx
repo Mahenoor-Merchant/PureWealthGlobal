@@ -73,6 +73,13 @@ export default function FindFundTypeView({
   const [focusedStep, setFocusedStep] = useState<2 | 3>(2);
   const [callName, setCallName] = useState('');
   const [callMobile, setCallMobile] = useState('');
+
+  // States for Option 1 details in FindFundTypeView
+  const [opt1Name, setOpt1Name] = useState('');
+  const [opt1Phone, setOpt1Phone] = useState('');
+  const [opt1Email, setOpt1Email] = useState('');
+  const [opt1Submitting, setOpt1Submitting] = useState(false);
+  const [opt1Saved, setOpt1Saved] = useState(false);
   
   const getLocalDateString = () => {
     const d = new Date();
@@ -86,6 +93,99 @@ export default function FindFundTypeView({
   const [callTime, setCallTime] = useState('');
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
+
+  const handleOption1Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!opt1Name.trim() || !opt1Phone.trim() || !opt1Email.trim()) {
+      alert('Please fill in your Name, Number and Email to activate.');
+      return;
+    }
+    setOpt1Submitting(true);
+
+    const currentCategory = diagnosedCategories[activeTab] || diagnosedCategories[0];
+
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'direct-invest',
+          name: opt1Name.trim(),
+          phone: opt1Phone.trim(),
+          email: opt1Email.trim(),
+          calculatorData: {
+            tool: 'Asset Class Custom Onboarding',
+            purpose: 'Activate & Invest Directly Online',
+            allocationProfile: currentCategory?.name || 'Standard Portfolio',
+            intendedAllocation: `${capitalType} of ₹${capitalAmount.toLocaleString('en-IN')}`,
+            suggestedSplit: `${scoringDetails?.equityAllocation}% Equity / ${scoringDetails?.debtAllocation}% Defensive`
+          }
+        })
+      });
+      setOpt1Saved(true);
+    } catch (err) {
+      console.error("Error saving Option 1 lead:", err);
+    } finally {
+      setOpt1Submitting(false);
+    }
+
+    // Open target direct self-investing checkout link
+    window.open('https://a.aonelink.in/ANGOne/SakbsEc', '_blank');
+  };
+
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!callName.trim() || !callMobile.trim()) {
+      setFormError('Please enter your Name and Contact Number');
+      return;
+    }
+    setFormError('');
+
+    const currentCategory = diagnosedCategories[activeTab] || diagnosedCategories[0];
+
+    // Save lead to CRM
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'consult',
+          name: callName.trim(),
+          phone: callMobile.trim(),
+          email: `${callName.toLowerCase().replace(/\s+/g, '')}@noemail.com`,
+          date: callDate,
+          timeSlot: callTime || 'Flexible ASAP',
+          calculatorData: {
+            tool: 'Asset Class Custom Onboarding',
+            purpose: 'Request Private Calibration Callback',
+            preferredDate: callDate,
+            preferredTimeSlot: callTime || 'Flexible ASAP',
+            allocationProfile: currentCategory?.name || 'Standard Portfolio',
+            intendedAllocation: `${capitalType} of ₹${capitalAmount.toLocaleString('en-IN')}`,
+            suggestedSplit: `${scoringDetails?.equityAllocation}% Equity / ${scoringDetails?.debtAllocation}% Defensive`
+          }
+        })
+      });
+    } catch (err) {
+      console.error("Error saving Option 2 lead in CRM:", err);
+    }
+
+    setFormSuccess(true);
+    
+    // Open Whatsapp Message securely
+    const whatsappMsg = encodeURIComponent(
+      `Hi! I have calibrated my asset class blueprint and would like to schedule a secure onboarding call with a PW Consultant.\n\n` +
+      `• Profile Recommendation: ${currentCategory?.name || 'Standard Portfolio'}\n` +
+      `• Suggestion Split: ${scoringDetails.equityAllocation}% Equity / ${scoringDetails.debtAllocation}% Defensive\n` +
+      `• Intended Allocation: ${capitalType} of ₹${capitalAmount.toLocaleString('en-IN')}\n\n` +
+      `• Name: ${callName}\n` +
+      `• Mobile: ${callMobile}\n` +
+      `• Preferred Date: ${callDate}\n` +
+      `• Preferred Time Slot: ${callTime || 'Flexible ASAP'}\n\n` +
+      `Verify my profile parameters and arrange my direct live investments. Thank you!`
+    );
+    window.open(`https://wa.me/917718860398?text=${whatsappMsg}`, '_blank');
+  };
 
   const ALL_TIME_SLOTS = [
     { value: "09:00 AM - 11:00 AM", label: "Morning (09:00 AM - 11:00 AM)", startHour: 9.0 },
@@ -2921,8 +3021,8 @@ export default function FindFundTypeView({
                 {/* The 2 Option Split Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
                   
-                  {/* Option 1: Direct self-investing via technological partner */}
-                  <div className="bg-white rounded-[24px] border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-lg hover:border-blue-200 hover:shadow-xl transition-all relative overflow-hidden">
+                  {/* Option 1: Direct self-investing via technological partner with Lead capture */}
+                  <form onSubmit={handleOption1Submit} className="bg-white rounded-[24px] border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-lg hover:border-blue-200 hover:shadow-xl transition-all relative overflow-hidden text-left">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[64px] opacity-10 pointer-events-none" />
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
@@ -2936,40 +3036,76 @@ export default function FindFundTypeView({
                       </div>
 
                       <p className="text-[12.5px] text-slate-600 leading-relaxed">
-                        Ready to deploy your capital? Use our integrated technology platform via <strong>Angel One</strong> to begin your regular Monthly SIP or standard Lumpsum placement now.
+                        Ready to deploy your capital? Fill your registration details below to use our integrated technology platform via <strong>Angel One</strong> and begin your regular Monthly SIP or Lumpsum placement now.
                       </p>
 
-                      <div className="space-y-2.5 pt-4 text-xs font-medium text-slate-700">
+                      {/* Lead Information Fields */}
+                      <div className="space-y-3 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono font-bold tracking-wider text-slate-500 block uppercase">Your Full Name *</label>
+                          <input 
+                            type="text" 
+                            required
+                            placeholder="e.g. John Doe"
+                            value={opt1Name}
+                            onChange={(e) => setOpt1Name(e.target.value)}
+                            className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-sans"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono font-bold tracking-wider text-slate-500 block uppercase">Contact Number *</label>
+                            <input 
+                              type="tel" 
+                              required
+                              placeholder="e.g. +91 98765 43210"
+                              value={opt1Phone}
+                              onChange={(e) => setOpt1Phone(e.target.value)}
+                              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-sans"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono font-bold tracking-wider text-slate-500 block uppercase">Email Address *</label>
+                            <input 
+                              type="email" 
+                              required
+                              placeholder="e.g. john@example.com"
+                              value={opt1Email}
+                              onChange={(e) => setOpt1Email(e.target.value)}
+                              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-sans"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2 text-xs font-medium text-slate-700">
                         <div className="flex items-center gap-2.5">
                           <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span>Instant secure account integration</span>
+                          <span>Instant secure account integration with CRM logged</span>
                         </div>
                         <div className="flex items-center gap-2.5">
                           <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                           <span>Direct execution link mapping to chosen asset subclasses</span>
                         </div>
-                        <div className="flex items-center gap-2.5">
-                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span>No paperwork, no complex compliance pipelines</span>
-                        </div>
                       </div>
                     </div>
 
-                    <div className="pt-8">
-                      <a
-                        href="https://a.aonelink.in/ANGOne/SakbsEc"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <div className="pt-6">
+                      <button
+                        type="submit"
+                        disabled={opt1Submitting}
                         className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/10 active:scale-95 cursor-pointer text-center"
                       >
-                        <span>Activate & Invest Directly Online</span>
+                        <span>{opt1Submitting ? 'Registering Lead...' : 'Activate & Invest Directly Online 👍🏻✅'}</span>
                         <ArrowRight className="w-4 h-4 shrink-0" />
-                      </a>
+                      </button>
                       <p className="text-[10px] text-slate-400 text-center mt-2.5 leading-normal">
                         Secure digital checkout via authorized financial networks.
                       </p>
                     </div>
-                  </div>
+                  </form>
 
                   {/* Option 2: Request Call back */}
                   <div className="bg-[#0B1528] rounded-[24px] border border-slate-800 p-6 sm:p-8 flex flex-col justify-between shadow-xl text-white relative overflow-hidden">
@@ -2990,29 +3126,7 @@ export default function FindFundTypeView({
                       </p>
 
                       <form 
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          if (!callName.trim() || !callMobile.trim()) {
-                            setFormError('Please enter your Name and Contact Number');
-                            return;
-                          }
-                          setFormError('');
-                          setFormSuccess(true);
-                          
-                          // Open Whatsapp Message securely
-                          const whatsappMsg = encodeURIComponent(
-                            `Hi! I have calibrated my asset class blueprint and would like to schedule a secure onboarding call with a PW Consultant.\n\n` +
-                            `• Profile Recommendation: ${currentCategory?.name || 'Standard Portfolio'}\n` +
-                            `• Suggestion Split: ${scoringDetails.equityAllocation}% Equity / ${scoringDetails.debtAllocation}% Defensive\n` +
-                            `• Intended Allocation: ${capitalType} of ₹${capitalAmount.toLocaleString('en-IN')}\n\n` +
-                            `• Name: ${callName}\n` +
-                            `• Mobile: ${callMobile}\n` +
-                            `• Preferred Date: ${callDate}\n` +
-                            `• Preferred Time Slot: ${callTime || 'Flexible ASAP'}\n\n` +
-                            `Verify my profile parameters and arrange my direct live investments. Thank you!`
-                          );
-                          window.open(`https://wa.me/917718860398?text=${whatsappMsg}`, '_blank');
-                        }} 
+                        onSubmit={handleSupportSubmit} 
                         className="space-y-3.5 pt-2"
                       >
                         {/* Input Grid */}

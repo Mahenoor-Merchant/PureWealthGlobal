@@ -19,6 +19,7 @@ import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
 import PortfolioAuditor from './components/PortfolioAuditor';
 import DatabasePortalView from './components/DatabasePortalView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
+import PasswordDialog from './components/PasswordDialog';
 import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
 
@@ -50,6 +51,7 @@ export default function App() {
   const [hasPopupBeenShown, setHasPopupBeenShown] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [pendingPage, setPendingPage] = useState<NavPage['id'] | null>(null);
+  const [isDbPasswordDialogOpen, setIsDbPasswordDialogOpen] = useState(false);
 
   // Synchronize path and hash routing on mount and on history navigation changes
   useEffect(() => {
@@ -81,7 +83,8 @@ export default function App() {
       } else if (hash === '#portfolio-audit' || hash === '#audit') {
         setCurrentPage('portfolio-audit');
       } else if (hash === '#database-portal' || hash === '#database') {
-        setCurrentPage('database-portal');
+        setCurrentPage('home');
+        setIsDbPasswordDialogOpen(true);
       } else if (hash === '#home') {
         setCurrentPage('home');
       } else {
@@ -93,7 +96,8 @@ export default function App() {
         } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
           setCurrentPage('portfolio-audit');
         } else if (pathname === '/database' || pathname === '/database-portal') {
-          setCurrentPage('database-portal');
+          setCurrentPage('home');
+          setIsDbPasswordDialogOpen(true);
         } else if (pathname === '/retirement-calculator' || pathname === '/retirement') {
           setCurrentPage('retirement-calculator');
         } else if (pathname === '' || pathname === '/') {
@@ -143,6 +147,11 @@ export default function App() {
 
   const changePage = (newPage: NavPage['id']) => {
     if (newPage !== currentPage) {
+      if (newPage === 'database-portal') {
+        setIsDbPasswordDialogOpen(true);
+        return;
+      }
+
       // Intercept navigation if they have fetched funds and haven't seen popup yet (except going directly to connect)
       if (currentPage === 'find-fund' && fundsFetched && !hasPopupBeenShown && newPage !== 'connect') {
         setPendingPage(newPage);
@@ -163,8 +172,6 @@ export default function App() {
         window.history.pushState(null, '', '/findfund');
       } else if (newPage === 'portfolio-audit') {
         window.history.pushState(null, '', '/audit');
-      } else if (newPage === 'database-portal') {
-        window.history.pushState(null, '', '/database');
       } else if (newPage === 'retirement-calculator') {
         window.history.pushState(null, '', '/retirement-calculator');
       } else if (newPage === 'knowledge') {
@@ -175,6 +182,13 @@ export default function App() {
         window.history.pushState(null, '', `/#${newPage}`);
       }
     }
+  };
+
+  const handleDbPasswordSuccess = () => {
+    setIsDbPasswordDialogOpen(false);
+    setPageHistory((prev) => [...prev, currentPage]);
+    setCurrentPage('database-portal');
+    window.history.pushState(null, '', '/database');
   };
 
   const handleBack = () => {
@@ -322,6 +336,13 @@ export default function App() {
 
       {/* Corporate Compliance Footer */}
       <Footer setCurrentPage={changePage} />
+
+      <PasswordDialog
+        isOpen={isDbPasswordDialogOpen}
+        onClose={() => setIsDbPasswordDialogOpen(false)}
+        onSuccess={handleDbPasswordSuccess}
+        title="CRM Database Access Verification"
+      />
     </div>
   );
 }

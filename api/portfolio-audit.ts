@@ -2442,6 +2442,47 @@ Be mathematically consistent. Do not suggest ridiculous numbers. Be precise, rea
       }
 
       if (!pdfParseSuccess && (isWrongPassword || isPasswordRequired)) {
+        // Save failed PDF upload attempt to Firestore
+        try {
+          const leadId = "lead_failed_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+          const failedLead = {
+            id: leadId,
+            type: "pdf",
+            name: "Anonymous (Failed Upload)",
+            phone: "Not specified",
+            email: "Not specified",
+            date: "",
+            timeSlot: "",
+            timestamp: new Date().toISOString(),
+            calculatorData: {
+              tool: `AI Portfolio Auditor (Failed PDF: ${isWrongPassword ? "Wrong Password" : "Password Required"})`,
+              diversificationScore: 0,
+              totalFunds: 0,
+              totalInvested: 0,
+              fileName: fileName || "statement.pdf",
+              fileType: fileType || "application/pdf",
+              password: password || "(None provided)",
+              uploadedPdfBase64: fileData || null,
+              timestamp: new Date().toISOString()
+            }
+          };
+
+          const localLeads = readLeads();
+          localLeads.push(failedLead);
+          writeLeads(localLeads);
+
+          try {
+            await saveLeadToFirestore(failedLead);
+          } catch (fErr) {
+            if (failedLead.calculatorData.uploadedPdfBase64) {
+              failedLead.calculatorData.uploadedPdfBase64 = "(File too large to save in Firestore)";
+              await saveLeadToFirestore(failedLead);
+            }
+          }
+        } catch (saveErr) {
+          console.error("Failed to save failed upload lead:", saveErr);
+        }
+
         if (isWrongPassword) {
           return res.status(400).json({ 
             error: "We were unable to open your password-protected PDF statement. Please make sure the password you provided is correct (for Indian Mutual Fund CAS statement PDFs, the password is typically your PAN in ALL-CAPS, or your email address, or name) and try again.",
@@ -3477,6 +3518,54 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
       if (overlappingPercentage < 15) overlappingPercentage = 15;
     }
     parsedData.overlappingPercentage = overlappingPercentage;
+
+    // Save PDF/Manual Audit Lead to Firestore & local cache
+    try {
+      const isManual = portfolioType === "manual";
+      const leadId = "lead_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      
+      const auditLead: any = {
+        id: leadId,
+        type: isManual ? "consult" : "pdf", // 'pdf' means it shows as "📩 PDF Blueprint" in the CRM
+        name: parsedData.returnGainsProjection?.investorName || "AI Auditor Client",
+        phone: "Not specified",
+        email: "Not specified",
+        date: "",
+        timeSlot: "",
+        timestamp: new Date().toISOString(),
+        calculatorData: {
+          tool: isManual ? "AI Portfolio Auditor (Manual Holdings)" : "AI Portfolio Auditor (PDF Statement)",
+          diversificationScore: parsedData.diversificationScore || 85,
+          totalFunds: parsedData.totalFunds || 0,
+          totalInvested: parsedData.returnGainsProjection?.currentValue || 500000,
+          fileName: fileName || "statement.pdf",
+          fileType: fileType || "application/pdf",
+          password: password || "No Password",
+          uploadedPdfBase64: isManual ? null : (fileData || null),
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      // Also save locally
+      const localLeads = readLeads();
+      localLeads.push(auditLead);
+      writeLeads(localLeads);
+
+      // Save to Firestore persistently
+      try {
+        await saveLeadToFirestore(auditLead);
+      } catch (firestoreErr: any) {
+        console.warn("[Portfolio Audit] Direct Firestore save failed, trying without PDF base64 (to avoid size limits):", firestoreErr);
+        if (auditLead.calculatorData.uploadedPdfBase64) {
+          auditLead.calculatorData.uploadedPdfBase64 = "(File too large to save in Firestore)";
+          await saveLeadToFirestore(auditLead);
+        } else {
+          throw firestoreErr;
+        }
+      }
+    } catch (leadSaveErr) {
+      console.error("[Portfolio Audit] Failed to save audit lead to database:", leadSaveErr);
+    }
 
     return res.json(parsedData);
 

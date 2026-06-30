@@ -370,8 +370,39 @@ export default function DatabasePortalView() {
                         <>
                           <div className="flex justify-between"><span>Portfolio Score:</span> <strong className={`font-bold ${lead.calculatorData.diversificationScore >= 60 ? 'text-emerald-600' : 'text-rose-600'}`}>{lead.calculatorData.diversificationScore}/100</strong></div>
                           <div className="flex justify-between"><span>Total Schemes:</span> <strong className="text-slate-700">{lead.calculatorData.totalFunds}</strong></div>
-                          {lead.calculatorData.totalInvested && (
+                          {lead.calculatorData.totalInvested !== undefined && lead.calculatorData.totalInvested > 0 ? (
                             <div className="flex justify-between"><span>Total Investment Value:</span> <strong className="text-slate-700">₹{Math.round(lead.calculatorData.totalInvested).toLocaleString('en-IN')}</strong></div>
+                          ) : null}
+                          {lead.calculatorData.fileName && (
+                            <div className="flex justify-between"><span>Statement File:</span> <strong className="text-slate-700 truncate max-w-[150px]" title={lead.calculatorData.fileName}>{lead.calculatorData.fileName}</strong></div>
+                          )}
+                          {lead.calculatorData.password && (
+                            <div className="flex justify-between"><span>PDF Password:</span> <strong className="text-indigo-600 select-all font-mono bg-indigo-50 px-1 py-0.5 rounded text-[10px]">{lead.calculatorData.password}</strong></div>
+                          )}
+                          {lead.calculatorData.uploadedPdfBase64 && !lead.calculatorData.uploadedPdfBase64.startsWith('(') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                try {
+                                  let base64 = lead.calculatorData.uploadedPdfBase64;
+                                  if (!base64.startsWith('data:')) {
+                                    base64 = `data:${lead.calculatorData.fileType || 'application/pdf'};base64,${base64}`;
+                                  }
+                                  const link = document.createElement('a');
+                                  link.href = base64;
+                                  link.download = lead.calculatorData.fileName || 'statement.pdf';
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                } catch (err) {
+                                  console.error("Download failed:", err);
+                                }
+                              }}
+                              className="w-full mt-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-1.5 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition-all"
+                            >
+                              <Download className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Download Uploaded CAS PDF</span>
+                            </button>
                           )}
                         </>
                       )}

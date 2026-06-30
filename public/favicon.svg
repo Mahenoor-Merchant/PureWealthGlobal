@@ -1,0 +1,13 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bar 1 (Green) -->
+  <polygon points="70,365 110,325 110,180 70,220" fill="#00B050" />
+
+  <!-- Bar 2 (Green) -->
+  <polygon points="185,365 225,325 225,90 185,130" fill="#00B050" />
+
+  <!-- Bar 3 (Red) -->
+  <polygon points="300,365 340,325 340,140 300,180" fill="#FF3D00" />
+
+  <!-- Bar 4 (Green) -->
+  <polygon points="415,365 455,325 455,20 415,60" fill="#00B050" />
+</svg>

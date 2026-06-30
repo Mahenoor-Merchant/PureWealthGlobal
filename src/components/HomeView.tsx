@@ -219,10 +219,10 @@ export default function HomeView({ setCurrentPage, setSelectedServiceId }: HomeV
                 {/* Start SIP Now */}
                 <button
                   onClick={() => handlePageNavigation('connect')}
-                  className="bg-[#0F172A] hover:bg-slate-850 text-white font-black text-[13px] sm:text-[13.5px] px-7 py-3 rounded-full shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-2 active:scale-[0.98] whitespace-nowrap h-[46px]"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[13.5px] sm:text-[14px] px-8 py-3.5 rounded-full shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-2 active:scale-[0.98] whitespace-nowrap h-[48px] animate-sip-pulse border border-blue-500"
                 >
                   <span>Start SIP Now👍🏻✅</span>
-                  <span className="text-[14px]">→</span>
+                  <span className="text-[15px]">→</span>
                 </button>
 
                 {/* Free Tool - AI Portfolio Auditor (Badged) */}

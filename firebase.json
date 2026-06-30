@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "crm-database",
+      "rules": "firestore.rules"
+    }
+  ]
+}

@@ -24,10 +24,17 @@ import FundFinderPromoBanner from './FundFinderPromoBanner';
 
 interface CalculatorsViewProps {
   setCurrentPage: (page: any) => void;
+  initialTab?: 'sip' | 'allocator' | 'retirement';
 }
 
-export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps) {
-  const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>('sip');
+export default function CalculatorsView({ setCurrentPage, initialTab }: CalculatorsViewProps) {
+  const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>(initialTab || 'sip');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const handleLeadSubmit = async (e: React.FormEvent, type: 'consult' | 'pdf' | 'whatsapp') => {
     e.preventDefault();
@@ -1778,7 +1785,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                           : 'text-slate-600 hover:text-slate-900 font-semibold'
                       }`}
                     >
-                      🤝 VIP Advisory
+                      🤝 Schedule Callback
                     </button>
                   </div>
 
@@ -1796,7 +1803,7 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                             ? `Your custom 3-Page Financial Freedom Blueprint PDF has been compiled and downloaded to your device! A registration copy has been saved in the CRM portal.`
                             : activeLeadOption === 'whatsapp'
                               ? `Your fastback callback request has been received. Our senior wealth manager will call you back within 15 minutes!`
-                              : `Your VIP Advisory session has been booked. Our Senior Advisor has been allocated your exact financial runway details & will connect at your chosen time slot.`
+                              : `Your Analysis session has been booked. Our Certified Analyst has been allocated your exact financial runway details & will connect at your chosen time slot.`
                           }
                         </p>
                         <button
@@ -1898,10 +1905,10 @@ export default function CalculatorsView({ setCurrentPage }: CalculatorsViewProps
                             <>📩 Send My PDF Freedom Blueprint Now</>
                           )}
                           {activeLeadOption === 'whatsapp' && (
-                            <>⚡ Request Callback within 15 mins</>
+                            <>⚡ Request Instant Callback from Certified Analyst</>
                           )}
                           {activeLeadOption === 'consult' && (
-                            <>🤝 Schedule VIP Advisory Session & Book Now</>
+                            <>🤝 Schedule Analysis session & book now</>
                           )}
                         </button>
 

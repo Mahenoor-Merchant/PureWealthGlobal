@@ -94,53 +94,231 @@ function writeLeads(leads: any[]) {
   }
 }
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  };
+  console.error('[Firebase] Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+function getFirebaseConfig() {
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+  } catch (err) {
+    console.error("Failed to read firebase config:", err);
+  }
+  return null;
+}
+
+function toFirestoreFields(obj: any): any {
+  const fields: any = {};
+  if (!obj || typeof obj !== "object") return fields;
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === null || val === undefined) {
+      fields[key] = { nullValue: null };
+    } else if (typeof val === "string") {
+      fields[key] = { stringValue: val };
+    } else if (typeof val === "number") {
+      if (Number.isInteger(val)) {
+        fields[key] = { integerValue: String(val) };
+      } else {
+        fields[key] = { doubleValue: val };
+      }
+    } else if (typeof val === "boolean") {
+      fields[key] = { booleanValue: val };
+    } else if (val instanceof Date) {
+      fields[key] = { timestampValue: val.toISOString() };
+    } else if (Array.isArray(val)) {
+      fields[key] = {
+        arrayValue: {
+          values: val.map(item => {
+            if (typeof item === "object" && item !== null) {
+              return { mapValue: { fields: toFirestoreFields(item) } };
+            } else if (typeof item === "string") {
+              return { stringValue: item };
+            } else if (typeof item === "number") {
+              return { doubleValue: item };
+            } else if (typeof item === "boolean") {
+              return { booleanValue: item };
+            }
+            return { nullValue: null };
+          })
+        }
+      };
+    } else if (typeof val === "object") {
+      fields[key] = { mapValue: { fields: toFirestoreFields(val) } };
+    }
+  }
+  return fields;
+}
+
+function fromFirestoreFields(fields: any): any {
+  const obj: any = {};
+  if (!fields) return obj;
+  for (const [key, valObj] of Object.entries(fields)) {
+    obj[key] = fromFirestoreValue(valObj);
+  }
+  return obj;
+}
+
+function fromFirestoreValue(valObj: any): any {
+  if (!valObj) return null;
+  if ("stringValue" in valObj) return valObj.stringValue;
+  if ("integerValue" in valObj) return parseInt(valObj.integerValue, 10);
+  if ("doubleValue" in valObj) return parseFloat(valObj.doubleValue);
+  if ("booleanValue" in valObj) return valObj.booleanValue;
+  if ("nullValue" in valObj) return null;
+  if ("timestampValue" in valObj) return valObj.timestampValue;
+  if ("arrayValue" in valObj) {
+    const values = valObj.arrayValue.values || [];
+    return values.map((v: any) => fromFirestoreValue(v));
+  }
+  if ("mapValue" in valObj) {
+    return fromFirestoreFields(valObj.mapValue.fields);
+  }
+  return null;
+}
+
 async function readLeadsFromFirestore(): Promise<any[]> {
-  const db = getDb();
-  if (db) {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
+    const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents:runQuery?key=${apiKey}`;
     try {
-      const leadsCol = collection(db, "leads");
-      const q = query(leadsCol, orderBy("timestamp", "desc"));
-      const snapshot = await getDocs(q);
-      const leads: any[] = [];
-      snapshot.forEach((doc: any) => {
-        leads.push(doc.data());
+      const response = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "leads" }],
+            orderBy: [{ field: { fieldPath: "timestamp" }, direction: "DESCENDING" }]
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`REST query failed: ${response.status} - ${errText}`);
+      }
+
+      const results = await response.json() as any[];
+      const leads: any[] = [];
+      for (const item of results) {
+        if (item.document && item.document.fields) {
+          leads.push(fromFirestoreFields(item.document.fields));
+        }
+      }
+      
       inMemoryLeads = leads;
+      writeLeads(leads);
       return leads;
-    } catch (err) {
-      console.warn("[Firebase] Client SDK Firestore read failed, falling back to local file/memory database:", err);
+    } catch (err: any) {
+      console.warn("[Firebase] REST Firestore read failed, falling back to local file/memory database:", err);
     }
   }
   return readLeads();
 }
 
 async function saveLeadToFirestore(lead: any) {
-  const db = getDb();
-  if (db) {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents/leads/${lead.id}?key=${apiKey}`;
     try {
-      const leadDocRef = doc(db, "leads", lead.id);
-      await setDoc(leadDocRef, lead);
-      console.log(`[Firebase] Lead ${lead.id} successfully saved to Firestore via Client SDK.`);
-    } catch (err) {
-      console.error("[Firebase] Client SDK Firestore write failed:", err);
+      const payload = {
+        fields: toFirestoreFields(lead)
+      };
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`REST write failed: ${response.status} - ${errText}`);
+      }
+
+      console.log(`[Firebase] Lead ${lead.id} successfully saved to Firestore via REST API.`);
+    } catch (err: any) {
+      console.error("[Firebase] REST Firestore write failed:", err);
+      handleFirestoreError(err, OperationType.WRITE, `leads/${lead.id}`);
     }
   }
 }
 
 async function clearLeadsFromFirestore() {
-  const db = getDb();
-  if (db) {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
     try {
-      const leadsCol = collection(db, "leads");
-      const snapshot = await getDocs(leadsCol);
-      const batch = writeBatch(db);
-      snapshot.docs.forEach((doc: any) => {
-        batch.delete(doc.ref);
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents:runQuery?key=${apiKey}`;
+      const qRes = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "leads" }]
+          }
+        })
       });
-      await batch.commit();
-      console.log("[Firebase] All leads cleared successfully from Firestore via Client SDK.");
-    } catch (err) {
-      console.error("[Firebase] Client SDK Firestore clear failed:", err);
+
+      if (qRes.ok) {
+        const results = await qRes.json() as any[];
+        for (const item of results) {
+          if (item.document && item.document.name) {
+            const deleteUrl = `https://firestore.googleapis.com/v1/${item.document.name}?key=${apiKey}`;
+            const delRes = await fetch(deleteUrl, { method: "DELETE" });
+            if (!delRes.ok) {
+              console.warn(`[Firebase] REST document delete failed for ${item.document.name}`);
+            }
+          }
+        }
+        console.log("[Firebase] All leads cleared successfully from Firestore via REST API.");
+      }
+    } catch (err: any) {
+      console.error("[Firebase] REST Firestore clear failed:", err);
+      handleFirestoreError(err, OperationType.DELETE, "leads");
     }
   }
 }

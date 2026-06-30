@@ -10,10 +10,11 @@ import {
   Coins, RotateCcw, Landmark, Clock, ChevronRight,
   TrendingDown, Percent, Award, BookOpen, ExternalLink, Send,
   AlertTriangle, BrainCircuit, LineChart, PieChart as PieIcon, ChevronLeft, BarChart3,
-  Globe, Info as InfoIcon, Check, Lock, PhoneCall
+  Globe, Info as InfoIcon, Check, Lock, PhoneCall, RefreshCw, Download, FileText
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion } from 'motion/react';
+import html2pdf from 'html2pdf.js';
 import { SharedSurveyData } from '../types';
 import PasswordDialog from './PasswordDialog';
 import TakeActionTodayForm from './TakeActionTodayForm';
@@ -66,6 +67,7 @@ export default function FindFundTypeView({
   const [showResults, setShowResults] = useState(false);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // States for 3-step Lead Magnet Onboarding Timeline
   const [focusedStep, setFocusedStep] = useState<2 | 3>(2);
@@ -612,6 +614,243 @@ export default function FindFundTypeView({
     hasScrolledBelowCagr.current = false;
     hasScrolledBelowCategoryToAvoid.current = false;
     lastScrollY.current = 0;
+  };
+
+  const downloadPdfReport = (overrideName?: string, overrideEmail?: string, overridePhone?: string) => {
+    const activeCategory = diagnosedCategories[activeTab] || diagnosedCategories[0];
+    if (!activeCategory) return;
+    setPdfLoading(true);
+
+    const clientName = overrideName || callName || "Valued Client";
+    const clientEmail = overrideEmail || "client@purewealth.com";
+    const clientPhone = overridePhone || callMobile || "N/A";
+
+    const tempContainer = document.createElement("div");
+    tempContainer.style.position = "fixed";
+    tempContainer.style.top = "-9999px";
+    tempContainer.style.left = "-9999px";
+    tempContainer.style.width = "820px";
+    tempContainer.style.background = "#ffffff";
+    tempContainer.style.color = "#1e293b";
+    tempContainer.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    document.body.appendChild(tempContainer);
+
+    const watermarkHTML = `
+      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; min-height: 100%; pointer-events: none; z-index: -9999; overflow: hidden;">
+        <div style="position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; font-weight: 900; color: rgba(16, 185, 129, 0.02); white-space: nowrap; font-family: system-ui;">PURE WEALTH GLOBAL</div>
+        <div style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; font-weight: 900; color: rgba(16, 185, 129, 0.02); white-space: nowrap; font-family: system-ui;">PURE WEALTH GLOBAL</div>
+      </div>
+    `;
+
+    tempContainer.innerHTML = `
+      <div style="position: relative; padding: 40px; background: #ffffff; min-height: 100%;">
+        \${watermarkHTML}
+
+        <!-- HEADER BRAND -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: linear-gradient(135deg, #0f172a, #1e3a8a); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 18px;">
+              PW
+            </div>
+            <div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase;">
+                Pure Wealth Global
+              </div>
+              <div style="font-size: 10px; font-weight: 800; color: #16a34a; text-transform: uppercase; letter-spacing: 0.5px;">
+                AMFI-Registered Mutual Fund Distributor
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">SEBI MFD Diagnostic</div>
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a;">Date: \${new Date().toLocaleDateString('en-IN', {day: '2-digit', month: 'long', year: 'numeric'})}</div>
+          </div>
+        </div>
+
+        <!-- TITLE BLOCK -->
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #334155; padding: 25px; border-radius: 20px; color: white; margin-bottom: 30px;">
+          <span style="font-size: 9px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #38bdf8; display: block; margin-bottom: 8px;">
+            ASSET CLASS DIAGNOSTIC
+          </span>
+          <h2 style="font-size: 20px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff; letter-spacing: -0.5px;">
+            Mutual Fund Asset Class Compatibility Blueprint
+          </h2>
+          <p style="font-size: 11.5px; font-weight: 500; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.4;">
+            Customized compatibility matching index, structured in accordance with financial risk tolerance, intended horizon limitations, and tax-efficient target thresholds.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; font-size: 11px;">
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CLIENT NAME</span>
+              <strong style="color: #f1f5f9;">\${clientName}</strong>
+            </div>
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CONTACT DETAILS</span>
+              <strong style="color: #f1f5f9;">\${clientEmail} \${clientPhone !== 'N/A' ? '• ' + clientPhone : ''}</strong>
+            </div>
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CAPITAL PROFILE</span>
+              <strong style="color: #10b981;">\${capitalType === 'monthly' ? 'SIP' : 'Lump Sum'} of ₹\${capitalAmount.toLocaleString('en-IN')}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECOMMENDATION CARD -->
+        <div style="border: 2px solid #2563eb; border-radius: 20px; padding: 22px; margin-bottom: 25px; text-align: left; background-color: #f8fafc;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #1d4ed8; background: #dbeafe; padding: 3px 8px; border-radius: 6px;">
+            🏆 RECOMMENDED ASSET SUITE
+          </span>
+          <h3 style="font-size: 18px; font-weight: 900; color: #1e3a8a; margin: 12px 0 6px 0;">
+            \${activeCategory.name}
+          </h3>
+          <p style="font-size: 12px; color: #334155; line-height: 1.5; margin: 0 0 15px 0;">
+            <strong>Why Suited:</strong> \${activeCategory.whySuited}
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-size: 11px;">
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Super Category</span>
+              <strong style="color: #0f172a; font-size: 12px;">\${activeCategory.superCategory}</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Risk Classification</span>
+              <strong style="color: #ef4444; font-size: 12px;">\${activeCategory.riskClass} Risk</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Suitable Horizon</span>
+              <strong style="color: #0f172a; font-size: 12px;">\${activeCategory.timeHorizonSuitability}</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Historical CAGR</span>
+              <strong style="color: #10b981; font-size: 12px;">3Y: \${activeCategory.threeYrCAGR}% / 5Y: \${activeCategory.fiveYrCAGR}%</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- CORE ALLOCATION & MODEL SPLITS -->
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 14px; font-weight: 900; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Target Asset Allocation Split Weights
+          </h3>
+          <div style="background-color: #f1f5f9; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+            <div style="font-size: 12px; font-weight: 800; color: #1e293b;">
+              Blended Directional Stance:
+            </div>
+            <div style="display: flex; gap: 15px;">
+              <span style="font-size: 12px; font-weight: 905; color: #2563eb; background: #eff6ff; padding: 4px 10px; border-radius: 6px;">
+                Growth Portfolio: \${scoringDetails.equityAllocation}%
+              </span>
+              <span style="font-size: 12px; font-weight: 905; color: #059669; background: #ecfdf5; padding: 4px 10px; border-radius: 6px;">
+                Defensive / Ethical Shield: \${scoringDetails.debtAllocation}%
+              </span>
+            </div>
+          </div>
+
+          <!-- SPLITS TABLE -->
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 11px;">
+            <thead>
+              <tr style="background-color: #0f172a; color: white;">
+                <th style="padding: 10px; border-radius: 6px 0 0 6px;">Asset Subclass Component</th>
+                <th style="padding: 10px;">Classification</th>
+                <th style="padding: 10px; text-align: right;">Target Weight %</th>
+                <th style="padding: 10px; text-align: right; border-radius: 0 6px 6px 0;">Target Value Allocation</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${Object.entries(scoringDetails.splits)
+                .filter(([_, weight]: any) => weight > 0)
+                .map(([key, weight]: any, index) => {
+                  const labelMap: any = {
+                    flexiCapPct: 'Active Flexi-Cap Equity',
+                    largeMidCapPct: 'Large & Midcap Compounder',
+                    midCapPct: 'Mid-Cap Alpha Catalyst',
+                    smallCapPct: 'Small-Cap High-Beta Booster',
+                    largeCapPct: 'Large-Cap Stability Anchor',
+                    balancedAdvantagePct: 'Dynamic Balanced Advantage (BAF)',
+                    elssPct: 'Tax-Saving ELSS Equity',
+                    shortDurationPct: 'Short Duration Debt Ballast',
+                    corporateBondPct: 'AAA Corporate Bond Safety',
+                    liquidPct: 'Liquid Reserve Liquidity',
+                    multiAssetPct: 'Multi-Asset Tactical Shield'
+                  };
+                  const isEquity = ['flexiCapPct', 'largeMidCapPct', 'midCapPct', 'smallCapPct', 'largeCapPct', 'elssPct'].includes(key);
+                  const valAlloc = Math.round(capitalAmount * (weight / 100));
+                  return \`
+                    <tr style="border-bottom: 1px solid #e2e8f0; background: \${index % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+                      <td style="padding: 10px; font-weight: 700; color: #0f172a;">\${labelMap[key] || key}</td>
+                      <td style="padding: 10px; color: \${isEquity ? '#2563eb' : '#059669'}; font-weight: 600;">\${isEquity ? 'Growth (Equity)' : 'Defensive (Debt/Hybrid)'}</td>
+                      <td style="padding: 10px; text-align: right; font-weight: 800; font-family: monospace;">\${weight}%</td>
+                      <td style="padding: 10px; text-align: right; font-weight: 800; color: #0f172a; font-family: monospace;">₹\${valAlloc.toLocaleString('en-IN')}</td>
+                    </tr>
+                  \`;
+                }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- CAUTION AND DETAILS -->
+        <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 15px; margin-bottom: 25px; font-size: 11px; text-align: left;">
+          <h4 style="color: #b45309; font-weight: 900; margin: 0 0 5px 0; text-transform: uppercase; font-size: 11.5px;">⚠️ Asset Allocation Caution Guardrails</h4>
+          <p style="color: #92400e; margin: 0; line-height: 1.5;">\${activeCategory.allocationCaution}</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; font-size: 11px; text-align: left;">
+          <!-- AVOID -->
+          <div style="border: 1px solid #fee2e2; background-color: #fef2f2; border-radius: 12px; padding: 15px;">
+            <h5 style="color: #991b1b; font-weight: 900; margin: 0 0 6px 0; font-size: 11.5px;">🛑 ASSET CATEGORY TO AVOID</h5>
+            <strong style="color: #991b1b; display: block; margin-bottom: 4px;">\${activeCategory.toAvoid.category}</strong>
+            <p style="color: #7f1d1d; margin: 0; line-height: 1.4;">\${activeCategory.toAvoid.reason}</p>
+          </div>
+          <!-- COMPANION -->
+          <div style="border: 1px solid #f3e8ff; background-color: #faf5ff; border-radius: 12px; padding: 15px;">
+            <h5 style="color: #6b21a8; font-weight: 900; margin: 0 0 6px 0; font-size: 11.5px;">🤝 STRATEGIC COMPANION ADD-ON</h5>
+            <strong style="color: #6b21a8; display: block; margin-bottom: 4px;">\${activeCategory.companionAddon.category}</strong>
+            <p style="color: #581c87; margin: 0; line-height: 1.4;">\${activeCategory.companionAddon.reason}</p>
+          </div>
+        </div>
+
+        <!-- EXECUTION ROADMAP -->
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; margin-bottom: 30px; text-align: left; font-size: 11px;">
+          <h4 style="font-size: 12px; font-weight: 900; color: #166534; margin: 0 0 6px 0; text-transform: uppercase;">🔄 Recommended Deployment Execution</h4>
+          <h5 style="color: #14532d; font-weight: 800; margin: 0 0 4px 0;">\${scoringDetails.executionStrategyTitle}</h5>
+          <p style="color: #166534; margin: 0; line-height: 1.5;">\${scoringDetails.executionStrategyText}</p>
+        </div>
+
+        <!-- REGULATORY REGULAR COMMISSION DISCLAIMER -->
+        <div style="font-size: 8px; color: #64748b; text-align: left; line-height: 1.4; border-top: 1px dashed #cbd5e1; padding-top: 15px; font-weight: 600;">
+          <strong>MUTUAL FUND INVESTMENT DISCLAIMER & STATUTORY MFD STATUS DISCLOSURES:</strong><br />
+          Mutual Fund investments are subject to market risks, read all scheme related documents carefully before investing. Pure Wealth Global is an AMFI-Registered Mutual Fund Distributor (ARN Registered MFD). We provide complementary assistance, transaction routing, and profile diagnostic review matching Mutual Fund Regular Plans, receiving standard trailing distribution commissions built directly into NAV commissions. This audit is not a formal investment advice portfolio under SEBI RIA fee mandates. Absolute client confidentiality is observed compliant with legal requirements.
+        </div>
+
+        <!-- FOOTER FOOTNOTE -->
+        <div style="text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 15px;">
+          Page 1 of 1 • Compatibility Match Index Report • Powered by Private Wealth Architects
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      const options = {
+        margin: 0,
+        filename: `pure_wealth_asset_diagnostic_\${activeCategory.name.replace(/\\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'in', format: 'letter' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as const }
+      };
+
+      html2pdf()
+        .set(options)
+        .from(tempContainer)
+        .save()
+        .then(() => {
+          document.body.removeChild(tempContainer);
+          setPdfLoading(false);
+        })
+        .catch((err: any) => {
+          console.warn("Diagnostic PDF generation issue: ", err);
+          document.body.removeChild(tempContainer);
+          setPdfLoading(false);
+        });
+    }, 150);
   };
 
   // Perform Diagnostic Categorization matching Groww's categories structure
@@ -3581,6 +3820,25 @@ export default function FindFundTypeView({
 
                   <button
                     type="button"
+                    onClick={() => downloadPdfReport()}
+                    disabled={pdfLoading}
+                    className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-550 text-[12px] font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {pdfLoading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Download Diagnostic PDF</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       if (triggerPopup) {
                         triggerPopup(true);
@@ -3951,6 +4209,7 @@ export default function FindFundTypeView({
                 goal,
                 riskCapacity
               }}
+              onPdfAction={downloadPdfReport}
             />
 
             </>

@@ -33,7 +33,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal' || currentPage === 'retirement-calculator';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -138,6 +138,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Calculators</span>
                 {currentPage === 'calculators' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </button>
+
+              <button
+                onClick={() => handleNavClick('retirement-calculator')}
+                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
+                  currentPage === 'retirement-calculator'
+                    ? 'text-blue-600 bg-blue-50/50 font-bold'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <span>Retirement & Financial Freedom Planner</span>
+                {currentPage === 'retirement-calculator' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
               </button>
               
               <button
@@ -313,6 +325,16 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     }`}
                   >
                     📈 Financial Calculators
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('retirement-calculator')}
+                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all ${
+                      currentPage === 'retirement-calculator'
+                        ? 'text-blue-700 bg-blue-50/80'
+                        : 'text-slate-655 hover:bg-slate-50'
+                    }`}
+                  >
+                    💰 Retirement & Financial Freedom Planner
                   </button>
                   <button
                     onClick={() => handleNavClick('knowledge')}

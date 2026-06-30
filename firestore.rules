@@ -1,36 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Global safety net
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // ID Format Validation helper
-    function isValidId(id) { 
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
-    }
-    
-    // Strict schema and field validation helper
-    function isValidLead(data) {
-      return data.keys().hasAll(['id', 'type', 'name', 'timestamp'])
-        && data.id is string && data.id.size() <= 128
-        && data.type is string && data.type.size() <= 50
-        && data.name is string && data.name.size() <= 200
-        && data.phone is string && data.phone.size() <= 50
-        && data.email is string && data.email.size() <= 200
-        && data.date is string && data.date.size() <= 50
-        && data.timeSlot is string && data.timeSlot.size() <= 50
-        && data.timestamp is string && data.timestamp.size() <= 100;
-    }
-
-    // Leads collection rules
-    match /leads/{leadId} {
-      // Allow read/write access since the requests are channeled through the server-side API proxy (which connects securely with the API key).
-      allow get, list: if isValidId(leadId);
-      allow create, update: if isValidId(leadId) && isValidLead(request.resource.data);
-      allow delete: if isValidId(leadId);
+      allow read, write: if true;
     }
   }
 }

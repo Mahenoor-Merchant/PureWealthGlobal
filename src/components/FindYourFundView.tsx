@@ -10,9 +10,10 @@ import {
   Coins, RotateCcw, Landmark, Clock, ChevronRight,
   TrendingDown, Percent, Award, BookOpen, ExternalLink, Send,
   AlertTriangle, BrainCircuit, LineChart, PieChart as PieIcon, ChevronLeft, BarChart3,
-  Globe, Video, Users, Instagram, Youtube
+  Globe, Video, Users, Instagram, Youtube, RefreshCw, Download, FileText
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import html2pdf from 'html2pdf.js';
 import { AMFI_ARN_DETAILS } from '../data';
 import { SharedSurveyData } from '../types';
 import PasswordDialog from './PasswordDialog';
@@ -323,6 +324,7 @@ export default function FindYourFundView({
       }
     };
   }, [showResults, triggerPopup]);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [activePortfolioTab, setActivePortfolioTab] = useState<'Low' | 'Moderate' | 'High'>('Moderate');
   const [selectedAnchorIndex, setSelectedAnchorIndex] = useState(0);
 
@@ -2788,6 +2790,201 @@ export default function FindYourFundView({
     }
   };
 
+  const downloadPdfReport = (overrideName?: string, overrideEmail?: string, overridePhone?: string) => {
+    if (!activePortfolio) return;
+    setPdfLoading(true);
+
+    const clientName = overrideName || "Valued Client";
+    const clientEmail = overrideEmail || "client@purewealth.com";
+    const clientPhone = overridePhone || "N/A";
+
+    const tempContainer = document.createElement("div");
+    tempContainer.style.position = "fixed";
+    tempContainer.style.top = "-9999px";
+    tempContainer.style.left = "-9999px";
+    tempContainer.style.width = "820px";
+    tempContainer.style.background = "#ffffff";
+    tempContainer.style.color = "#1e293b";
+    tempContainer.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    document.body.appendChild(tempContainer);
+
+    const watermarkHTML = `
+      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; min-height: 100%; pointer-events: none; z-index: -9999; overflow: hidden;">
+        <div style="position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; font-weight: 900; color: rgba(16, 185, 129, 0.02); white-space: nowrap; font-family: system-ui;">PURE WEALTH GLOBAL</div>
+        <div style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72px; font-weight: 900; color: rgba(16, 185, 129, 0.02); white-space: nowrap; font-family: system-ui;">PURE WEALTH GLOBAL</div>
+      </div>
+    `;
+
+    const lastProjection = projectionData[projectionData.length - 1];
+
+    tempContainer.innerHTML = `
+      <div style="position: relative; padding: 40px; background: #ffffff; min-height: 100%;">
+        \${watermarkHTML}
+
+        <!-- HEADER BRAND -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: linear-gradient(135deg, #0f172a, #1e3a8a); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 18px;">
+              PW
+            </div>
+            <div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase;">
+                Pure Wealth Global
+              </div>
+              <div style="font-size: 10px; font-weight: 800; color: #16a34a; text-transform: uppercase; letter-spacing: 0.5px;">
+                AMFI-Registered Mutual Fund Distributor
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">SEBI MFD Diagnostic</div>
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a;">Date: \${new Date().toLocaleDateString('en-IN', {day: '2-digit', month: 'long', year: 'numeric'})}</div>
+          </div>
+        </div>
+
+        <!-- TITLE BLOCK -->
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid #334155; padding: 25px; border-radius: 20px; color: white; margin-bottom: 30px;">
+          <span style="font-size: 9px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #38bdf8; display: block; margin-bottom: 8px;">
+            PORTFOLIO BLUEPRINT
+          </span>
+          <h2 style="font-size: 20px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff; letter-spacing: -0.5px;">
+            Mutual Fund Exact Allocation Scheme Blueprint
+          </h2>
+          <p style="font-size: 11.5px; font-weight: 500; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.4;">
+            Selected real, high-impact domestic and international mutual fund strategies mapped directly to your targeted yield requirements and risk tolerance thresholds.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; font-size: 11px;">
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CLIENT NAME</span>
+              <strong style="color: #f1f5f9;">\${clientName}</strong>
+            </div>
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CONTACT DETAILS</span>
+              <strong style="color: #f1f5f9;">\${clientEmail} \${clientPhone !== 'N/A' ? '• ' + clientPhone : ''}</strong>
+            </div>
+            <div>
+              <span style="font-size: 8.5px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">CAPITAL PROFILE</span>
+              <strong style="color: #10b981;">\${capitalType === 'SIP' ? 'SIP (Monthly)' : 'Lump Sum'} of ₹\${capitalAmount.toLocaleString('en-IN')}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- PORTFOLIO RECOMMENDATION HEADER -->
+        <div style="border: 2px solid #2563eb; border-radius: 20px; padding: 22px; margin-bottom: 25px; text-align: left; background-color: #f8fafc;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #1d4ed8; background: #dbeafe; padding: 3px 8px; border-radius: 6px;">
+            🏆 RECOMMENDED PORTFOLIO MODEL
+          </span>
+          <h3 style="font-size: 18px; font-weight: 900; color: #1e3a8a; margin: 12px 0 6px 0;">
+            \${activePortfolio.name}
+          </h3>
+          <p style="font-size: 12px; color: #334155; line-height: 1.5; margin: 0 0 15px 0;">
+            <strong>Rationale:</strong> \${activePortfolio.rationale}
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-size: 11px;">
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Risk Level</span>
+              <strong style="color: #0f172a; font-size: 12px;">\${activePortfolio.riskClass}</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Expected Blended Return</span>
+              <strong style="color: #ef4444; font-size: 12px;">\${activePortfolio.expectedReturnMin}% - \${activePortfolio.expectedReturnMax}%</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; font-size: 9px; text-transform: uppercase; display: block;">Projected Term</span>
+              <strong style="color: #10b981; font-size: 12px;">25 Years Outlook</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONSTITUENT FUNDS TABLE -->
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 14px; font-weight: 900; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Portfolio Constituents & Core Target Weights
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 11px;">
+            <thead>
+              <tr style="background-color: #0f172a; color: white;">
+                <th style="padding: 10px; border-radius: 6px 0 0 6px;">Constituent Fund Name (Regular Plan - Growth)</th>
+                <th style="padding: 10px; text-align: right;">Strategic Weight %</th>
+                <th style="padding: 10px; text-align: right;">Historical CAGR %</th>
+                <th style="padding: 10px; text-align: right; border-radius: 0 6px 6px 0;">Target Value Allocation</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${activePortfolio.allocations.map((allocVal: any, index: number) => {
+                const valAlloc = Math.round(capitalAmount * (allocVal.weight / 100));
+                return \`
+                  <tr style="border-bottom: 1px solid #e2e8f0; background: \${index % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+                    <td style="padding: 10px; font-weight: 700; color: #0f172a;">\${allocVal.fundName}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; font-family: monospace;">\${allocVal.weight}%</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #059669; font-family: monospace;">\${allocVal.annualReturn}%</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0f172a; font-family: monospace;">₹\${valAlloc.toLocaleString('en-IN')}</td>
+                  </tr>
+                \`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- COMPOUNDING OUTLOOK SIMULATOR SECTION -->
+        <div style="background-color: #0f172a; color: white; border-radius: 20px; padding: 22px; margin-bottom: 25px; text-align: left;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 3px 8px; border-radius: 6px; display: inline-block; margin-bottom: 12px;">
+            📈 25-YEAR SYSTEMATIC COMPOUNDING ESTIMATE
+          </span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">TOTAL CAPITAL INVESTED</span>
+              <strong style="font-size: 20px; color: #ffffff;">₹\${lastProjection ? lastProjection.Invested.toLocaleString('en-IN') : 'N/A'}</strong>
+            </div>
+            <div>
+              <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">PROJECTED WEALTH VALUE (25Y)</span>
+              <strong style="font-size: 20px; color: #10b981;">₹\${lastProjection ? lastProjection.CompoundedWealth.toLocaleString('en-IN') : 'N/A'}</strong>
+            </div>
+          </div>
+          <p style="font-size: 10.5px; color: #94a3b8; line-height: 1.4; margin: 15px 0 0 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+            *Simulations operate under trailing-average compounded rates of \${((activePortfolio.expectedReturnMin + activePortfolio.expectedReturnMax) / 2).toFixed(1)}% CAGR. Realized mutual fund regular schemes returns fluctuate based on broader market segments, as detailed in statutory risk disclosures.
+          </p>
+        </div>
+
+        <!-- REGULATORY REGULAR COMMISSION DISCLAIMER -->
+        <div style="font-size: 8px; color: #64748b; text-align: left; line-height: 1.4; border-top: 1px dashed #cbd5e1; padding-top: 15px; font-weight: 600; margin-top: 40px;">
+          <strong>MUTUAL FUND INVESTMENT DISCLAIMER & STATUTORY MFD STATUS DISCLOSURES:</strong><br />
+          Mutual Fund investments are subject to market risks, read all scheme related documents carefully before investing. Pure Wealth Global is an AMFI-Registered Mutual Fund Distributor (ARN Registered MFD). We provide complementary assistance, transaction routing, and profile diagnostic review matching Mutual Fund Regular Plans, receiving standard trailing distribution commissions built directly into NAV commissions. This audit is not a formal investment advice portfolio under SEBI RIA fee mandates. Absolute client confidentiality is observed compliant with legal requirements.
+        </div>
+
+        <!-- FOOTER FOOTNOTE -->
+        <div style="text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 15px;">
+          Page 1 of 1 • Strategic Scheme Selection Report • Powered by Private Wealth Architects
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      const options = {
+        margin: 0,
+        filename: `pure_wealth_scheme_blueprint_\${activePortfolio.name.replace(/\\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'in', format: 'letter' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as const }
+      };
+
+      html2pdf()
+        .set(options)
+        .from(tempContainer)
+        .save()
+        .then(() => {
+          document.body.removeChild(tempContainer);
+          setPdfLoading(false);
+        })
+        .catch((err: any) => {
+          console.warn("Scheme PDF generation issue: ", err);
+          document.body.removeChild(tempContainer);
+          setPdfLoading(false);
+        });
+    }, 150);
+  };
+
   // International core matching algorithm mapping corresponding foreign funds to active domestic structures
   const getIntlEquivalentFund = (domesticFundName: string) => {
     const normalized = domesticFundName.toLowerCase();
@@ -4002,16 +4199,36 @@ export default function FindYourFundView({
 
             {/* SECTION C: THREE POTENTIAL PORTFOLIOS TO CHOOSE AS PER RISK CAPACITY */}
             <div className="space-y-6" id="three-risk-portfolios-section" ref={comprehensiveSectionRef}>
-              <div className="text-left max-w-2xl">
-                <span className="text-[11px] font-mono font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">
-                  Comprehensive Portfolio Compounding Comparison
-                </span>
-                <h3 className="font-display font-bold text-[24px] text-slate-900 mt-2.5">
-                  Three Potential Portfolios as per Risk Capacity & Target Yields
-                </h3>
-                <p className="text-slate-550 text-[13.5px] mt-2">
-                  Select a portfolio to run projections on capital compounding growth. Each contains active, real Indian mutual funds with realistic, conservative regular expected returns.
-                </p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-slate-100 pb-5">
+                <div className="text-left max-w-2xl">
+                  <span className="text-[11px] font-mono font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full inline-block">
+                    Comprehensive Portfolio Compounding Comparison
+                  </span>
+                  <h3 className="font-display font-bold text-[24px] text-slate-900 mt-2.5">
+                    Three Potential Portfolios as per Risk Capacity & Target Yields
+                  </h3>
+                  <p className="text-slate-550 text-[13.5px] mt-2">
+                    Select a portfolio to run projections on capital compounding growth. Each contains active, real Indian mutual funds with realistic, conservative regular expected returns.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadPdfReport()}
+                  disabled={pdfLoading}
+                  className="w-full md:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-700 to-indigo-650 hover:from-blue-800 hover:to-indigo-750 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition duration-150 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer text-center"
+                >
+                  {pdfLoading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Portfolio PDF</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Tabs selector */}
@@ -4189,6 +4406,7 @@ export default function FindYourFundView({
                 goal: surveyData.goal,
                 riskCapacity: surveyData.riskCapacity
               }}
+              onPdfAction={downloadPdfReport}
             />
 
           </div>

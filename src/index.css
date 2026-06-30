@@ -95,3 +95,23 @@
   animation: free-tool-pulse 2s infinite ease-in-out;
 }
 
+/* Highly polished expanding ring pulse effect for Start SIP button */
+@keyframes sip-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+.animate-sip-pulse {
+  animation: sip-pulse 2s infinite ease-in-out;
+}
+

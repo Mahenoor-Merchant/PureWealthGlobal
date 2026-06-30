@@ -376,9 +376,13 @@ export default function PortfolioAuditor() {
   const [copiedBox, setCopiedBox] = useState(false);
   const [showConsoleBox, setShowConsoleBox] = useState(false);
 
-  const downloadPdfReport = () => {
+  const downloadPdfReport = (overrideName?: string, overrideEmail?: string, overridePhone?: string) => {
     if (!result) return;
     setPdfLoading(true);
+
+    const emailToDisplay = overrideEmail || result.associatedEmail || 'client@purewealth.com';
+    const nameToDisplay = overrideName || result.investorName || '';
+    const phoneToDisplay = overridePhone || '';
 
     // Create container
     const tempContainer = document.createElement("div");
@@ -450,8 +454,9 @@ export default function PortfolioAuditor() {
           </p>
           <div style="display: flex; gap: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
             <div>
-              <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">AUDIT ACCOUNT EMAIL</span>
-              <strong style="font-size: 12px; color: #f1f5f9;">${result.associatedEmail || 'Valued Partner'}</strong>
+              <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">AUDIT CLIENT</span>
+              <strong style="font-size: 12px; color: #f1f5f9;">${nameToDisplay ? nameToDisplay : emailToDisplay} ${phoneToDisplay ? '(' + phoneToDisplay + ')' : ''}</strong>
+              ${nameToDisplay ? `<span style="font-size: 9px; color: #94a3b8; display: block; margin-top: 2px;">${emailToDisplay}</span>` : ''}
             </div>
             <div>
               <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 2px;">PORTFOLIO VALUE</span>
@@ -3319,6 +3324,7 @@ export default function PortfolioAuditor() {
                     totalInvested: result?.totalInvested,
                     currentValue: result?.currentValue
                   }}
+                  onPdfAction={downloadPdfReport}
                 />
 
               </motion.div>

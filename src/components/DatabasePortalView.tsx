@@ -257,7 +257,7 @@ export default function DatabasePortalView() {
             <option value="all">All Actions</option>
             <option value="pdf">📩 PDF Blueprints</option>
             <option value="whatsapp">⚡ Fast Callbacks</option>
-            <option value="consult">🤝 VIP Advisory</option>
+            <option value="consult">🤝 Schedule Callback</option>
           </select>
         </div>
 

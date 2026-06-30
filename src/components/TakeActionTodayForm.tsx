@@ -49,7 +49,7 @@ export default function TakeActionTodayForm({
       const purposeMap = {
         pdf: 'Custom Report & PDF Blueprint',
         whatsapp: 'Fast Callback Request (within 15 mins)',
-        consult: '1:1 VIP Advisory Session Booking'
+        consult: '1:1 Schedule Callback Booking'
       };
 
       const payload = {
@@ -165,7 +165,7 @@ export default function TakeActionTodayForm({
               : 'text-slate-600 hover:text-slate-900 font-semibold'
           }`}
         >
-          🤝 VIP Advisory
+          🤝 Schedule Callback
         </button>
       </div>
 
@@ -183,7 +183,7 @@ export default function TakeActionTodayForm({
                 ? `Your customized report blueprint has been successfully compiled and saved in the CRM system! A downloaded copy will start in a moment.`
                 : activeLeadOption === 'whatsapp'
                   ? `Your callback request has been received. Our senior wealth manager will call you back within 15 minutes!`
-                  : `Your 1:1 VIP Advisory session has been booked. Our Senior Advisor has been allocated your exact diagnostic details and will connect at your chosen time slot.`
+                  : `Your Analysis session has been booked. Our Certified Analyst has been allocated your exact diagnostic details and will connect at your chosen time slot.`
               }
             </p>
             <button
@@ -293,12 +293,12 @@ export default function TakeActionTodayForm({
               ) : activeLeadOption === 'whatsapp' ? (
                 <>
                   <PhoneCall className="w-4 h-4 text-slate-900" />
-                  <span>Request Callback within 15 mins</span>
+                  <span>Request Instant Callback from Certified Analyst</span>
                 </>
               ) : (
                 <>
                   <Calendar className="w-4 h-4 text-slate-900" />
-                  <span>Schedule VIP Advisory Session & Book Now</span>
+                  <span>Schedule Analysis session & book now</span>
                 </>
               )}
             </button>

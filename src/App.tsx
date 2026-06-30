@@ -66,6 +66,8 @@ export default function App() {
         setCurrentPage('services');
       } else if (hash === '#calculators') {
         setCurrentPage('calculators');
+      } else if (hash === '#retirement-calculator' || hash === '#retirement') {
+        setCurrentPage('retirement-calculator');
       } else if (hash === '#connect') {
         setCurrentPage('connect');
       } else if (hash === '#privacy') {
@@ -92,6 +94,8 @@ export default function App() {
           setCurrentPage('portfolio-audit');
         } else if (pathname === '/database' || pathname === '/database-portal') {
           setCurrentPage('database-portal');
+        } else if (pathname === '/retirement-calculator' || pathname === '/retirement') {
+          setCurrentPage('retirement-calculator');
         } else if (pathname === '' || pathname === '/') {
           setCurrentPage('home');
         }
@@ -161,6 +165,8 @@ export default function App() {
         window.history.pushState(null, '', '/audit');
       } else if (newPage === 'database-portal') {
         window.history.pushState(null, '', '/database');
+      } else if (newPage === 'retirement-calculator') {
+        window.history.pushState(null, '', '/retirement-calculator');
       } else if (newPage === 'knowledge') {
         if (!window.location.hash.startsWith('#knowledge/')) {
           window.history.pushState(null, '', '/#knowledge/journey');
@@ -211,6 +217,8 @@ export default function App() {
         );
       case 'calculators':
         return <CalculatorsView setCurrentPage={changePage} />;
+      case 'retirement-calculator':
+        return <CalculatorsView setCurrentPage={changePage} initialTab="retirement" />;
       case 'knowledge':
         return <KnowledgeHubView setCurrentPage={changePage} />;
       case 'connect':

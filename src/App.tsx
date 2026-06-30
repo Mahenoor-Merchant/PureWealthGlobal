@@ -145,6 +145,267 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as any });
   }, [currentPage]);
 
+  // Dynamic SEO Meta Tags & Schema Markup synchronization for Search Engines and AI Crawlers
+  useEffect(() => {
+    const seoData: Record<NavPage['id'], {
+      title: string;
+      description: string;
+      keywords: string;
+      canonical: string;
+      schema: any;
+    }> = {
+      home: {
+        title: "Pure Wealth Global | Premium Wealth Advisory & Indian Mutual Fund Solutions",
+        description: "Pure Wealth Global provides bespoke wealth management, personalized investment portfolios, and premium mutual fund advisory for Indian Residents and NRI investors worldwide.",
+        keywords: "wealth management, indian mutual funds, mutual fund advisory, nri investment india, portfolio audit, wealth advisor mumbai, bespoke portfolios, custom asset allocation, financial advisor",
+        canonical: "https://purewealth.global/",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "FinancialService",
+          "name": "Pure Wealth Global",
+          "image": "https://purewealth.global/favicon.svg",
+          "description": "Bespoke wealth management, personalized investment portfolios, and premium mutual fund advisory for Indian Residents and NRI investors.",
+          "url": "https://purewealth.global/",
+          "telephone": "+91-90000-00000",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Bandra Kurla Complex",
+            "addressLocality": "Mumbai",
+            "addressRegion": "Maharashtra",
+            "postalCode": "400051",
+            "addressCountry": "IN"
+          },
+          "priceRange": "$$$"
+        }
+      },
+      about: {
+        title: "About Us | Pure Wealth Global | Certified Wealth Managers",
+        description: "Meet the professional wealth advisors at Pure Wealth Global. Discover our investment philosophy, commitment to financial growth, and personalized client-first advisory models.",
+        keywords: "pure wealth team, investment managers, certified financial planners, mutual fund experts, wealth management philosophy",
+        canonical: "https://purewealth.global/about",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          "name": "About Pure Wealth Global",
+          "description": "Meet our team of professional wealth managers and learn about our customer-centric philosophy and wealth management methodologies.",
+          "url": "https://purewealth.global/about"
+        }
+      },
+      services: {
+        title: "Our Services | Comprehensive Wealth Management & Advisory",
+        description: "Explore our array of professional financial services: custom mutual fund portfolios, systematic investment planning (SIP), tax-efficient planning, and expert NRI advisory.",
+        keywords: "mutual fund services, sip advisory, wealth planning, tax-saving mutual funds, custom wealth solutions, nri portfolio management",
+        canonical: "https://purewealth.global/services",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Bespoke Wealth Management and Advisory Services",
+          "provider": {
+            "@type": "FinancialService",
+            "name": "Pure Wealth Global"
+          },
+          "serviceType": "Mutual Fund Advisory & Wealth Planning"
+        }
+      },
+      calculators: {
+        title: "SIP & Lumpsum Calculator | Plan Mutual Fund Investments | Pure Wealth",
+        description: "Calculate future returns on your Systematic Investment Plans (SIP) and lumpsum investments with our interactive, accurate Indian Mutual Fund financial calculators.",
+        keywords: "sip calculator, lumpsum calculator, mutual fund return calculator, future value calculator, compounding calculator, wealth planner",
+        canonical: "https://purewealth.global/calculators",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Pure Wealth SIP and Lumpsum Investment Calculator",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "An interactive tool to calculate compound interest, SIP growth, and lumpsum financial projections.",
+          "browserRequirements": "Requires JavaScript. Requires HTML5."
+        }
+      },
+      knowledge: {
+        title: "Mutual Fund Guide & Types | Educational Investment Hub | Pure Wealth",
+        description: "Learn the fundamentals of Mutual Funds in India. Comprehensive breakdown of Equity, Debt, Hybrid, Index, Sectoral, and ELSS Tax-Saving Mutual Funds to make smart investment decisions.",
+        keywords: "types of mutual funds, equity mutual funds, debt funds, sectoral funds, tax-saving elss, dynamic asset allocation, investment guide",
+        canonical: "https://purewealth.global/knowledge",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          "headline": "A Complete Guide to Types of Mutual Funds in India",
+          "description": "Comprehensive guide detailing Equity, Debt, Hybrid, Index, Sectoral, and ELSS Tax-Saving Mutual Funds for beginners and advanced investors.",
+          "inLanguage": "en",
+          "author": {
+            "@type": "Organization",
+            "name": "Pure Wealth Global"
+          }
+        }
+      },
+      connect: {
+        title: "Book an Appointment | Premium Wealth Consultation | Pure Wealth",
+        description: "Schedule a high-touch advisory session with our expert wealth managers to review your portfolio, plan your goals, and structure your long-term wealth strategy.",
+        keywords: "wealth advisory appointment, financial planning call, portfolio consultation, contact wealth manager",
+        canonical: "https://purewealth.global/connect",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          "name": "Connect with Pure Wealth Advisory",
+          "description": "Contact options and meeting appointment booking form for bespoke wealth and investment consultation.",
+          "url": "https://purewealth.global/connect"
+        }
+      },
+      privacy: {
+        title: "Privacy Policy | Pure Wealth Global",
+        description: "Learn how Pure Wealth Global handles and protects your personal financial data, CAS statement uploads, and investment preferences securely.",
+        keywords: "privacy policy, data security, portfolio safety, financial compliance",
+        canonical: "https://purewealth.global/privacy",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "Privacy Policy"
+        }
+      },
+      'find-fund-type': {
+        title: "Mutual Fund Profiler & Recommendation Survey | Pure Wealth Global",
+        description: "Take our personalized 3-minute financial profiler survey. Get tailored asset allocation strategies and mutual fund recommendation categories based on your risk profile.",
+        keywords: "mutual fund recommend, investment profiler, financial survey, risk capacity test, personalized asset allocation",
+        canonical: "https://purewealth.global/findfund",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Pure Wealth Personalized Fund Profiler",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "Interactive risk profiling and asset allocation analysis tool."
+        }
+      },
+      'find-fund': {
+        title: "Your Personalized Mutual Fund Categories & Schemes | Pure Wealth",
+        description: "Explore the custom-selected, top-rated mutual fund categories curated for your specific time horizon, goals, and risk profile.",
+        keywords: "recommended mutual funds, personalized fund portfolio, dynamic asset allocation, elite fund categories",
+        canonical: "https://purewealth.global/find-fund",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "Recommended Mutual Fund Solutions"
+        }
+      },
+      'overlap-finder': {
+        title: "Portfolio Overlap Finder | Mutual Fund Diversification Tool | Pure Wealth",
+        description: "Analyze mutual fund portfolio overlap. Identify duplicate stock holdings across different mutual funds to prevent over-concentration and maximize portfolio diversification.",
+        keywords: "portfolio overlap finder, mutual fund overlap analyzer, diversification check, portfolio consolidation, duplicate stocks check",
+        canonical: "https://purewealth.global/overlap",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Portfolio Overlap Finder",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "Check duplicate equity holdings across Indian mutual fund portfolios."
+        }
+      },
+      'portfolio-audit': {
+        title: "AI Portfolio Auditor & Review | Upload CAS Statement PDF | Pure Wealth",
+        description: "Upload your Indian Mutual Fund CAS (Consolidated Account Statement) PDF securely. Our advanced AI Auditor reviews asset allocation, checks stock overlap, evaluates expense ratios, and identifies key optimization actions.",
+        keywords: "ai portfolio auditor, cas statement analyzer, mutual fund portfolio review, analyze mutual fund pdf, indian cas statement audit, custom pdf portfolio checker",
+        canonical: "https://purewealth.global/audit",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "AI Portfolio Auditor",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "Bespoke AI auditor for Indian Mutual Fund CAS PDF statements."
+        }
+      },
+      'database-portal': {
+        title: "CRM Database Portal | Internal Database Administration",
+        description: "Internal portal for CRM leads administration, client portfolio reviews, and CAS statement download administration.",
+        keywords: "crm, internal administration",
+        canonical: "https://purewealth.global/database",
+        schema: null
+      },
+      'retirement-calculator': {
+        title: "Retirement Calculator & Wealth Planner | Secure Your Future | Pure Wealth",
+        description: "Plan your retirement corpus, estimate inflation-adjusted living expenses, and calculate the monthly savings required to achieve full financial independence.",
+        keywords: "retirement calculator, corpus planner, financial independence calculator, fire planner, inflation-adjusted retirement savings",
+        canonical: "https://purewealth.global/retirement-calculator",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Retirement Calculator and Wealth Planner",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "Calculate inflation-adjusted retirement savings goals."
+        }
+      }
+    };
+
+    const currentSeo = seoData[currentPage] || seoData.home;
+
+    // 1. Update Document Title
+    document.title = currentSeo.title;
+
+    // 2. Update/Create Description Meta
+    let descMeta = document.querySelector('meta[name="description"]');
+    if (!descMeta) {
+      descMeta = document.createElement('meta');
+      descMeta.setAttribute('name', 'description');
+      document.head.appendChild(descMeta);
+    }
+    descMeta.setAttribute('content', currentSeo.description);
+
+    // 3. Update/Create Keywords Meta
+    let keywordsMeta = document.querySelector('meta[name="keywords"]');
+    if (!keywordsMeta) {
+      keywordsMeta = document.createElement('meta');
+      keywordsMeta.setAttribute('name', 'keywords');
+      document.head.appendChild(keywordsMeta);
+    }
+    keywordsMeta.setAttribute('content', currentSeo.keywords);
+
+    // 4. Update/Create Canonical link
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', currentSeo.canonical);
+
+    // 5. OpenGraph Tags (for rich visual links in social media & AI search links)
+    const ogTags = [
+      { property: 'og:title', content: currentSeo.title },
+      { property: 'og:description', content: currentSeo.description },
+      { property: 'og:url', content: currentSeo.canonical },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'Pure Wealth Global' },
+      { property: 'og:image', content: 'https://purewealth.global/favicon.svg' }
+    ];
+
+    ogTags.forEach(tag => {
+      let element = document.querySelector(`meta[property="${tag.property}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('property', tag.property);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', tag.content);
+    });
+
+    // 6. JSON-LD Structured Schema.org Markup (Critical for AI Engines like Google Search, Perplexity & Gemini to parse service metadata)
+    let schemaScript = document.getElementById('jsonld-schema');
+    if (schemaScript) {
+      schemaScript.remove();
+    }
+
+    if (currentSeo.schema) {
+      const script = document.createElement('script');
+      script.id = 'jsonld-schema';
+      script.type = 'application/ld+json';
+      script.innerHTML = JSON.stringify(currentSeo.schema);
+      document.head.appendChild(script);
+    }
+  }, [currentPage]);
+
   const changePage = (newPage: NavPage['id']) => {
     if (newPage !== currentPage) {
       if (newPage === 'database-portal') {

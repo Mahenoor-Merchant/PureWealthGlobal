@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Host
+Host: https://purewealth.global
+
+# Sitemaps
+Sitemap: https://purewealth.global/sitemap.xml

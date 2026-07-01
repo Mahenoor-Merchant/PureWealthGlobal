@@ -14,8 +14,31 @@ interface FooterProps {
 }
 
 export default function Footer({ setCurrentPage }: FooterProps) {
-  const handlePageLink = (page: NavPage['id']) => {
-    setCurrentPage(page);
+  const getPageUrl = (id: NavPage['id']): string => {
+    switch (id) {
+      case 'home': return '/';
+      case 'about': return '/#about';
+      case 'services': return '/#services';
+      case 'calculators': return '/#calculators';
+      case 'knowledge': return '/#knowledge/journey';
+      case 'connect': return '/#connect';
+      case 'privacy': return '/#privacy';
+      case 'find-fund-type': return '/findfund';
+      case 'overlap-finder': return '/overlap';
+      case 'portfolio-audit': return '/audit';
+      case 'retirement-calculator': return '/retirement-calculator';
+      case 'database-portal': return '/#database';
+      case 'find-fund': return '/#find-fund';
+      default: return '/';
+    }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent, id: NavPage['id']) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+      return;
+    }
+    e.preventDefault();
+    setCurrentPage(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -61,13 +84,14 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                 { id: 'connect', label: 'Start SIP Now👍🏻✅' },
               ].map((link) => (
                 <li key={link.id}>
-                  <button
-                    onClick={() => handlePageLink(link.id as NavPage['id'])}
+                  <a
+                    href={getPageUrl(link.id as NavPage['id'])}
+                    onClick={(e) => handleLinkClick(e, link.id as NavPage['id'])}
                     className="flex items-center gap-1.5 hover:text-blue-400 text-slate-400 transition-colors cursor-pointer text-left font-medium group"
                   >
                     <ChevronRight className="w-3.5 h-3.5 text-slate-700 group-hover:text-blue-500 transition-colors" />
                     {link.label}
-                  </button>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -149,13 +173,14 @@ export default function Footer({ setCurrentPage }: FooterProps) {
             &copy; {currentYear} Pure Wealth Global Private Limited. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <button
-              onClick={() => handlePageLink('privacy')}
+            <a
+              href={getPageUrl('privacy')}
+              onClick={(e) => handleLinkClick(e, 'privacy')}
               className="hover:text-blue-400 font-semibold cursor-pointer transition-colors flex items-center gap-1 text-slate-400"
             >
               Privacy Policy & Disclaimers
               <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />
-            </button>
+            </a>
             <span>|</span>
             <span className="font-mono text-[11px] text-slate-600">SEBI Registered Distributor Desk</span>
           </div>

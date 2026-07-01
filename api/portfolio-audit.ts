@@ -3587,4 +3587,239 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
   }
 });
 
+// Real-Time Analytics Persistent File Storage & Firestore Sync
+const ANALYTICS_FILE_PATH = path.join(process.cwd(), "analytics.json");
+let inMemoryAnalytics: any[] = [];
+try {
+  if (fs.existsSync(ANALYTICS_FILE_PATH)) {
+    const raw = fs.readFileSync(ANALYTICS_FILE_PATH, "utf8");
+    inMemoryAnalytics = JSON.parse(raw);
+  }
+} catch (err) {
+  console.warn("Initial load of analytics.json skipped or failed:", err);
+}
+
+function readAnalytics() {
+  if (inMemoryAnalytics.length === 0) {
+    try {
+      if (fs.existsSync(ANALYTICS_FILE_PATH)) {
+        const raw = fs.readFileSync(ANALYTICS_FILE_PATH, "utf8");
+        inMemoryAnalytics = JSON.parse(raw);
+      }
+    } catch (err) {
+      // Ignore
+    }
+  }
+  return inMemoryAnalytics;
+}
+
+function writeAnalytics(analytics: any[]) {
+  inMemoryAnalytics = analytics;
+  try {
+    fs.writeFileSync(ANALYTICS_FILE_PATH, JSON.stringify(analytics, null, 2), "utf8");
+  } catch (err) {
+    console.error("Error writing analytics file:", err);
+    try {
+      fs.writeFileSync("/tmp/analytics.json", JSON.stringify(analytics, null, 2), "utf8");
+    } catch (tmpErr) {
+      // Ignore
+    }
+  }
+}
+
+async function saveAnalyticToFirestore(visitor: any) {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents/analytics/${visitor.id}?key=${apiKey}`;
+    try {
+      const payload = {
+        fields: toFirestoreFields(visitor)
+      };
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`REST analytics write failed: ${response.status} - ${errText}`);
+      }
+    } catch (err) {
+      console.error("[Firebase] REST Firestore analytics write failed:", err);
+    }
+  }
+}
+
+async function readAnalyticsFromFirestore(): Promise<any[]> {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
+    const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents:runQuery?key=${apiKey}`;
+    try {
+      const response = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "analytics" }],
+            orderBy: [{ field: { fieldPath: "lastSeen" }, direction: "DESCENDING" }]
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`REST query failed: ${response.status} - ${errText}`);
+      }
+
+      const results = await response.json() as any[];
+      const analytics: any[] = [];
+      for (const item of results) {
+        if (item.document && item.document.fields) {
+          analytics.push(fromFirestoreFields(item.document.fields));
+        }
+      }
+      
+      inMemoryAnalytics = analytics;
+      writeAnalytics(analytics);
+      return analytics;
+    } catch (err) {
+      console.warn("[Firebase] REST Firestore analytics read failed, using local fallback:", err);
+    }
+  }
+  return readAnalytics();
+}
+
+async function clearAnalyticsFromFirestore() {
+  const config = getFirebaseConfig();
+  if (config) {
+    const { projectId, apiKey, firestoreDatabaseId } = config;
+    try {
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${firestoreDatabaseId}/documents:runQuery?key=${apiKey}`;
+      const qRes = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "analytics" }]
+          }
+        })
+      });
+
+      if (qRes.ok) {
+        const results = await qRes.json() as any[];
+        for (const item of results) {
+          if (item.document && item.document.name) {
+            const deleteUrl = `https://firestore.googleapis.com/v1/${item.document.name}?key=${apiKey}`;
+            await fetch(deleteUrl, { method: "DELETE" });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[Firebase] REST Firestore analytics clear failed:", err);
+    }
+  }
+}
+
+// Analytics API Endpoints
+app.post("/api/analytics/ping", async (req, res) => {
+  try {
+    const { visitorId, isNew, currentPage, action, toolName, timeActive, location, demographics } = req.body;
+    if (!visitorId) {
+      return res.status(400).json({ error: "visitorId is required" });
+    }
+
+    const localAnalytics = readAnalytics();
+    let visitorIndex = localAnalytics.findIndex((v: any) => v.id === visitorId);
+    let visitor: any;
+
+    const nowStr = new Date().toISOString();
+
+    if (visitorIndex !== -1) {
+      visitor = localAnalytics[visitorIndex];
+      visitor.lastSeen = nowStr;
+      visitor.isNew = isNew !== undefined ? isNew : visitor.isNew;
+      
+      if (currentPage && !visitor.pagesVisited.includes(currentPage)) {
+        visitor.pagesVisited.push(currentPage);
+      }
+      
+      if (toolName && !visitor.toolsUsed.includes(toolName)) {
+        visitor.toolsUsed.push(toolName);
+      }
+      
+      if (timeActive) {
+        visitor.totalTimeSpent = (visitor.totalTimeSpent || 0) + timeActive;
+        if (!visitor.timePerPage) visitor.timePerPage = {};
+        if (currentPage) {
+          visitor.timePerPage[currentPage] = (visitor.timePerPage[currentPage] || 0) + timeActive;
+        }
+      }
+
+      if (location) {
+        visitor.ip = location.ip || visitor.ip;
+        visitor.country = location.country || visitor.country;
+        visitor.region = location.region || visitor.region;
+        visitor.city = location.city || visitor.city;
+      }
+
+      if (demographics) {
+        if (!visitor.demographics) visitor.demographics = {};
+        if (demographics.age) visitor.demographics.age = demographics.age;
+        if (demographics.gender) visitor.demographics.gender = demographics.gender;
+      }
+
+      localAnalytics[visitorIndex] = visitor;
+    } else {
+      visitor = {
+        id: visitorId,
+        firstVisit: nowStr,
+        lastSeen: nowStr,
+        isNew: isNew !== undefined ? isNew : true,
+        ip: location?.ip || "Unknown IP",
+        country: location?.country || "Unknown Country",
+        region: location?.region || "Unknown Region",
+        city: location?.city || "Unknown City",
+        pagesVisited: currentPage ? [currentPage] : ["home"],
+        toolsUsed: toolName ? [toolName] : [],
+        totalTimeSpent: timeActive || 0,
+        timePerPage: currentPage ? { [currentPage]: timeActive || 0 } : {},
+        demographics: {
+          age: demographics?.age || "Undetermined",
+          gender: demographics?.gender || "Undetermined"
+        }
+      };
+      localAnalytics.push(visitor);
+    }
+
+    writeAnalytics(localAnalytics);
+    await saveAnalyticToFirestore(visitor);
+
+    return res.json({ success: true, visitor });
+  } catch (error: any) {
+    console.error("Error logging analytics:", error);
+    return res.status(500).json({ error: error.message || "Failed to save analytics" });
+  }
+});
+
+app.get("/api/analytics", async (req, res) => {
+  try {
+    const analytics = await readAnalyticsFromFirestore();
+    return res.json(analytics);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to fetch analytics" });
+  }
+});
+
+app.post("/api/analytics/clear", async (req, res) => {
+  try {
+    writeAnalytics([]);
+    await clearAnalyticsFromFirestore();
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to clear analytics" });
+  }
+});
+
 export default app;

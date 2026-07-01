@@ -27,6 +27,35 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { id: 'find-fund-type', label: 'Free Tool - Find Your Fund Type' },
   ];
 
+  const getPageUrl = (id: NavPage['id']): string => {
+    switch (id) {
+      case 'home': return '/';
+      case 'about': return '/#about';
+      case 'services': return '/#services';
+      case 'calculators': return '/#calculators';
+      case 'knowledge': return '/#knowledge/journey';
+      case 'connect': return '/#connect';
+      case 'privacy': return '/#privacy';
+      case 'find-fund-type': return '/findfund';
+      case 'overlap-finder': return '/overlap';
+      case 'portfolio-audit': return '/audit';
+      case 'retirement-calculator': return '/retirement-calculator';
+      case 'database-portal': return '/#database';
+      case 'find-fund': return '/#find-fund';
+      default: return '/';
+    }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent, id: NavPage['id']) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+      return;
+    }
+    e.preventDefault();
+    setCurrentPage(id);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleNavClick = (id: NavPage['id']) => {
     setCurrentPage(id);
     setMobileMenuOpen(false);
@@ -40,13 +69,14 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         
         {/* Logo at Left */}
-        <div 
-          onClick={() => handleNavClick('home')} 
-          className="cursor-pointer hover:opacity-95 transition-opacity"
+        <a 
+          href={getPageUrl('home')}
+          onClick={(e) => handleLinkClick(e, 'home')} 
+          className="cursor-pointer hover:opacity-95 transition-opacity block"
           id="hdr-logo-container"
         >
           <Logo />
-        </div>
+        </a>
 
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-4 xl:gap-6" id="hdr-desktop-nav">
@@ -56,9 +86,10 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
             
             if (isAuditTool) {
               return (
-                <button
+                <a
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  href={getPageUrl(item.id)}
+                  onClick={(e) => handleLinkClick(e, item.id)}
                   className={`relative transition-all duration-200 cursor-pointer px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
                     currentPage === item.id
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25'
@@ -70,15 +101,16 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
                     ✨ AI Auditor
                   </span>
-                </button>
+                </a>
               );
             }
 
             if (isFundTypeTool) {
               return (
-                <button
+                <a
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  href={getPageUrl(item.id)}
+                  onClick={(e) => handleLinkClick(e, item.id)}
                   className={`relative transition-all duration-200 cursor-pointer px-4 py-1.5 rounded-full border text-[12.5px] font-black tracking-wide ${
                     currentPage === item.id
                       ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-lg shadow-amber-500/25'
@@ -87,14 +119,15 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   id={`nav-btn-${item.id}`}
                 >
                   {item.label}
-                </button>
+                </a>
               );
             }
 
             return (
-              <button
+              <a
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
+                href={getPageUrl(item.id)}
+                onClick={(e) => handleLinkClick(e, item.id)}
                 className={`relative py-2 text-[14px] font-semibold tracking-wide transition-colors ${
                   currentPage === item.id 
                     ? 'text-blue-600' 
@@ -106,7 +139,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 {currentPage === item.id && (
                   <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-blue-600 rounded-full" />
                 )}
-              </button>
+              </a>
             );
           })}
 
@@ -128,8 +161,9 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
             {/* Dropdown Box */}
             <div className="absolute top-full left-0 mt-1.5 w-60 bg-white border border-slate-100 rounded-2xl shadow-xl py-2.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top scale-95 group-hover:scale-100">
-              <button
-                onClick={() => handleNavClick('calculators')}
+              <a
+                href={getPageUrl('calculators')}
+                onClick={(e) => handleLinkClick(e, 'calculators')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'calculators'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -138,10 +172,11 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Calculators</span>
                 {currentPage === 'calculators' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
 
-              <button
-                onClick={() => handleNavClick('retirement-calculator')}
+              <a
+                href={getPageUrl('retirement-calculator')}
+                onClick={(e) => handleLinkClick(e, 'retirement-calculator')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'retirement-calculator'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -150,10 +185,11 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Retirement & Financial Freedom Planner</span>
                 {currentPage === 'retirement-calculator' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
               
-              <button
-                onClick={() => handleNavClick('knowledge')}
+              <a
+                href={getPageUrl('knowledge')}
+                onClick={(e) => handleLinkClick(e, 'knowledge')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'knowledge'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -162,10 +198,11 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Knowledge Hub</span>
                 {currentPage === 'knowledge' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
 
-              <button
-                onClick={() => handleNavClick('connect')}
+              <a
+                href={getPageUrl('connect')}
+                onClick={(e) => handleLinkClick(e, 'connect')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'connect'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -174,12 +211,13 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Start SIP Now👍🏻✅</span>
                 {currentPage === 'connect' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
 
               <div className="my-1.5 border-t border-slate-100" />
 
-              <button
-                onClick={() => handleNavClick('overlap-finder')}
+              <a
+                href={getPageUrl('overlap-finder')}
+                onClick={(e) => handleLinkClick(e, 'overlap-finder')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'overlap-finder'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -191,10 +229,11 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   <span>Fund Overlap Finder</span>
                 </div>
                 {currentPage === 'overlap-finder' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
 
-              <button
-                onClick={() => handleNavClick('database-portal')}
+              <a
+                href={getPageUrl('database-portal')}
+                onClick={(e) => handleLinkClick(e, 'database-portal')}
                 className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
                   currentPage === 'database-portal'
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
@@ -206,12 +245,13 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   <span>Database Portal (CRM)</span>
                 </div>
                 {currentPage === 'database-portal' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
-              </button>
+              </a>
 
               <div className="my-1.5 border-t border-slate-100" />
 
-              <button
-                onClick={() => handleNavClick('find-fund')}
+              <a
+                href={getPageUrl('find-fund')}
+                onClick={(e) => handleLinkClick(e, 'find-fund')}
                 className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-all flex items-center justify-between ${
                   currentPage === 'find-fund'
                     ? 'bg-slate-100 text-slate-900 border-l-2 border-slate-500'
@@ -223,7 +263,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   <span className="leading-tight break-words font-medium text-slate-650">Free Tool - Exactly Which Funds To Invest</span>
                 </div>
                 {currentPage === 'find-fund' && <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />}
-              </button>
+              </a>
             </div>
           </div>
         </nav>

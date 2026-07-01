@@ -22,6 +22,7 @@ import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import PasswordDialog from './components/PasswordDialog';
 import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
+import { trackPing } from './utils/analyticsTracker';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<NavPage['id']>('home');
@@ -114,6 +115,45 @@ export default function App() {
       window.removeEventListener('popstate', handleRouteSync);
     };
   }, []);
+
+  // Global Copy-Protection Cut & Copy Blocking Effect
+  useEffect(() => {
+    const preventCopy = (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl && 
+        (activeEl.tagName === 'INPUT' || 
+         activeEl.tagName === 'TEXTAREA' || 
+         activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+      e.preventDefault();
+    };
+
+    document.addEventListener('copy', preventCopy);
+    document.addEventListener('cut', preventCopy);
+    return () => {
+      document.removeEventListener('copy', preventCopy);
+      document.removeEventListener('cut', preventCopy);
+    };
+  }, []);
+
+  // Real-Time Analytics Page Transitions Logger
+  useEffect(() => {
+    trackPing({ currentPage, action: 'view_page' });
+  }, [currentPage]);
+
+  // Real-Time Analytics Factual Active Session Duration Timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        trackPing({ currentPage, action: 'heartbeat', timeActive: 10 });
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [currentPage]);
 
   // Exit intent & Webpage close prevention hook
   useEffect(() => {

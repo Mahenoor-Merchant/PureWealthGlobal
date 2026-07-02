@@ -416,6 +416,42 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
   const [emi3Amount, setEmi3Amount] = useState<number>(0);
   const [emi3Years, setEmi3Years] = useState<number>(0);
 
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('baseline-no-lump');
+
+  const applyScenario = (id: string) => {
+    setSelectedStrategyId(id);
+    switch (id) {
+      case 'baseline-no-lump':
+        setExpectedLumpSum(0);
+        setAnnualBonusRetirement(0);
+        break;
+      case 'retire-3-no-lump':
+        setExpectedLumpSum(0);
+        setAnnualBonusRetirement(0);
+        setRetirementAge(prev => prev + 3 <= 85 ? prev + 3 : prev);
+        break;
+      case 'retire-5-no-lump':
+        setExpectedLumpSum(0);
+        setAnnualBonusRetirement(0);
+        setRetirementAge(prev => prev + 5 <= 85 ? prev + 5 : prev);
+        break;
+      case 'retire-epf-lump':
+        setExpectedLumpSum(5000000); // 50 Lakhs standard EPF
+        setAnnualBonusRetirement(0);
+        break;
+      case 'retire-bonus-topup':
+        setExpectedLumpSum(0);
+        setAnnualBonusRetirement(300000); // 3 Lakhs bonus
+        setBonusYearsRetirement(10);
+        break;
+      case 'retire-partial-income':
+        // Purely custom active simulation
+        break;
+      default:
+        break;
+    }
+  };
+
   const handleCurrentAgeChange = (val: number) => {
     setCurrentAge(val);
   };
@@ -598,6 +634,123 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       totalStepUpInvested += requiredMonthlySipStepUp * Math.pow(1 + g_stepup, y - 1) * 12;
     }
 
+    // Dynamic Scenario Calculations for Optimizer Menu
+    const calculateScenarioSip = ({
+      targetRetirementAge,
+      overrideLumpSum = expectedLumpSum,
+      overrideAnnualBonus = annualBonusRetirement,
+      overrideBonusYears = bonusYearsRetirement,
+      partialIncomeYears = 0,
+      partialIncomeCoverPercent = 0
+    }: {
+      targetRetirementAge: number;
+      overrideLumpSum?: number;
+      overrideAnnualBonus?: number;
+      overrideBonusYears?: number;
+      partialIncomeYears?: number;
+      partialIncomeCoverPercent?: number;
+    }) => {
+      const yearsToRet = Math.max(1, targetRetirementAge - safeCurrentAge);
+      const yearsInRet = Math.max(1, safeLifeExpectancy - targetRetirementAge);
+      
+      const futMonthlyExp = (expenseBasicSurvival + expenseLifestyle + expenseLuxuries) * Math.pow(1 + inflationRateRetirement / 100, yearsToRet);
+      
+      const realAnnualRate = 0.02; 
+      const r_real_monthly = realAnnualRate / 12;
+      const totMonths = yearsInRet * 12;
+      
+      let reqCorpusForExpenses = 0;
+      if (partialIncomeYears > 0 && partialIncomeCoverPercent > 0) {
+        const partialMonths = Math.min(totMonths, partialIncomeYears * 12);
+        const annuityFactorPartial = (1 - Math.pow(1 + r_real_monthly, -partialMonths)) / r_real_monthly;
+        const annuityFactorRemaining = ((1 - Math.pow(1 + r_real_monthly, -(totMonths - partialMonths))) / r_real_monthly) * Math.pow(1 + r_real_monthly, -partialMonths);
+        
+        const reducedMonthlyExp = futMonthlyExp * (1 - partialIncomeCoverPercent / 100);
+        reqCorpusForExpenses = (reducedMonthlyExp * annuityFactorPartial + futMonthlyExp * annuityFactorRemaining) * (1 + r_real_monthly);
+      } else {
+        const annuityFactor = (1 - Math.pow(1 + r_real_monthly, -totMonths)) / r_real_monthly;
+        reqCorpusForExpenses = futMonthlyExp * annuityFactor * (1 + r_real_monthly);
+      }
+      
+      const estateDiscountFactor = Math.pow(1 + realAnnualRate, -yearsInRet);
+      const reqEstateCorpus = estateAmount * estateDiscountFactor;
+      
+      const totReqCorpus = reqCorpusForExpenses + reqEstateCorpus + oneTimeRetirementGoal;
+      
+      const futValExisting = existingSavings * Math.pow(1 + preRetirementReturn / 100, yearsToRet);
+      
+      let futValBonuses = 0;
+      const k_bonus = Math.min(overrideBonusYears, yearsToRet);
+      for (let y = 1; y <= k_bonus; y++) {
+        futValBonuses += overrideAnnualBonus * Math.pow(1 + preRetirementReturn / 100, yearsToRet - y + 1);
+      }
+      
+      const netGap = Math.max(0, totReqCorpus - futValExisting - overrideLumpSum - futValBonuses);
+      
+      const preRetRate = Math.pow(1 + preRetirementReturn / 100, 1 / 12) - 1;
+      const preRetMonths = yearsToRet * 12;
+      const fvFactor = ((Math.pow(1 + preRetRate, preRetMonths) - 1) / preRetRate) * (1 + preRetRate);
+      
+      return netGap > 0 ? (netGap / fvFactor) : 0;
+    };
+
+    const scenarios = [
+      {
+        id: 'baseline-no-lump',
+        title: `Retire at age ${safeRetirementAge}, no lump sum`,
+        description: "Pure active savings required without relying on any EPF terminal payouts or annual bonuses.",
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        badge: "Pure Savings Profile",
+        pillText: "Baseline Pure"
+      },
+      {
+        id: 'retire-3-no-lump',
+        title: `Retire at age ${safeRetirementAge + 3}, no lump sum`,
+        description: "Slightly delayed retirement gives your existing assets 3 more years to compound undisturbed.",
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 3, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        badge: "Balanced Extended Profile",
+        pillText: "Retire at X + 3"
+      },
+      {
+        id: 'retire-5-no-lump',
+        title: `Retire at age ${safeRetirementAge + 5}, no lump sum`,
+        description: "Giving compound interest 5 more years of runway dramatically slashes your monthly savings rate.",
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 5, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        badge: "Maximum Compound Runway",
+        pillText: "Retire at X + 5"
+      },
+      {
+        id: 'retire-epf-lump',
+        title: `Retire at age ${safeRetirementAge} + EPF/Gratuity Lump Sum`,
+        description: `factors in receiving your employee benefits or terminal terminal lump sums at retirement (approx. ${formatInLakhs(Math.max(expectedLumpSum, 2500000))}).`,
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: Math.max(expectedLumpSum, 2500000), overrideAnnualBonus: 0 }),
+        badge: "Employee Standard Benefit",
+        pillText: "Lump Sum Assist"
+      },
+      {
+        id: 'retire-bonus-topup',
+        title: `Retire at age ${safeRetirementAge} + Annual Bonus Accelerator`,
+        description: `Combines standard monthly savings with annual savings top-ups of ${formatInLakhs(Math.max(annualBonusRetirement, 200000))}/year.`,
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: Math.max(annualBonusRetirement, 200000), overrideBonusYears: bonusYearsRetirement }),
+        badge: "Active Bonus Contributor",
+        pillText: "Bonus Boost"
+      },
+      {
+        id: 'retire-partial-income',
+        title: `Retire at age ${safeRetirementAge} + Post-Retirement Consulting`,
+        description: "Assume transition to part-time consulting for the first 5 years of retirement, covering 50% of monthly expenses.",
+        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: 0, partialIncomeYears: 5, partialIncomeCoverPercent: 50 }),
+        badge: "Active Semi-Retirement",
+        pillText: "Consulting Assist"
+      }
+    ].map(s => {
+      const pct = currentMonthlyIncome > 0 ? ((s.sipAmount / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+      return {
+        ...s,
+        percentOfSalary: pct
+      };
+    });
+
     // Debt & Surplus Calculations
     const totalCurrentEmi = emi1Amount + emi2Amount + emi3Amount;
     const currentMonthlySurplus = Math.max(0, currentMonthlyIncome - currentMonthlyExpense - totalCurrentEmi);
@@ -606,7 +759,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       emi2Amount > 0 ? emi2Years : 0,
       emi3Amount > 0 ? emi3Years : 0
     );
-    
+
     return {
       yearsToRetirement,
       yearsInRetirement,
@@ -636,7 +789,8 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       bucket3FutureValue15Years,
       totalCurrentEmi,
       currentMonthlySurplus,
-      maxEmiYears
+      maxEmiYears,
+      scenarios
     };
   }, [
     currentAge,
@@ -1729,36 +1883,59 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                   </div>
 
                   {/* Comparison Blocks */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 relative z-10 pt-1">
-                    {/* Standard Flat SIP */}
-                    <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl">
-                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Standard Approach</span>
-                      <h5 className="text-[11.5px] font-bold text-slate-400 mt-0.5">Flat SIP Required:</h5>
-                      <p className="text-lg font-display font-black text-slate-200 mt-1">
-                        {formatCurrencyINR(retirementData.requiredMonthlySip)}
-                        <span className="text-xs text-slate-500 font-normal">/mo</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                        Constant flat monthly savings for the next {retirementData.yearsToRetirement} years.
-                      </p>
-                    </div>
+                  {(() => {
+                    const standardSipPercent = currentMonthlyIncome > 0 ? ((retirementData.requiredMonthlySip / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+                    const stepUpSipPercent = currentMonthlyIncome > 0 ? ((retirementData.requiredMonthlySipStepUp / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+                    
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 relative z-10 pt-1">
+                        {/* Standard Flat SIP */}
+                        <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl flex flex-col justify-between">
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Standard Approach</span>
+                            <h5 className="text-[11.5px] font-bold text-slate-400 mt-0.5">Flat SIP Required:</h5>
+                            <p className="text-lg font-display font-black text-slate-200 mt-1">
+                              {formatCurrencyINR(retirementData.requiredMonthlySip)}
+                              <span className="text-xs text-slate-500 font-normal">/mo</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+                              Constant flat monthly savings for the next {retirementData.yearsToRetirement} years.
+                            </p>
+                          </div>
+                          <div className="mt-2.5 inline-flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-900/60 border border-slate-800 text-[10.5px] text-slate-300">
+                            <span className="font-medium">Monthly Burden:</span>
+                            <span className="font-mono font-bold text-slate-200 bg-slate-850 px-1.5 py-0.5 rounded text-[10px]">
+                              {standardSipPercent}% of Salary
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Smart Step-Up SIP */}
-                    <div className="bg-indigo-950/40 border border-indigo-500/30 p-3.5 rounded-xl relative overflow-hidden">
-                      <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[8px] font-black px-1.5 py-0.5 rounded font-mono uppercase z-10">
-                        Recommended
+                        {/* Smart Step-Up SIP */}
+                        <div className="bg-indigo-950/40 border border-indigo-500/30 p-3.5 rounded-xl relative overflow-hidden flex flex-col justify-between">
+                          <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[8px] font-black px-1.5 py-0.5 rounded font-mono uppercase z-10">
+                            Recommended
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Smart Approach</span>
+                            <h5 className="text-[11.5px] font-bold text-white mt-0.5">Starting SIP Required:</h5>
+                            <p className="text-xl font-display font-black text-emerald-400 mt-1">
+                              {formatCurrencyINR(retirementData.requiredMonthlySipStepUp)}
+                              <span className="text-xs text-emerald-500 font-normal">/mo</span>
+                            </p>
+                            <p className="text-[10px] text-indigo-200 mt-1.5 leading-relaxed">
+                              Starts lower, increasing by <strong>{stepUpPercentRetirement}%</strong> yearly.
+                            </p>
+                          </div>
+                          <div className="mt-2.5 inline-flex items-center justify-between px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10.5px] text-emerald-300">
+                            <span className="font-semibold">Starting Burden:</span>
+                            <span className="font-mono font-black text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] animate-pulse">
+                              {stepUpSipPercent}% of Salary
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Smart Approach</span>
-                      <h5 className="text-[11.5px] font-bold text-white mt-0.5">Starting SIP Required:</h5>
-                      <p className="text-xl font-display font-black text-emerald-400 mt-1">
-                        {formatCurrencyINR(retirementData.requiredMonthlySipStepUp)}
-                        <span className="text-xs text-emerald-500 font-normal">/mo</span>
-                      </p>
-                      <p className="text-[10px] text-indigo-200 mt-1.5 leading-relaxed">
-                        Starts lower, increasing by <strong>{stepUpPercentRetirement}%</strong> yearly.
-                      </p>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Visual Hook */}
                   {retirementData.requiredMonthlySip > 0 && retirementData.requiredMonthlySipStepUp < retirementData.requiredMonthlySip && (
@@ -1789,6 +1966,90 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                       onChange={(e) => setStepUpPercentRetirement(Number(e.target.value))} 
                       className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full cursor-pointer appearance-none" 
                     />
+                  </div>
+                </div>
+
+                {/* Strategy Optimizer Box (Menu-driven Retirement Options) */}
+                <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-5.5 shadow-md space-y-4 text-left">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-mono font-bold bg-indigo-600 text-white px-2.5 py-1 rounded uppercase tracking-wider">
+                        Strategy Optimizer
+                      </span>
+                      <h4 className="text-[16px] font-bold font-display mt-2 flex items-center gap-1.5 text-white">
+                        <Layers className="w-4 h-4 text-indigo-400" />
+                        Essential Freedom Optimizer Menu
+                      </h4>
+                      <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                        Same math, but presented as a customizable retirement menu. Choose how you want to reach your <strong>Essential Freedom</strong> target. Click any option to apply its parameters instantly to the sliders above!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                    {retirementData.scenarios.map((s) => {
+                      const isSelected = selectedStrategyId === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => applyScenario(s.id)}
+                          className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer group ${
+                            isSelected
+                              ? 'bg-indigo-650 text-white border-indigo-500 shadow-md ring-2 ring-indigo-500/30'
+                              : 'bg-slate-950/40 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60 shadow-xs'
+                          }`}
+                        >
+                          <div className="space-y-1 w-full">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className={`text-[8.5px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
+                                isSelected ? 'bg-indigo-800 text-indigo-100' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-750'
+                              }`}>
+                                {s.pillText}
+                              </span>
+                              {isSelected ? (
+                                <span className="flex items-center gap-1 text-[9.5px] font-bold text-emerald-300">
+                                  <Check className="w-3 h-3 text-emerald-400" /> Active Strategy
+                                </span>
+                              ) : (
+                                <span className="text-[8.5px] font-bold text-indigo-400 uppercase group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5">
+                                  Apply <ChevronRight className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </div>
+                            <h5 className={`font-bold text-[12.5px] tracking-tight leading-snug mt-1.5 ${
+                              isSelected ? 'text-white' : 'text-slate-200'
+                            }`}>
+                              {s.title}
+                            </h5>
+                            <p className={`text-[10.5px] leading-relaxed mt-1 ${
+                              isSelected ? 'text-indigo-100' : 'text-slate-400'
+                            }`}>
+                              {s.description}
+                            </p>
+                          </div>
+                          
+                          <div className={`mt-4 pt-3 border-t flex items-center justify-between w-full ${
+                            isSelected ? 'border-indigo-500/30' : 'border-slate-800'
+                          }`}>
+                            <span className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`}>
+                              Monthly Sip Required:
+                            </span>
+                            <div className="text-right">
+                              <span className={`text-[13.5px] font-black font-display block ${
+                                isSelected ? 'text-emerald-300' : 'text-indigo-400'
+                              }`}>
+                                {formatCurrencyINR(s.sipAmount)}<span className="text-[10px] font-normal font-sans">/mo</span>
+                              </span>
+                              <span className={`text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded block mt-0.5 ${
+                                isSelected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-900 text-slate-400'
+                              }`}>
+                                {s.percentOfSalary}% of Salary
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

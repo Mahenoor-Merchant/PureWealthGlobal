@@ -419,37 +419,34 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('baseline-no-lump');
 
   const applyScenario = (id: string) => {
-    setSelectedStrategyId(id);
-    switch (id) {
-      case 'baseline-no-lump':
-        setExpectedLumpSum(0);
-        setAnnualBonusRetirement(0);
-        break;
-      case 'retire-3-no-lump':
-        setExpectedLumpSum(0);
-        setAnnualBonusRetirement(0);
-        setRetirementAge(prev => prev + 3 <= 85 ? prev + 3 : prev);
-        break;
-      case 'retire-5-no-lump':
-        setExpectedLumpSum(0);
-        setAnnualBonusRetirement(0);
-        setRetirementAge(prev => prev + 5 <= 85 ? prev + 5 : prev);
-        break;
-      case 'retire-epf-lump':
-        setExpectedLumpSum(5000000); // 50 Lakhs standard EPF
-        setAnnualBonusRetirement(0);
-        break;
-      case 'retire-bonus-topup':
-        setExpectedLumpSum(0);
-        setAnnualBonusRetirement(300000); // 3 Lakhs bonus
-        setBonusYearsRetirement(10);
-        break;
-      case 'retire-partial-income':
-        // Purely custom active simulation
-        break;
-      default:
-        break;
+    if (selectedStrategyId === id) return;
+    
+    // We compute the age adjustment depending on transition to prevent compounding bugs:
+    if (selectedStrategyId === 'baseline-no-lump') {
+      if (id === 'retire-3-no-lump') {
+        setRetirementAge(prev => Math.min(85, prev + 3));
+      } else if (id === 'retire-5-no-lump') {
+        setRetirementAge(prev => Math.min(85, prev + 5));
+      }
+    } else if (selectedStrategyId === 'retire-3-no-lump') {
+      if (id === 'baseline-no-lump') {
+        setRetirementAge(prev => Math.max(18, prev - 3));
+      } else if (id === 'retire-5-no-lump') {
+        setRetirementAge(prev => Math.min(85, prev + 2));
+      }
+    } else if (selectedStrategyId === 'retire-5-no-lump') {
+      if (id === 'baseline-no-lump') {
+        setRetirementAge(prev => Math.max(18, prev - 5));
+      } else if (id === 'retire-3-no-lump') {
+        setRetirementAge(prev => Math.max(18, prev - 2));
+      }
     }
+    
+    setSelectedStrategyId(id);
+    
+    // Reset lump sums and bonuses as these are "no lump sum" baseline strategies
+    setExpectedLumpSum(0);
+    setAnnualBonusRetirement(0);
   };
 
   const handleCurrentAgeChange = (val: number) => {
@@ -691,7 +688,24 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       const preRetMonths = yearsToRet * 12;
       const fvFactor = ((Math.pow(1 + preRetRate, preRetMonths) - 1) / preRetRate) * (1 + preRetRate);
       
-      return netGap > 0 ? (netGap / fvFactor) : 0;
+      const flatSip = netGap > 0 ? (netGap / fvFactor) : 0;
+
+      // Smart Step-Up calculation
+      const g_stepup = stepUpPercentRetirement / 100;
+      const R_return = preRetirementReturn / 100;
+      const sipFvFactorOneYear = ((Math.pow(1 + preRetRate, 12) - 1) / preRetRate) * (1 + preRetRate);
+      
+      let stepUpFvFactor = 0;
+      if (Math.abs(R_return - g_stepup) < 1e-6) {
+        stepUpFvFactor = yearsToRet * Math.pow(1 + R_return, yearsToRet - 1);
+      } else {
+        stepUpFvFactor = (Math.pow(1 + R_return, yearsToRet) - Math.pow(1 + g_stepup, yearsToRet)) / (R_return - g_stepup);
+      }
+      
+      const stepUpSipFactorTotal = sipFvFactorOneYear * stepUpFvFactor;
+      const stepUpSip = netGap > 0 ? (netGap / stepUpSipFactorTotal) : 0;
+
+      return { flatSip, stepUpSip };
     };
 
     const scenarios = [
@@ -699,7 +713,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
         id: 'baseline-no-lump',
         title: `Retire at age ${safeRetirementAge}, no lump sum`,
         description: "Pure active savings required without relying on any EPF terminal payouts or annual bonuses.",
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        sips: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
         badge: "Pure Savings Profile",
         pillText: "Baseline Pure"
       },
@@ -707,7 +721,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
         id: 'retire-3-no-lump',
         title: `Retire at age ${safeRetirementAge + 3}, no lump sum`,
         description: "Slightly delayed retirement gives your existing assets 3 more years to compound undisturbed.",
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 3, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        sips: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 3, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
         badge: "Balanced Extended Profile",
         pillText: "Retire at X + 3"
       },
@@ -715,39 +729,17 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
         id: 'retire-5-no-lump',
         title: `Retire at age ${safeRetirementAge + 5}, no lump sum`,
         description: "Giving compound interest 5 more years of runway dramatically slashes your monthly savings rate.",
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 5, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
+        sips: calculateScenarioSip({ targetRetirementAge: safeRetirementAge + 5, overrideLumpSum: 0, overrideAnnualBonus: 0 }),
         badge: "Maximum Compound Runway",
         pillText: "Retire at X + 5"
-      },
-      {
-        id: 'retire-epf-lump',
-        title: `Retire at age ${safeRetirementAge} + EPF/Gratuity Lump Sum`,
-        description: `factors in receiving your employee benefits or terminal terminal lump sums at retirement (approx. ${formatInLakhs(Math.max(expectedLumpSum, 2500000))}).`,
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: Math.max(expectedLumpSum, 2500000), overrideAnnualBonus: 0 }),
-        badge: "Employee Standard Benefit",
-        pillText: "Lump Sum Assist"
-      },
-      {
-        id: 'retire-bonus-topup',
-        title: `Retire at age ${safeRetirementAge} + Annual Bonus Accelerator`,
-        description: `Combines standard monthly savings with annual savings top-ups of ${formatInLakhs(Math.max(annualBonusRetirement, 200000))}/year.`,
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: Math.max(annualBonusRetirement, 200000), overrideBonusYears: bonusYearsRetirement }),
-        badge: "Active Bonus Contributor",
-        pillText: "Bonus Boost"
-      },
-      {
-        id: 'retire-partial-income',
-        title: `Retire at age ${safeRetirementAge} + Post-Retirement Consulting`,
-        description: "Assume transition to part-time consulting for the first 5 years of retirement, covering 50% of monthly expenses.",
-        sipAmount: calculateScenarioSip({ targetRetirementAge: safeRetirementAge, overrideLumpSum: 0, overrideAnnualBonus: 0, partialIncomeYears: 5, partialIncomeCoverPercent: 50 }),
-        badge: "Active Semi-Retirement",
-        pillText: "Consulting Assist"
       }
     ].map(s => {
-      const pct = currentMonthlyIncome > 0 ? ((s.sipAmount / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+      const flatPct = currentMonthlyIncome > 0 ? ((s.sips.flatSip / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+      const stepUpPct = currentMonthlyIncome > 0 ? ((s.sips.stepUpSip / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
       return {
         ...s,
-        percentOfSalary: pct
+        percentOfSalaryFlat: flatPct,
+        percentOfSalaryStepUp: stepUpPct
       };
     });
 
@@ -1986,7 +1978,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
                     {retirementData.scenarios.map((s) => {
                       const isSelected = selectedStrategyId === s.id;
                       return (
@@ -2008,7 +2000,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                               </span>
                               {isSelected ? (
                                 <span className="flex items-center gap-1 text-[9.5px] font-bold text-emerald-300">
-                                  <Check className="w-3 h-3 text-emerald-400" /> Active Strategy
+                                  <Check className="w-3 h-3 text-emerald-400" /> Active
                                 </span>
                               ) : (
                                 <span className="text-[8.5px] font-bold text-indigo-400 uppercase group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5">
@@ -2028,22 +2020,32 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                             </p>
                           </div>
                           
-                          <div className={`mt-4 pt-3 border-t flex items-center justify-between w-full ${
+                          <div className={`mt-4 pt-3 border-t space-y-3.5 w-full ${
                             isSelected ? 'border-indigo-500/30' : 'border-slate-800'
                           }`}>
-                            <span className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`}>
-                              Monthly Sip Required:
-                            </span>
-                            <div className="text-right">
-                              <span className={`text-[13.5px] font-black font-display block ${
-                                isSelected ? 'text-emerald-300' : 'text-indigo-400'
+                            {/* Flat SIP */}
+                            <div>
+                              <div className="flex items-center justify-between text-[10px] text-slate-450">
+                                <span>Flat SIP:</span>
+                                <span className="font-mono">({s.percentOfSalaryFlat}%)</span>
+                              </div>
+                              <span className={`text-[13px] font-black font-display block mt-0.5 ${
+                                isSelected ? 'text-white' : 'text-slate-200'
                               }`}>
-                                {formatCurrencyINR(s.sipAmount)}<span className="text-[10px] font-normal font-sans">/mo</span>
+                                {formatCurrencyINR(s.sips.flatSip)}<span className="text-[10px] font-normal font-sans text-slate-400">/mo</span>
                               </span>
-                              <span className={`text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded block mt-0.5 ${
-                                isSelected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-900 text-slate-400'
+                            </div>
+
+                            {/* Step-Up SIP */}
+                            <div>
+                              <div className="flex items-center justify-between text-[10px] text-indigo-400 font-semibold">
+                                <span>Step-Up:</span>
+                                <span className="font-mono text-[9px] bg-emerald-500/10 text-emerald-400 px-1 py-0.2 rounded font-black">({s.percentOfSalaryStepUp}%)</span>
+                              </div>
+                              <span className={`text-[13.5px] font-black font-display block mt-0.5 ${
+                                isSelected ? 'text-emerald-300' : 'text-emerald-400'
                               }`}>
-                                {s.percentOfSalary}% of Salary
+                                {formatCurrencyINR(s.sips.stepUpSip)}<span className="text-[10px] font-normal font-sans">/mo</span>
                               </span>
                             </div>
                           </div>

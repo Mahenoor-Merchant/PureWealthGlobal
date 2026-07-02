@@ -30,6 +30,13 @@ interface CalculatorsViewProps {
 export default function CalculatorsView({ setCurrentPage, initialTab }: CalculatorsViewProps) {
   const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>(initialTab || 'sip');
 
+  const formatInLakhs = (val: number) => {
+    if (val >= 10000000) {
+      return `₹${(val / 10000000).toFixed(2)} Crore`;
+    }
+    return `₹${(val / 100000).toFixed(1)} Lakhs`;
+  };
+
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
@@ -386,7 +393,13 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
   const [retirementAge, setRetirementAge] = useState<number>(60);
   const [lifeExpectancy, setLifeExpectancy] = useState<number>(85);
   const [currentMonthlyIncome, setCurrentMonthlyIncome] = useState<number>(150000); // 1.5 Lakhs default
-  const [currentMonthlyExpense, setCurrentMonthlyExpense] = useState<number>(50000); // 50,000 INR
+  const [expenseBasicSurvival, setExpenseBasicSurvival] = useState<number>(25000);
+  const [expenseLifestyle, setExpenseLifestyle] = useState<number>(15000);
+  const [expenseLuxuries, setExpenseLuxuries] = useState<number>(10000);
+  const currentMonthlyExpense = expenseBasicSurvival + expenseLifestyle + expenseLuxuries;
+  const [stepUpPercentRetirement, setStepUpPercentRetirement] = useState<number>(10);
+  const [annualBonusRetirement, setAnnualBonusRetirement] = useState<number>(200000);
+  const [bonusYearsRetirement, setBonusYearsRetirement] = useState<number>(10);
   const [inflationRateRetirement, setInflationRateRetirement] = useState<number>(6); // 6%
   const [estateAmount, setEstateAmount] = useState<number>(0); // want to leave any estate? Default 0
   const [existingSavings, setExistingSavings] = useState<number>(1500000); // 15 Lakhs default
@@ -476,8 +489,15 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     // Lump sums expected at retirement (NPS, EPF, Gratuity, etc.)
     const lumpSumsAtRetirement = expectedLumpSum;
     
+    // Future value of annual bonuses / lump sum investments compounding
+    let futureValueOfBonuses = 0;
+    const k_bonus = Math.min(bonusYearsRetirement, yearsToRetirement);
+    for (let y = 1; y <= k_bonus; y++) {
+      futureValueOfBonuses += annualBonusRetirement * Math.pow(1 + preRetirementReturn / 100, yearsToRetirement - y + 1);
+    }
+
     // Net gap to be met by new SIP
-    const netCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - futureValueOfExistingSavings - lumpSumsAtRetirement);
+    const netCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - futureValueOfExistingSavings - lumpSumsAtRetirement - futureValueOfBonuses);
     
     // Required Monthly SIP to cover the net gap (True CAGR compounding formula)
     const preRetirementMonthlyRate = Math.pow(1 + preRetirementReturn / 100, 1 / 12) - 1;
@@ -486,10 +506,25 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     const sipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, preRetirementMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
     const requiredMonthlySip = netCorpusGap > 0 ? (netCorpusGap / sipFvFactor) : 0;
 
+    // --- SMART STEP-UP SIP CALCULATIONS ---
+    const g_stepup = stepUpPercentRetirement / 100;
+    const R_return = preRetirementReturn / 100;
+    const sipFvFactorOneYear = ((Math.pow(1 + preRetirementMonthlyRate, 12) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
+    
+    let stepUpFvFactor = 0;
+    if (Math.abs(R_return - g_stepup) < 1e-6) {
+      stepUpFvFactor = yearsToRetirement * Math.pow(1 + R_return, yearsToRetirement - 1);
+    } else {
+      stepUpFvFactor = (Math.pow(1 + R_return, yearsToRetirement) - Math.pow(1 + g_stepup, yearsToRetirement)) / (R_return - g_stepup);
+    }
+    
+    const stepUpSipFactorTotal = sipFvFactorOneYear * stepUpFvFactor;
+    const requiredMonthlySipStepUp = netCorpusGap > 0 ? (netCorpusGap / stepUpSipFactorTotal) : 0;
+
     // --- FOMO Scenario 1: Started 5 Years Earlier ---
     const earlyYearsToRetirement = yearsToRetirement + 5;
     const earlyFutureValueOfExistingSavings = existingSavings * Math.pow(1 + preRetirementReturn / 100, earlyYearsToRetirement);
-    const earlyNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - earlyFutureValueOfExistingSavings - lumpSumsAtRetirement);
+    const earlyNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - earlyFutureValueOfExistingSavings - lumpSumsAtRetirement - futureValueOfBonuses);
     const earlyMonths = earlyYearsToRetirement * 12;
     const earlySipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, earlyMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
     const requiredMonthlySipEarly = earlyNetCorpusGap > 0 ? (earlyNetCorpusGap / earlySipFvFactor) : 0;
@@ -497,11 +532,52 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     // --- FOMO Scenario 2: Starting 5 Years Later ---
     const lateYearsToRetirement = Math.max(1, yearsToRetirement - 5);
     const lateFutureValueOfExistingSavings = existingSavings * Math.pow(1 + preRetirementReturn / 100, lateYearsToRetirement);
-    const lateNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - lateFutureValueOfExistingSavings - lumpSumsAtRetirement);
+    const lateNetCorpusGap = Math.max(0, totalRequiredCorpusAtRetirement - lateFutureValueOfExistingSavings - lumpSumsAtRetirement - futureValueOfBonuses);
     const lateMonths = lateYearsToRetirement * 12;
     const lateSipFvFactor = ((Math.pow(1 + preRetirementMonthlyRate, lateMonths) - 1) / preRetirementMonthlyRate) * (1 + preRetirementMonthlyRate);
     const requiredMonthlySipLate = lateNetCorpusGap > 0 ? (lateNetCorpusGap / lateSipFvFactor) : 0;
     
+    // --- MILESTONE CORPUS BREAKDOWN MATH ---
+    const futureBasicSurvival = expenseBasicSurvival * Math.pow(1 + inflationRateRetirement / 100, yearsToRetirement);
+    const futureLifestyle = expenseLifestyle * Math.pow(1 + inflationRateRetirement / 100, yearsToRetirement);
+    const futureLuxuries = expenseLuxuries * Math.pow(1 + inflationRateRetirement / 100, yearsToRetirement);
+    
+    const corpusSurvival = futureBasicSurvival * annuityFactor * (1 + r_real_monthly);
+    const corpusLifestyle = futureLifestyle * annuityFactor * (1 + r_real_monthly);
+    const corpusLuxuries = futureLuxuries * annuityFactor * (1 + r_real_monthly);
+
+    // Timeline Projection Loop
+    let currentPortfolio = existingSavings;
+    let yearHitSurvival = existingSavings >= corpusSurvival ? 0 : -1;
+    let yearHitLifestyle = existingSavings >= (corpusSurvival + corpusLifestyle) ? 0 : -1;
+    let yearHitTotal = existingSavings >= totalRequiredCorpusAtRetirement ? 0 : -1;
+
+    for (let y = 1; y <= 100; y++) {
+      if (y <= bonusYearsRetirement) {
+        currentPortfolio += annualBonusRetirement;
+      }
+      
+      const currentYearSip = requiredMonthlySipStepUp * Math.pow(1 + g_stepup, y - 1);
+      for (let m = 0; m < 12; m++) {
+        currentPortfolio += currentYearSip;
+        currentPortfolio = currentPortfolio * (1 + preRetirementMonthlyRate);
+      }
+      
+      if (yearHitSurvival === -1 && currentPortfolio >= corpusSurvival) {
+        yearHitSurvival = y;
+      }
+      if (yearHitLifestyle === -1 && currentPortfolio >= (corpusSurvival + corpusLifestyle)) {
+        yearHitLifestyle = y;
+      }
+      if (yearHitTotal === -1 && currentPortfolio >= totalRequiredCorpusAtRetirement) {
+        yearHitTotal = y;
+      }
+    }
+
+    if (yearHitSurvival === -1) yearHitSurvival = Math.round(yearsToRetirement * 0.3);
+    if (yearHitLifestyle === -1) yearHitLifestyle = Math.round(yearsToRetirement * 0.6);
+    if (yearHitTotal === -1) yearHitTotal = yearsToRetirement;
+
     // Bucketing Strategy Division:
     // Bucket 1 (Liquidity / Arbitrage): 3 years of first-year living expenses
     const bucket1Arbitrage = Math.min(totalRequiredCorpusAtRetirement, 3 * 12 * futureMonthlyExpense);
@@ -514,6 +590,13 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     
     // Future Value of Bucket 3 after 15 years at an expected 12% equity CAGR return rate
     const bucket3FutureValue15Years = bucket3Equity * Math.pow(1 + 0.12, 15);
+
+    // Total Amount Invested comparisons
+    const totalStandardInvested = requiredMonthlySip * 12 * yearsToRetirement;
+    let totalStepUpInvested = 0;
+    for (let y = 1; y <= yearsToRetirement; y++) {
+      totalStepUpInvested += requiredMonthlySipStepUp * Math.pow(1 + g_stepup, y - 1) * 12;
+    }
 
     // Debt & Surplus Calculations
     const totalCurrentEmi = emi1Amount + emi2Amount + emi3Amount;
@@ -533,10 +616,20 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       totalRequiredCorpusAtRetirement,
       futureValueOfExistingSavings,
       lumpSumsAtRetirement,
+      futureValueOfBonuses,
       netCorpusGap,
       requiredMonthlySip,
+      requiredMonthlySipStepUp,
+      totalStandardInvested,
+      totalStepUpInvested,
       requiredMonthlySipEarly,
       requiredMonthlySipLate,
+      corpusSurvival,
+      corpusLifestyle,
+      corpusLuxuries,
+      yearHitSurvival,
+      yearHitLifestyle,
+      yearHitTotal,
       bucket1Arbitrage,
       bucket2Hybrid,
       bucket3Equity,
@@ -549,7 +642,9 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     currentAge,
     retirementAge,
     lifeExpectancy,
-    currentMonthlyExpense,
+    expenseBasicSurvival,
+    expenseLifestyle,
+    expenseLuxuries,
     inflationRateRetirement,
     estateAmount,
     existingSavings,
@@ -562,7 +657,10 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     emi2Amount,
     emi2Years,
     emi3Amount,
-    emi3Years
+    emi3Years,
+    stepUpPercentRetirement,
+    annualBonusRetirement,
+    bonusYearsRetirement
   ]);
 
   // SIP Math Computing
@@ -1325,14 +1423,64 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                     <input type="range" min="20000" max="1000000" step="10000" value={currentMonthlyIncome} onChange={(e) => setCurrentMonthlyIncome(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
                   </div>
 
-                  <div className="space-y-2.5">
+                  <div className="space-y-3 pt-1 border-t border-slate-100 mt-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-[11px] font-bold text-slate-700">Monthly Living Expenses Today</label>
-                      <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                        {formatCurrencyINR(currentMonthlyExpense)}
+                      <label className="text-[11px] font-bold text-slate-800">Monthly Expenses Breakdown</label>
+                      <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        Total: {formatCurrencyINR(currentMonthlyExpense)}
                       </span>
                     </div>
-                    <input type="range" min="10000" max="500000" step="5000" value={currentMonthlyExpense} onChange={(e) => setCurrentMonthlyExpense(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+
+                    {/* Basic Survival */}
+                    <div className="space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <div className="flex justify-between items-center text-[10.5px]">
+                        <span className="font-semibold text-slate-750">Basic Survival (Groceries/Utilities)</span>
+                        <span className="font-mono font-bold text-slate-900">{formatCurrencyINR(expenseBasicSurvival)}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="5000" 
+                        max="300000" 
+                        step="1000" 
+                        value={expenseBasicSurvival} 
+                        onChange={(e) => setExpenseBasicSurvival(Number(e.target.value))} 
+                        className="w-full accent-slate-700 h-1 bg-slate-200 rounded-full cursor-pointer appearance-none" 
+                      />
+                    </div>
+
+                    {/* Lifestyle */}
+                    <div className="space-y-1 bg-blue-50/40 p-2.5 rounded-xl border border-blue-100/40">
+                      <div className="flex justify-between items-center text-[10.5px]">
+                        <span className="font-semibold text-blue-900">Lifestyle (Rent/EMI/School fees)</span>
+                        <span className="font-mono font-bold text-blue-900">{formatCurrencyINR(expenseLifestyle)}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="300000" 
+                        step="1000" 
+                        value={expenseLifestyle} 
+                        onChange={(e) => setExpenseLifestyle(Number(e.target.value))} 
+                        className="w-full accent-blue-600 h-1 bg-blue-100 rounded-full cursor-pointer appearance-none" 
+                      />
+                    </div>
+
+                    {/* Luxuries */}
+                    <div className="space-y-1 bg-indigo-50/40 p-2.5 rounded-xl border border-indigo-100/40">
+                      <div className="flex justify-between items-center text-[10.5px]">
+                        <span className="font-semibold text-indigo-900">Luxuries (Dining/Travel)</span>
+                        <span className="font-mono font-bold text-indigo-900">{formatCurrencyINR(expenseLuxuries)}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200000" 
+                        step="1000" 
+                        value={expenseLuxuries} 
+                        onChange={(e) => setExpenseLuxuries(Number(e.target.value))} 
+                        className="w-full accent-indigo-600 h-1 bg-indigo-100 rounded-full cursor-pointer appearance-none" 
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
@@ -1369,6 +1517,44 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                       </span>
                     </div>
                     <input type="range" min="0" max="20000000" step="50000" value={expectedLumpSum} onChange={(e) => setExpectedLumpSum(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                  </div>
+
+                  <div className="space-y-2 bg-emerald-50/20 p-3 rounded-xl border border-emerald-100/40 mt-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Bonus & Lump Sum Accelerator</span>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[11px] font-medium text-slate-700">Expected Annual Bonus / Lump Sum (₹)</label>
+                        <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded">
+                          {formatCurrencyINR(annualBonusRetirement)}
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="2000000" 
+                        step="20000" 
+                        value={annualBonusRetirement} 
+                        onChange={(e) => setAnnualBonusRetirement(Number(e.target.value))} 
+                        className="w-full accent-emerald-600 h-1 bg-slate-100 rounded-full cursor-pointer appearance-none" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <label className="font-medium text-slate-700">Duration of these investments (Years)</label>
+                        <span className="font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                          {bonusYearsRetirement} Years
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="40" 
+                        step="1" 
+                        value={bonusYearsRetirement} 
+                        onChange={(e) => setBonusYearsRetirement(Number(e.target.value))} 
+                        className="w-full accent-emerald-500 h-1 bg-slate-100 rounded-full cursor-pointer appearance-none" 
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
@@ -1523,6 +1709,89 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                   </div>
                 </div>
 
+                {/* Step-Up SIP Comparison Card */}
+                <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-5.5 shadow-sm border border-slate-800 space-y-4 relative overflow-hidden text-left">
+                  <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                    <Sparkles className="w-36 h-36" />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <span className="text-[9px] font-mono font-bold bg-indigo-500 text-white px-2.5 py-1 rounded uppercase tracking-wider">
+                      Smart Compounding Engine
+                    </span>
+                    <h4 className="text-[16px] font-bold font-display mt-2 flex items-center gap-1.5 text-white">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      Step-Up SIP (Dynamic Inflation-Adjusted SIP)
+                    </h4>
+                    <p className="text-slate-350 text-[11.5px] mt-1.5 leading-relaxed">
+                      Instead of committing to a high flat monthly investment from day one, use a <strong>Step-Up SIP</strong>. By increasing your investment slightly each year as your income grows, you can start with a much lower initial burden.
+                    </p>
+                  </div>
+
+                  {/* Comparison Blocks */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 relative z-10 pt-1">
+                    {/* Standard Flat SIP */}
+                    <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl">
+                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Standard Approach</span>
+                      <h5 className="text-[11.5px] font-bold text-slate-400 mt-0.5">Flat SIP Required:</h5>
+                      <p className="text-lg font-display font-black text-slate-200 mt-1">
+                        {formatCurrencyINR(retirementData.requiredMonthlySip)}
+                        <span className="text-xs text-slate-500 font-normal">/mo</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+                        Constant flat monthly savings for the next {retirementData.yearsToRetirement} years.
+                      </p>
+                    </div>
+
+                    {/* Smart Step-Up SIP */}
+                    <div className="bg-indigo-950/40 border border-indigo-500/30 p-3.5 rounded-xl relative overflow-hidden">
+                      <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[8px] font-black px-1.5 py-0.5 rounded font-mono uppercase z-10">
+                        Recommended
+                      </div>
+                      <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Smart Approach</span>
+                      <h5 className="text-[11.5px] font-bold text-white mt-0.5">Starting SIP Required:</h5>
+                      <p className="text-xl font-display font-black text-emerald-400 mt-1">
+                        {formatCurrencyINR(retirementData.requiredMonthlySipStepUp)}
+                        <span className="text-xs text-emerald-500 font-normal">/mo</span>
+                      </p>
+                      <p className="text-[10px] text-indigo-200 mt-1.5 leading-relaxed">
+                        Starts lower, increasing by <strong>{stepUpPercentRetirement}%</strong> yearly.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual Hook */}
+                  {retirementData.requiredMonthlySip > 0 && retirementData.requiredMonthlySipStepUp < retirementData.requiredMonthlySip && (
+                    <div className="bg-emerald-950/30 border border-emerald-500/20 p-3 rounded-lg flex items-center gap-2.5 text-[11.5px] text-emerald-400 relative z-10">
+                      <div className="w-5.5 h-5.5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
+                        ↓
+                      </div>
+                      <span className="font-semibold">
+                        Reduces your immediate burden by <strong className="text-emerald-300 font-extrabold text-sm">{Math.round(((retirementData.requiredMonthlySip - retirementData.requiredMonthlySipStepUp) / retirementData.requiredMonthlySip) * 100)}%</strong> today!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Slider */}
+                  <div className="pt-3 border-t border-slate-800/80 space-y-2 relative z-10">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-300 font-bold">Annual SIP Increase (Step-Up %)</span>
+                      <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                        {stepUpPercentRetirement}%
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="25" 
+                      step="1" 
+                      value={stepUpPercentRetirement} 
+                      onChange={(e) => setStepUpPercentRetirement(Number(e.target.value))} 
+                      className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full cursor-pointer appearance-none" 
+                    />
+                  </div>
+                </div>
+
                 {/* Cash Flow Breakdown Panel */}
                 <div className="bg-white border border-slate-150 rounded-2xl p-5 text-left shadow-xs">
                   <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
@@ -1568,6 +1837,101 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                         <span className="text-slate-500">Net Surplus: <strong className="text-emerald-600">{formatCurrencyINR(retirementData.currentMonthlySurplus)}</strong></span>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Visual Progress Mountain & Expense Checkpoints */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-5.5 text-left shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Milestone className="w-4.5 h-4.5 text-indigo-600" />
+                      <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">
+                        Timeline to Freedom: Expense Checkpoints
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
+                      Psychological Progress Trail
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Breaking down a massive financial goal into intermediate checkpoints turns an intimidating mountain into a series of achievable peaks. Compound your starting SIP of **{formatCurrencyINR(retirementData.requiredMonthlySipStepUp)}/mo** to conquer each level.
+                  </p>
+
+                  {/* The Progress Mountain Visual trail */}
+                  <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-dashed before:border-l before:border-slate-300">
+                    
+                    {/* Checkpoint 1 */}
+                    <div className="relative">
+                      {/* Checkpoint Marker */}
+                      <span className="absolute -left-6 top-1 w-5.5 h-5.5 rounded-full bg-emerald-50 border border-emerald-300 flex items-center justify-center font-bold text-[10px] text-emerald-600 shadow-xs z-10">
+                        1
+                      </span>
+                      <div className="bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-3.5 rounded-xl transition-all space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <span className="font-bold text-[12.5px] text-slate-800">
+                            Checkpoint 1: Survival Secured!
+                          </span>
+                          <span className="font-mono text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            Year {retirementData.yearHitSurvival} (Age {currentAge + retirementData.yearHitSurvival})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Your portfolio has reached <strong className="text-slate-800 font-extrabold">{formatInLakhs(retirementData.corpusSurvival)}</strong>. If you ever needed to, this corpus could generate enough passive income to cover your basic groceries forever. <span className="text-indigo-600 font-medium">(Keep compounding to reach Level 2!)</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Checkpoint 2 */}
+                    <div className="relative">
+                      {/* Checkpoint Marker */}
+                      <span className="absolute -left-6 top-1 w-5.5 h-5.5 rounded-full bg-blue-50 border border-blue-300 flex items-center justify-center font-bold text-[10px] text-blue-600 shadow-xs z-10">
+                        2
+                      </span>
+                      <div className="bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-3.5 rounded-xl transition-all space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <span className="font-bold text-[12.5px] text-slate-800">
+                            Checkpoint 2: Lifestyle Secured!
+                          </span>
+                          <span className="font-mono text-[10.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                            Year {retirementData.yearHitLifestyle} (Age {currentAge + retirementData.yearHitLifestyle})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Your portfolio has reached <strong className="text-slate-800 font-extrabold">{formatInLakhs(retirementData.corpusSurvival + retirementData.corpusLifestyle)}</strong>. You now have the financial power to cover rent & bills passively.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Checkpoint 3 */}
+                    <div className="relative">
+                      {/* Checkpoint Marker */}
+                      <span className="absolute -left-6 top-1 w-5.5 h-5.5 rounded-full bg-indigo-50 border border-indigo-300 flex items-center justify-center font-bold text-[10px] text-indigo-600 shadow-xs z-10">
+                        3
+                      </span>
+                      <div className="bg-indigo-50/20 hover:bg-indigo-50/30 border border-indigo-100/40 p-3.5 rounded-xl transition-all space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <span className="font-bold text-[12.5px] text-indigo-950">
+                            Checkpoint 3: Total Financial Freedom!
+                          </span>
+                          <span className="font-mono text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                            Year {retirementData.yearHitTotal} (Age {currentAge + retirementData.yearHitTotal})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-indigo-900/80 leading-relaxed">
+                          Your portfolio has reached the final target of <strong className="text-indigo-950 font-extrabold">{formatInLakhs(retirementData.totalRequiredCorpusAtRetirement)}</strong>. Complete financial freedom is secured forever!
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Disclaimer / Tooltip at the bottom */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-start gap-2 text-[10.5px] text-slate-500 mt-2">
+                    <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong>Note:</strong> These milestones represent your financial capacity (safety net). Actual early withdrawals will increase the time required to reach your final retirement goal.
+                    </p>
                   </div>
                 </div>
 
@@ -2013,14 +2377,64 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                         </div>
                         <input type="range" min="20000" max="1000000" step="10000" value={currentMonthlyIncome} onChange={(e) => setCurrentMonthlyIncome(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-2.5 pt-1 border-t border-slate-100 mt-2">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs font-bold text-slate-700">Monthly Expenses Today (Excl. EMIs)</label>
-                          <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded">
-                            {formatCurrencyINR(currentMonthlyExpense)}
+                          <label className="text-xs font-bold text-slate-800">Monthly Expenses Breakdown</label>
+                          <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                            Total: {formatCurrencyINR(currentMonthlyExpense)}
                           </span>
                         </div>
-                        <input type="range" min="10000" max="500000" step="5000" value={currentMonthlyExpense} onChange={(e) => setCurrentMonthlyExpense(Number(e.target.value))} className="w-full accent-blue-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+
+                        {/* Basic Survival */}
+                        <div className="space-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-semibold text-slate-700">Survival (Groceries/Bills)</span>
+                            <span className="font-mono font-bold text-slate-900">{formatCurrencyINR(expenseBasicSurvival)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="5000" 
+                            max="300000" 
+                            step="1000" 
+                            value={expenseBasicSurvival} 
+                            onChange={(e) => setExpenseBasicSurvival(Number(e.target.value))} 
+                            className="w-full accent-slate-700 h-1 bg-slate-200 rounded-full cursor-pointer appearance-none" 
+                          />
+                        </div>
+
+                        {/* Lifestyle */}
+                        <div className="space-y-1 bg-blue-50/40 p-2 rounded-lg border border-blue-100/40">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-semibold text-blue-900">Lifestyle (Rent/School)</span>
+                            <span className="font-mono font-bold text-blue-900">{formatCurrencyINR(expenseLifestyle)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="300000" 
+                            step="1000" 
+                            value={expenseLifestyle} 
+                            onChange={(e) => setExpenseLifestyle(Number(e.target.value))} 
+                            className="w-full accent-blue-600 h-1 bg-blue-100 rounded-full cursor-pointer appearance-none" 
+                          />
+                        </div>
+
+                        {/* Luxuries */}
+                        <div className="space-y-1 bg-indigo-50/40 p-2 rounded-lg border border-indigo-100/40">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-semibold text-indigo-900">Luxuries (Dining/Travel)</span>
+                            <span className="font-mono font-bold text-indigo-900">{formatCurrencyINR(expenseLuxuries)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="200000" 
+                            step="1000" 
+                            value={expenseLuxuries} 
+                            onChange={(e) => setExpenseLuxuries(Number(e.target.value))} 
+                            className="w-full accent-indigo-600 h-1 bg-indigo-100 rounded-full cursor-pointer appearance-none" 
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2 pt-2 border-t border-slate-100">
                         <div className="flex justify-between items-center text-xs">
@@ -2057,6 +2471,44 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                           </span>
                         </div>
                         <input type="range" min="0" max="20000000" step="50000" value={expectedLumpSum} onChange={(e) => setExpectedLumpSum(Number(e.target.value))} className="w-full accent-slate-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" />
+                      </div>
+
+                      <div className="space-y-2.5 bg-emerald-50/20 p-2.5 rounded-xl border border-emerald-100/40">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Bonus & Lump Sum Accelerator</span>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-medium text-slate-700">Expected Annual Bonus / Lump Sum (₹)</label>
+                            <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded">
+                              {formatCurrencyINR(annualBonusRetirement)}
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="2000000" 
+                            step="20000" 
+                            value={annualBonusRetirement} 
+                            onChange={(e) => setAnnualBonusRetirement(Number(e.target.value))} 
+                            className="w-full accent-emerald-600 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <label className="font-medium text-slate-700">Duration of these investments (Years)</label>
+                            <span className="font-mono text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                              {bonusYearsRetirement} Years
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="1" 
+                            max="40" 
+                            step="1" 
+                            value={bonusYearsRetirement} 
+                            onChange={(e) => setBonusYearsRetirement(Number(e.target.value))} 
+                            className="w-full accent-emerald-500 h-1.5 bg-slate-100 rounded-full cursor-pointer appearance-none" 
+                          />
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                         <div className="space-y-1">

@@ -140,6 +140,10 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
     element.style.backgroundColor = '#ffffff';
 
     const wealthScore = Math.max(15, Math.min(100, Math.round((retirementData.currentMonthlySurplus / Math.max(1, retirementData.requiredMonthlySip)) * 100)));
+    const flatSipAmt = retirementData.requiredMonthlySip;
+    const stepUpSipAmt = retirementData.requiredMonthlySipStepUp;
+    const flatPct = currentMonthlyIncome > 0 ? ((flatSipAmt / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
+    const stepUpPct = currentMonthlyIncome > 0 ? ((stepUpSipAmt / currentMonthlyIncome) * 100).toFixed(1) : "0.0";
     
     element.innerHTML = `
       <!-- PAGE 1: COVER PAGE -->
@@ -179,7 +183,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
           <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
-          <div>Page 1 of 3</div>
+          <div>Page 1 of 4</div>
         </div>
       </div>
 
@@ -243,9 +247,19 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                   <td style="padding: 11px 18px; color: #334155; font-weight: 500;">Net Retirement Capital Gap to be Met</td>
                   <td style="padding: 11px 18px; font-weight: 700; text-align: right; color: #ef4444;">${formatCurrencyForPdf(retirementData.netCorpusGap)}</td>
                 </tr>
-                <tr style="background-color: #f0fdf4;">
-                  <td style="padding: 14px 18px; color: #166534; font-weight: 800;">REQUIRED MONTHLY SIP SAVINGS PLAN</td>
-                  <td style="padding: 14px 18px; font-weight: 900; text-align: right; color: #15803d; font-size: 14px;">${formatCurrencyForPdf(retirementData.requiredMonthlySip)} / month</td>
+                <tr style="background-color: #f0fdf4; border-bottom: 1px solid #bbf7d0;">
+                  <td style="padding: 12px 18px; color: #166534; font-weight: 800;">REQUIRED MONTHLY SAVINGS (FLAT SIP)</td>
+                  <td style="padding: 12px 18px; font-weight: 900; text-align: right; color: #15803d; font-size: 13.5px;">
+                    ${formatCurrencyForPdf(flatSipAmt)} / month
+                    <div style="font-size: 9.5px; font-weight: 700; color: #16a34a; margin-top: 2px;">(${flatPct}% of Salary)</div>
+                  </td>
+                </tr>
+                <tr style="background-color: #eef2ff;">
+                  <td style="padding: 12px 18px; color: #3730a3; font-weight: 800;">REQUIRED MONTHLY SAVINGS (SMART STEP-UP SIP)</td>
+                  <td style="padding: 12px 18px; font-weight: 900; text-align: right; color: #4f46e5; font-size: 13.5px;">
+                    ${formatCurrencyForPdf(stepUpSipAmt)} / month
+                    <div style="font-size: 9.5px; font-weight: 700; color: #6366f1; margin-top: 2px;">(Starting at ${stepUpPct}% of Salary with ${stepUpPercentRetirement}% yearly increase)</div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -269,17 +283,80 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
           <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
-          <div>Page 2 of 3</div>
+          <div>Page 2 of 4</div>
         </div>
       </div>
 
-      <!-- PAGE 3: 3-BUCKET SYSTEM -->
+      <!-- PAGE 3: STRATEGY OPTIMIZER MENU -->
+      <div style="padding: 50px 40px; height: 1040px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(to right, #3b82f6, #4f46e5, #10b981);"></div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase;">II. ESSENTIAL FREEDOM STRATEGY OPTIMIZER</div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">STRATEGY MENU</div>
+          </div>
+
+          <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 25px; letter-spacing: -0.5px;">Freedom Optimizer Strategy Menu</h2>
+          <p style="font-size: 12.5px; color: #475569; margin-top: 6px; line-height: 1.5; margin-bottom: 25px;">
+            Compare our three baseline retirement scenarios to choose the savings runway that fits your lifestyle. Each option presents both Flat and compounding Step-up monthly savings targets.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 15px;">
+            ${retirementData.scenarios.map((s: any) => {
+              return `
+                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background-color: #f8fafc; text-align: left;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                    <div style="font-size: 13.5px; font-weight: 800; color: #0f172a;">${s.title}</div>
+                    <span style="font-size: 9px; font-weight: 800; color: #4f46e5; background-color: #e0e7ff; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">${s.pillText}</span>
+                  </div>
+                  
+                  <p style="font-size: 11px; color: #475569; line-height: 1.4; margin: 0 0 12px 0;">
+                    ${s.description}
+                  </p>
+
+                  <div style="display: flex; justify-content: space-between; gap: 15px;">
+                    <!-- Flat SIP column -->
+                    <div style="flex: 1; background-color: #ffffff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 10px 12px;">
+                      <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase;">Flat SIP Required</div>
+                      <div style="font-size: 15px; font-weight: 800; color: #334155; margin-top: 3px;">
+                        ${formatCurrencyForPdf(s.sips.flatSip)}<span style="font-size: 10px; font-weight: normal; color: #64748b;">/mo</span>
+                      </div>
+                      <div style="font-size: 9.5px; font-weight: 700; color: #475569; margin-top: 3px; font-family: monospace;">
+                        ${s.percentOfSalaryFlat}% of Salary
+                      </div>
+                    </div>
+
+                    <!-- Step-Up SIP column -->
+                    <div style="flex: 1; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px;">
+                      <div style="font-size: 9px; font-weight: 700; color: #166534; text-transform: uppercase;">Step-Up SIP Required</div>
+                      <div style="font-size: 15.5px; font-weight: 900; color: #15803d; margin-top: 3px;">
+                        ${formatCurrencyForPdf(s.sips.stepUpSip)}<span style="font-size: 10px; font-weight: normal; color: #166534;">/mo</span>
+                      </div>
+                      <div style="font-size: 9.5px; font-weight: 700; color: #166534; margin-top: 3px; font-family: monospace;">
+                        ${s.percentOfSalaryStepUp}% of Salary
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
+          <div>Page 3 of 4</div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: 3-BUCKET SYSTEM -->
       <div style="padding: 50px 40px; height: 1040px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
         <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(to right, #3b82f6, #4f46e5, #10b981);"></div>
 
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-top: 10px;">
-            <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase;">II. THE 3-BUCKET TACTICAL ALLOCATION STRATEGY</div>
+            <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase;">III. THE 3-BUCKET TACTICAL ALLOCATION STRATEGY</div>
             <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">DECUMULATION MODEL</div>
           </div>
 
@@ -292,7 +369,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
             <!-- Bucket 1 -->
             <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #f8fafc;">
               <div style="width: 70%; text-align: left;">
-                <span style="font-size: 9px; font-weight: 800; color: #475569; bg-color: #f1f5f9; background-color: #e2e8f0; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 1: Cash/Liquidity (Years 1-5 payouts)</span>
+                <span style="font-size: 9px; font-weight: 800; color: #475569; background-color: #e2e8f0; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 1: Cash/Liquidity (Years 1-5 payouts)</span>
                 <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 8px; margin-bottom: 4px;">Immediate Income Buffer</h4>
                 <p style="font-size: 11px; color: #475569; line-height: 1.4; margin: 0;">
                   Placed in highly stable arbitrage and liquid mutual funds targeting <strong>~6.5% CAGR</strong>. Provides uninterrupted monthly cash flows for your first 5 years of retirement, insulating you from short-term volatility.
@@ -305,7 +382,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
             </div>
 
             <!-- Bucket 2 -->
-            <div style="border: 1px solid #e0e7ff; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #faf5ff; background-color: #f5f3ff;">
+            <div style="border: 1px solid #e0e7ff; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #f5f3ff;">
               <div style="width: 70%; text-align: left;">
                 <span style="font-size: 9px; font-weight: 800; color: #4f46e5; background-color: #e0e7ff; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; tracking-wider; display: inline-block;">Bucket 2: Conservative Hybrid (Years 6-10 payouts)</span>
                 <h4 style="font-size: 14px; font-weight: 700; color: #4338ca; margin-top: 8px; margin-bottom: 4px;">The Inflation Bridge</h4>
@@ -349,7 +426,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
           <div>© Private Wealth Architects. All rights reserved. Registered client copy.</div>
-          <div>Page 3 of 3</div>
+          <div>Page 4 of 4</div>
         </div>
       </div>
     `;

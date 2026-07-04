@@ -20,6 +20,23 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Redirect non-www to www and force HTTPS in production
+  app.use((req, res, next) => {
+    const host = req.get("host") || "";
+    const xForwardedProto = req.headers["x-forwarded-proto"];
+    
+    if (host.includes("purewealthglobal.com")) {
+      const needsWww = !host.startsWith("www.");
+      const needsHttps = xForwardedProto === "http";
+
+      if (needsWww || needsHttps) {
+        const targetHost = needsWww ? "www.purewealthglobal.com" : host;
+        return res.redirect(301, `https://${targetHost}${req.originalUrl}`);
+      }
+    }
+    next();
+  });
+
   app.use(apiRouter);
 
   // Serve static assets or mount Vite dev middleware

@@ -198,14 +198,14 @@ export default function App() {
         title: "Pure Wealth Global | Premium Wealth Advisory & Indian Mutual Fund Solutions",
         description: "Pure Wealth Global provides bespoke wealth management, personalized investment portfolios, and premium mutual fund advisory for Indian Residents and NRI investors worldwide.",
         keywords: "wealth management, indian mutual funds, mutual fund advisory, nri investment india, portfolio audit, wealth advisor mumbai, bespoke portfolios, custom asset allocation, financial advisor",
-        canonical: "https://purewealth.global/",
+        canonical: "https://www.purewealthglobal.com/",
         schema: {
           "@context": "https://schema.org",
           "@type": "FinancialService",
           "name": "Pure Wealth Global",
-          "image": "https://purewealth.global/favicon.svg",
+          "image": "https://www.purewealthglobal.com/favicon.svg",
           "description": "Bespoke wealth management, personalized investment portfolios, and premium mutual fund advisory for Indian Residents and NRI investors.",
-          "url": "https://purewealth.global/",
+          "url": "https://www.purewealthglobal.com/",
           "telephone": "+91-90000-00000",
           "address": {
             "@type": "PostalAddress",
@@ -222,20 +222,20 @@ export default function App() {
         title: "About Us | Pure Wealth Global | Certified Wealth Managers",
         description: "Meet the professional wealth advisors at Pure Wealth Global. Discover our investment philosophy, commitment to financial growth, and personalized client-first advisory models.",
         keywords: "pure wealth team, investment managers, certified financial planners, mutual fund experts, wealth management philosophy",
-        canonical: "https://purewealth.global/about",
+        canonical: "https://www.purewealthglobal.com/about",
         schema: {
           "@context": "https://schema.org",
           "@type": "AboutPage",
           "name": "About Pure Wealth Global",
           "description": "Meet our team of professional wealth managers and learn about our customer-centric philosophy and wealth management methodologies.",
-          "url": "https://purewealth.global/about"
+          "url": "https://www.purewealthglobal.com/about"
         }
       },
       services: {
         title: "Our Services | Comprehensive Wealth Management & Advisory",
         description: "Explore our array of professional financial services: custom mutual fund portfolios, systematic investment planning (SIP), tax-efficient planning, and expert NRI advisory.",
         keywords: "mutual fund services, sip advisory, wealth planning, tax-saving mutual funds, custom wealth solutions, nri portfolio management",
-        canonical: "https://purewealth.global/services",
+        canonical: "https://www.purewealthglobal.com/services",
         schema: {
           "@context": "https://schema.org",
           "@type": "Service",
@@ -251,7 +251,7 @@ export default function App() {
         title: "SIP & Lumpsum Calculator | Plan Mutual Fund Investments | Pure Wealth",
         description: "Calculate future returns on your Systematic Investment Plans (SIP) and lumpsum investments with our interactive, accurate Indian Mutual Fund financial calculators.",
         keywords: "sip calculator, lumpsum calculator, mutual fund return calculator, future value calculator, compounding calculator, wealth planner",
-        canonical: "https://purewealth.global/calculators",
+        canonical: "https://www.purewealthglobal.com/calculators",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebApplication",
@@ -266,7 +266,7 @@ export default function App() {
         title: "Mutual Fund Guide & Types | Educational Investment Hub | Pure Wealth",
         description: "Learn the fundamentals of Mutual Funds in India. Comprehensive breakdown of Equity, Debt, Hybrid, Index, Sectoral, and ELSS Tax-Saving Mutual Funds to make smart investment decisions.",
         keywords: "types of mutual funds, equity mutual funds, debt funds, sectoral funds, tax-saving elss, dynamic asset allocation, investment guide",
-        canonical: "https://purewealth.global/knowledge",
+        canonical: "https://www.purewealthglobal.com/knowledge",
         schema: {
           "@context": "https://schema.org",
           "@type": "TechArticle",
@@ -283,20 +283,20 @@ export default function App() {
         title: "Book an Appointment | Premium Wealth Consultation | Pure Wealth",
         description: "Schedule a high-touch advisory session with our expert wealth managers to review your portfolio, plan your goals, and structure your long-term wealth strategy.",
         keywords: "wealth advisory appointment, financial planning call, portfolio consultation, contact wealth manager",
-        canonical: "https://purewealth.global/connect",
+        canonical: "https://www.purewealthglobal.com/connect",
         schema: {
           "@context": "https://schema.org",
           "@type": "ContactPage",
           "name": "Connect with Pure Wealth Advisory",
           "description": "Contact options and meeting appointment booking form for bespoke wealth and investment consultation.",
-          "url": "https://purewealth.global/connect"
+          "url": "https://www.purewealthglobal.com/connect"
         }
       },
       privacy: {
         title: "Privacy Policy | Pure Wealth Global",
         description: "Learn how Pure Wealth Global handles and protects your personal financial data, CAS statement uploads, and investment preferences securely.",
         keywords: "privacy policy, data security, portfolio safety, financial compliance",
-        canonical: "https://purewealth.global/privacy",
+        canonical: "https://www.purewealthglobal.com/privacy",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebPage",
@@ -307,7 +307,7 @@ export default function App() {
         title: "Mutual Fund Profiler & Recommendation Survey | Pure Wealth Global",
         description: "Take our personalized 3-minute financial profiler survey. Get tailored asset allocation strategies and mutual fund recommendation categories based on your risk profile.",
         keywords: "mutual fund recommend, investment profiler, financial survey, risk capacity test, personalized asset allocation",
-        canonical: "https://purewealth.global/findfund",
+        canonical: "https://www.purewealthglobal.com/findfund",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebApplication",
@@ -321,7 +321,7 @@ export default function App() {
         title: "Your Personalized Mutual Fund Categories & Schemes | Pure Wealth",
         description: "Explore the custom-selected, top-rated mutual fund categories curated for your specific time horizon, goals, and risk profile.",
         keywords: "recommended mutual funds, personalized fund portfolio, dynamic asset allocation, elite fund categories",
-        canonical: "https://purewealth.global/find-fund",
+        canonical: "https://www.purewealthglobal.com/find-fund",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebPage",
@@ -332,7 +332,7 @@ export default function App() {
         title: "Portfolio Overlap Finder | Mutual Fund Diversification Tool | Pure Wealth",
         description: "Analyze mutual fund portfolio overlap. Identify duplicate stock holdings across different mutual funds to prevent over-concentration and maximize portfolio diversification.",
         keywords: "portfolio overlap finder, mutual fund overlap analyzer, diversification check, portfolio consolidation, duplicate stocks check",
-        canonical: "https://purewealth.global/overlap",
+        canonical: "https://www.purewealthglobal.com/overlap",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebApplication",
@@ -346,7 +346,7 @@ export default function App() {
         title: "AI Portfolio Auditor & Review | Upload CAS Statement PDF | Pure Wealth",
         description: "Upload your Indian Mutual Fund CAS (Consolidated Account Statement) PDF securely. Our advanced AI Auditor reviews asset allocation, checks stock overlap, evaluates expense ratios, and identifies key optimization actions.",
         keywords: "ai portfolio auditor, cas statement analyzer, mutual fund portfolio review, analyze mutual fund pdf, indian cas statement audit, custom pdf portfolio checker",
-        canonical: "https://purewealth.global/audit",
+        canonical: "https://www.purewealthglobal.com/audit",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebApplication",
@@ -360,14 +360,14 @@ export default function App() {
         title: "CRM Database Portal | Internal Database Administration",
         description: "Internal portal for CRM leads administration, client portfolio reviews, and CAS statement download administration.",
         keywords: "crm, internal administration",
-        canonical: "https://purewealth.global/database",
+        canonical: "https://www.purewealthglobal.com/database",
         schema: null
       },
       'retirement-calculator': {
         title: "Retirement Calculator & Wealth Planner | Secure Your Future | Pure Wealth",
         description: "Plan your retirement corpus, estimate inflation-adjusted living expenses, and calculate the monthly savings required to achieve full financial independence.",
         keywords: "retirement calculator, corpus planner, financial independence calculator, fire planner, inflation-adjusted retirement savings",
-        canonical: "https://purewealth.global/retirement-calculator",
+        canonical: "https://www.purewealthglobal.com/retirement-calculator",
         schema: {
           "@context": "https://schema.org",
           "@type": "WebApplication",
@@ -418,7 +418,7 @@ export default function App() {
       { property: 'og:url', content: currentSeo.canonical },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'Pure Wealth Global' },
-      { property: 'og:image', content: 'https://purewealth.global/favicon.svg' }
+      { property: 'og:image', content: 'https://www.purewealthglobal.com/favicon.svg' }
     ];
 
     ogTags.forEach(tag => {

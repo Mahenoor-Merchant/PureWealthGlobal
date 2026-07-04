@@ -5,6 +5,7 @@
 
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
@@ -20,18 +21,20 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Redirect non-www to www and force HTTPS in production
+  // Redirect non-www to www, alias domains to primary domain, and force HTTPS in production
   app.use((req, res, next) => {
     const host = req.get("host") || "";
     const xForwardedProto = req.headers["x-forwarded-proto"];
     
-    if (host.includes("purewealthglobal.com")) {
-      const needsWww = !host.startsWith("www.");
-      const needsHttps = xForwardedProto === "http";
+    // Check if it's one of our production custom domains
+    const isCustomDomain = host.includes("purewealthglobal.com") || host.includes("pwgmf.com");
+    
+    if (isCustomDomain) {
+      const isCorrectHost = host === "www.purewealthglobal.com";
+      const isHttps = xForwardedProto === "https";
 
-      if (needsWww || needsHttps) {
-        const targetHost = needsWww ? "www.purewealthglobal.com" : host;
-        return res.redirect(301, `https://${targetHost}${req.originalUrl}`);
+      if (!isCorrectHost || !isHttps) {
+        return res.redirect(301, `https://www.purewealthglobal.com${req.originalUrl}`);
       }
     }
     next();
@@ -56,7 +59,15 @@ async function startServer() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      // Normalize pathname to check for matching prerendered routes (e.g. /about -> dist/about/index.html)
+      const pathname = req.path.replace(/\/$/, "");
+      const prerenderedPath = path.join(distPath, pathname, "index.html");
+
+      if (pathname && fs.existsSync(prerenderedPath)) {
+        res.sendFile(prerenderedPath);
+      } else {
+        res.sendFile(path.join(distPath, "index.html"));
+      }
     });
   }
 

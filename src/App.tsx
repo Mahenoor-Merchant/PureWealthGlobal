@@ -24,8 +24,8 @@ import { NavPage, SharedSurveyData } from './types';
 import { ArrowLeft } from 'lucide-react';
 import { trackPing } from './utils/analyticsTracker';
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<NavPage['id']>('home');
+export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {}) {
+  const [currentPage, setCurrentPage] = useState<NavPage['id']>(initialPage || 'home');
   const [pageHistory, setPageHistory] = useState<NavPage['id'][]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 

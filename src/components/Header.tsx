@@ -74,6 +74,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
           onClick={(e) => handleLinkClick(e, 'home')} 
           className="cursor-pointer hover:opacity-95 transition-opacity block"
           id="hdr-logo-container"
+          title="Pure Wealth Global Home"
         >
           <Logo />
         </a>
@@ -96,6 +97,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                       : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-emerald-500 shadow-md shadow-emerald-500/20 hover:scale-[1.03]'
                   }`}
                   id={`nav-btn-${item.id}`}
+                  title={item.label}
                 >
                   <span className="flex items-center gap-1">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
@@ -117,6 +119,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                       : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-550 text-slate-950 border-amber-400 hover:border-amber-500 shadow-md shadow-amber-400/20'
                   }`}
                   id={`nav-btn-${item.id}`}
+                  title={item.label}
                 >
                   {item.label}
                 </a>
@@ -134,6 +137,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     : 'text-slate-550 hover:text-slate-900'
                 }`}
                 id={`nav-btn-${item.id}`}
+                title={item.label}
               >
                 {item.label}
                 {currentPage === item.id && (
@@ -169,6 +173,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Mutual Fund Growth & SIP Return Calculators"
               >
                 <span>Calculators</span>
                 {currentPage === 'calculators' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
@@ -182,6 +187,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Retirement and Financial Freedom Planner"
               >
                 <span>Retirement & Financial Freedom Planner</span>
                 {currentPage === 'retirement-calculator' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
@@ -195,6 +201,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Educational Mutual Fund Knowledge Hub & Guide"
               >
                 <span>Knowledge Hub</span>
                 {currentPage === 'knowledge' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
@@ -208,6 +215,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Connect with a Professional Wealth Manager"
               >
                 <span>Start SIP Now👍🏻✅</span>
                 {currentPage === 'connect' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
@@ -223,6 +231,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Mutual Fund Portfolio Overlap Finder & Diversification Check"
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider bg-amber-550/20 text-amber-800 px-1.5 py-0.5 rounded-md">New</span>
@@ -239,6 +248,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'text-blue-600 bg-blue-50/50 font-bold'
                     : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                 }`}
+                title="Internal CRM Client Database Portal"
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-550/20 text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded-md">Live</span>
@@ -257,6 +267,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     ? 'bg-slate-100 text-slate-900 border-l-2 border-slate-500'
                     : 'text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-slate-750'
                 }`}
+                title="Internal Mutual Fund Recommendation Assistant"
               >
                 <div className="flex flex-col gap-0.5 max-w-[90%]">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">for Internal Team Use Only</span>
@@ -275,6 +286,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-[13px] font-semibold px-5 py-2.5 rounded-full shadow-sm transition-all duration-200 cursor-pointer text-center whitespace-nowrap active:scale-[0.98]"
+            title="Pure Wealth Global Linktree Directory"
           >
             <LinkIcon className="w-4 h-4 text-emerald-600" />
             LinkTree
@@ -449,6 +461,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-6 py-3.5 rounded-full text-[14px] font-semibold shadow-sm transition-all active:scale-[0.98]"
+                title="Pure Wealth Global Linktree Profile"
               >
                 <LinkIcon className="w-4.5 h-4.5 text-emerald-600" />
                 LinkTree

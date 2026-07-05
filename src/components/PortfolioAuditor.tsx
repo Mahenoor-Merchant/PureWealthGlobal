@@ -617,7 +617,7 @@ export default function PortfolioAuditor() {
           <p style="font-size: 11px; font-weight: 700; color: #065f46; margin: 0 0 15px 0; line-height: 1.5;">
             ⚠️ <em>What you are missing out on:</em> Without professional verification of fund lot purchase sequences and alignment schedules, active SIP allocation traps continually leak future compounding wealth. Reviewing the portfolio is completely free of cost!
           </p>
-          <a href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%E2%9C%85%20I%20just%20completed%20my%20Portfolio%20Audit%20Report.%20I%20see%20significant%20commission%2Foverlap%20drag!%20Please%20arrange%20a%20detailed%201%3A1%20portfolio%20analysis%20consultation%20and%20help%20me%20optimize%20my%20investments%20%F0%259F%2593%2588." target="_blank" style="display: inline-block; background: #059669; color: white; text-decoration: none; font-size: 11px; font-weight: 900; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; text-shadow: 0 1px 1px rgba(0,0,0,0.1); box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);">
+          <a href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%E2%9C%85%20I%20just%20completed%20my%20Portfolio%20Audit%20Report.%20I%20see%20significant%20commission%2Foverlap%20drag!%20Please%20arrange%20a%20detailed%201%3A1%20portfolio%20analysis%20consultation%20and%20help%20me%20optimize%20my%20investments%20%F0%259F%2593%2588." target="_blank" title="Book Complimentary 1:1 Portfolio Analysis on WhatsApp" style="display: inline-block; background: #059669; color: white; text-decoration: none; font-size: 11px; font-weight: 900; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; text-shadow: 0 1px 1px rgba(0,0,0,0.1); box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);">
             Book 1:1 Complimentary Portfolio Analysis on WhatsApp Now →
           </a>
         </div>
@@ -778,7 +778,7 @@ export default function PortfolioAuditor() {
           <p style="font-size: 11px; font-weight: 600; color: #94a3b8; margin: 0 0 15px 0; line-height: 1.6;">
             Establishing portfolio efficiency requires structural expertise to systematically clear commission traps, execute capital gains tax harvesting, and build robust fund safety rails. Every single month of sub-optimal allocation permanently drains future wealth compounding. Let our AMFI certified coordinators handle your regular plans completely compliant with SEBI mutual fund guidelines, free of upfront consulting bills!
           </p>
-          <a href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%F0%9F%93%88%20I%20would%20like%20to%20schedule%20a%201%3A1%20deep%20diagnostic%20review%20and%20discuss%20staggered%20mutual%20fund%20transition%20options%20securely%20on%20WhatsApp." target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; font-size: 11px; font-weight: 900; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; text-shadow: 0 1px 1px rgba(0,0,0,0.15); box-shadow: 0 5px 8px rgba(16, 185, 129, 0.25);">
+          <a href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%F0%9F%93%88%20I%20would%20like%20to%20schedule%20a%201%3A1%20deep%20diagnostic%20review%20and%20discuss%20staggered%20mutual%20fund%20transition%20options%20securely%20on%20WhatsApp." target="_blank" title="Book Complimentary 1:1 Diagnostic Analysis on WhatsApp" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; font-size: 11px; font-weight: 900; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; text-shadow: 0 1px 1px rgba(0,0,0,0.15); box-shadow: 0 5px 8px rgba(16, 185, 129, 0.25);">
             Book Complimentary 1:1 Diagnostic Analysis on WhatsApp →
           </a>
         </div>
@@ -1737,6 +1737,7 @@ export default function PortfolioAuditor() {
             )}`}
             target="_blank"
             rel="noopener noreferrer"
+            title="Request Portfolio Audit PDF on WhatsApp"
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12.5px] py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center animate-pulse"
           >
             <Sparkles className="w-4 h-4 shrink-0" />
@@ -1826,6 +1827,7 @@ export default function PortfolioAuditor() {
             href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement"
             target="_blank"
             rel="noopener noreferrer"
+            title="Open CAMS CAS Statement Request Portal"
             className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-750 hover:to-indigo-700 text-white font-black text-[11px] tracking-wide px-4 py-2 rounded-xl transition-all shadow-md shadow-blue-500/10 cursor-pointer text-center"
           >
             <span>Open CAMS CAS Request Portal</span>
@@ -2615,6 +2617,7 @@ export default function PortfolioAuditor() {
                       href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%E2%9C%85%20I%20just%20completed%20my%20Portfolio%20Audit%20Report.%20I%20see%20significant%20commission%2Foverlap%20drag!%20Please%20arrange%20a%20detailed%201%3A1%20portfolio%20analysis%20consultation%20and%20help%20me%20optimize%20my%20investments%20%F0%259F%2593%2588."
                       target="_blank"
                       rel="noopener noreferrer"
+                      title="Book Complimentary 1:1 Analysis on WhatsApp"
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-3 rounded-2xl transition duration-150 shadow-md hover:shadow-lg text-center cursor-pointer"
                     >
                       <span>Book Complimentary 1:1 Analysis on WhatsApp</span>
@@ -3301,6 +3304,7 @@ export default function PortfolioAuditor() {
                       href="https://wa.me/917718860398?text=Hi%20Pure%20Wealth%20Global!%20%F0%9F%93%88%20I%20would%20like%20to%20schedule%20a%201%3A1%20deep%20diagnostic%20review%20and%20discuss%20staggered%20mutual%20fund%20transition%20options%20securely%20on%20WhatsApp."
                       target="_blank"
                       rel="noopener noreferrer"
+                      title="Book Complimentary 1:1 Diagnostic Analysis on WhatsApp"
                       className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs px-5 py-3 rounded-2xl transition duration-150 shadow-md hover:shadow-lg text-center cursor-pointer shadow-current"
                     >
                       <span>Book Complimentary 1:1 Diagnostic Analysis on WhatsApp</span>

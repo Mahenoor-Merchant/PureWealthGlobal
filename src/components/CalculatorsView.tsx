@@ -3506,6 +3506,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
                                   href="https://wa.me/919999999999?text=Hello%2C%20I%20just%20used%20your%20Financial%20Freedom%20Calculator%20and%20would%20like%20to%20discuss%20my%20retirement%20SIP%2520blueprint."
                                   target="_blank"
                                   rel="noopener noreferrer"
+                                  title="Chat with us on WhatsApp"
                                   className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-2 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm inline-block text-center cursor-pointer"
                                 >
                                   <MessageSquare className="w-4 h-4" />

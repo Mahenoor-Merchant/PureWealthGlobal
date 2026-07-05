@@ -88,6 +88,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                     href={getPageUrl(link.id as NavPage['id'])}
                     onClick={(e) => handleLinkClick(e, link.id as NavPage['id'])}
                     className="flex items-center gap-1.5 hover:text-blue-400 text-slate-400 transition-colors cursor-pointer text-left font-medium group"
+                    title={link.label}
                   >
                     <ChevronRight className="w-3.5 h-3.5 text-slate-700 group-hover:text-blue-500 transition-colors" />
                     {link.label}
@@ -128,14 +129,14 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                 <Phone className="w-4.5 h-4.5 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[11px] uppercase font-bold text-slate-500 leading-none mb-1">Corporate Board desk</span>
-                  <a href="tel:+917718860398" className="hover:text-blue-400 font-mono text-[12.5px]">+91 7718860398</a>
+                  <a href="tel:+917718860398" className="hover:text-blue-400 font-mono text-[12.5px]" title="Call Pure Wealth Global Board Desk">+91 7718860398</a>
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail className="w-4.5 h-4.5 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[11px] uppercase font-bold text-slate-500 leading-none mb-1">Secure Inquiries</span>
-                  <a href="mailto:connect.pwg@gmail.com" className="hover:text-blue-400 font-mono text-[12.5px]">connect.pwg@gmail.com</a>
+                  <a href="mailto:connect.pwg@gmail.com" className="hover:text-blue-400 font-mono text-[12.5px]" title="Email Pure Wealth Global Support">connect.pwg@gmail.com</a>
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
@@ -177,6 +178,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               href={getPageUrl('privacy')}
               onClick={(e) => handleLinkClick(e, 'privacy')}
               className="hover:text-blue-400 font-semibold cursor-pointer transition-colors flex items-center gap-1 text-slate-400"
+              title="Pure Wealth Global Privacy Policy and Disclaimers"
             >
               Privacy Policy & Disclaimers
               <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />

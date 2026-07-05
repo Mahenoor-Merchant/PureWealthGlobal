@@ -62,8 +62,8 @@ async function run() {
     {
       id: 'home',
       folder: '',
-      title: "Pure Wealth Global | Premium Wealth Advisory & Indian Mutual Fund Solutions",
-      description: "Pure Wealth Global provides bespoke wealth management, personalized investment portfolios, and premium mutual fund advisory for Indian Residents and NRI investors worldwide.",
+      title: "Pure Wealth Global | Investment in Mutual Funds | Financial Freedom",
+      description: "Pure Wealth Global (PWG) | Financial & Retirement Planning | Indian Residents & NRIs | Investing in Indian and Global Mutual Funds | ETFs | REITs | PMS | AIF | SIF | and More",
       keywords: "wealth management, indian mutual funds, mutual fund advisory, nri investment india, portfolio audit, wealth advisor mumbai, bespoke portfolios, custom asset allocation, financial advisor",
       canonical: "https://www.purewealthglobal.com/",
       schema: {
@@ -262,6 +262,9 @@ async function run() {
      <title>${route.title}</title>
      <meta name="description" content="${route.description}" />
      <meta name="keywords" content="${route.keywords}" />
+     <meta name="robots" content="index, follow" />
+     <meta name="author" content="Pure Wealth Global (PWG) | ARN 306022" />
+     <meta name="publisher" content="Pure Wealth Global (PWG) | ARN 306022" />
      <link rel="canonical" href="${route.canonical}" />
      <meta property="og:title" content="${route.title}" />
      <meta property="og:description" content="${route.description}" />

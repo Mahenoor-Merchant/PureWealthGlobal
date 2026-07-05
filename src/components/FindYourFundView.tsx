@@ -78,6 +78,7 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
             href="https://wa.link/lze2ou"
             target="_blank"
             rel="noopener noreferrer"
+            title="Join Pure Wealth Global Investors WhatsApp Group"
             className="flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-xl text-[12.5px] font-black transition-all shadow-md shadow-[#25D366]/20 hover:scale-[1.02] active:scale-95 cursor-pointer shrink-0"
           >
             <svg className="w-4 h-4 fill-current shrink-0 animate-pulse" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -91,6 +92,7 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
             href="https://linktr.ee/Purewealthglobal"
             target="_blank"
             rel="noopener noreferrer"
+            title="Watch Stock Market Short Films on Linktree"
             className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[12.5px] font-black transition-all shadow-md shadow-rose-600/20 hover:scale-[1.02] active:scale-95 cursor-pointer shrink-0"
           >
             <Video className="w-3.5 h-3.5 shrink-0 animate-pulse text-white" />
@@ -110,6 +112,7 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
               href="https://www.instagram.com/purewealthglobal/"
               target="_blank"
               rel="noopener noreferrer"
+              title="Follow Pure Wealth Global on Instagram"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-[11.5px] font-bold ${
                 darkBg 
                   ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-pink-500 hover:text-pink-400' 
@@ -125,6 +128,7 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
               href="https://www.youtube.com/@PureWealthGlobal"
               target="_blank"
               rel="noopener noreferrer"
+              title="Subscribe to Pure Wealth Global on YouTube"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-[11.5px] font-bold ${
                 darkBg 
                   ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-red-500 hover:text-red-400' 
@@ -140,6 +144,7 @@ function EducationalPromoBox({ darkBg = false }: { darkBg?: boolean }) {
               href="https://linktr.ee/Purewealthglobal"
               target="_blank"
               rel="noopener noreferrer"
+              title="Visit Pure Wealth Global Linktree Directory"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all text-[11.5px] font-extrabold ${
                 darkBg 
                   ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-500 hover:text-emerald-400' 

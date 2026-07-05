@@ -4,7 +4,7 @@
  */
 
 export interface NavPage {
-  id: 'home' | 'about' | 'services' | 'calculators' | 'knowledge' | 'connect' | 'privacy' | 'find-fund' | 'find-fund-type' | 'overlap-finder' | 'portfolio-audit' | 'database-portal' | 'retirement-calculator';
+  id: 'home' | 'about' | 'services' | 'calculators' | 'knowledge' | 'connect' | 'privacy' | 'find-fund' | 'find-fund-type' | 'overlap-finder' | 'portfolio-audit' | 'database-portal' | 'retirement-calculator' | 'lumpsum-freedom';
   label: string;
 }
 

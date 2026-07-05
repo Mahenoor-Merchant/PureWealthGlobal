@@ -22,13 +22,26 @@ import { Calculator, Coins, ShieldPlus, TrendingUp, Info, ArrowUpRight, Briefcas
 import html2pdf from 'html2pdf.js';
 import FundFinderPromoBanner from './FundFinderPromoBanner';
 
+export const lumpsumExpenseBuckets = [
+  { id: 'subscriptions', name: 'Utility & Broadband Shield', description: 'Covers fiber internet, mobile networks, power bills & society maintenance', monthlyCost: 4000, category: 'Survival' },
+  { id: 'groceries', name: 'Daily Groceries & Essentials', description: 'Fresh organic groceries, dairy, kitchen inventory, and household items', monthlyCost: 12000, category: 'Survival' },
+  { id: 'insurance', name: 'Premium Health Coverage', description: 'Comprehensive medical insurance and preventative family wellness checks', monthlyCost: 8000, category: 'Survival' },
+  { id: 'dining', name: 'Weekend Leisure & Dining', description: 'Movie tickets, dining out at fine restaurants, cafes, and gourmet deliveries', monthlyCost: 15000, category: 'Lifestyle' },
+  { id: 'vehicle', name: 'Fuel & Transportation Pool', description: 'Petrol/charging costs, toll charges, municipal parking & vehicle service', monthlyCost: 14000, category: 'Lifestyle' },
+  { id: 'education', name: 'Elite Child Education Shield', description: 'Private schooling terms, academic coaching, sports and arts lessons', monthlyCost: 25000, category: 'Lifestyle' },
+  { id: 'rent', name: 'Residential Rent / Home Loan EMI', description: 'Covers residential rent or home loan EMI interest payments', monthlyCost: 40000, category: 'Lifestyle' },
+  { id: 'travel', name: 'Annual Travel & Vacations Fund', description: 'Accumulated monthly reserve for luxurious local or international family trips', monthlyCost: 20000, category: 'Luxury' },
+  { id: 'core', name: 'Complete Basic Core Household', description: 'Combines utilities, premium groceries, and family medical care cover', monthlyCost: 55000, category: 'Luxury' },
+  { id: 'elite', name: 'All-Inclusive Elite Independence', description: 'Bundles housing, gourmet dining, elite travel, wellness and high-end recreation', monthlyCost: 120000, category: 'Luxury' }
+];
+
 interface CalculatorsViewProps {
   setCurrentPage: (page: any) => void;
-  initialTab?: 'sip' | 'allocator' | 'retirement';
+  initialTab?: 'sip' | 'allocator' | 'retirement' | 'lumpsum-freedom';
 }
 
 export default function CalculatorsView({ setCurrentPage, initialTab }: CalculatorsViewProps) {
-  const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement'>(initialTab || 'sip');
+  const [activeTab, setActiveTab] = useState<'sip' | 'allocator' | 'retirement' | 'lumpsum-freedom'>(initialTab || 'sip');
 
   const formatInLakhs = (val: number) => {
     if (val >= 10000000) {
@@ -99,7 +112,11 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
       setLeadTimeSlot('');
 
       if (type === 'pdf') {
-        generateAndDownloadPdf(submittedName, submittedEmail, submittedPhone);
+        if (pdfType === 'lumpsum') {
+          generateAndDownloadLumpsumPdf(submittedName, submittedEmail, submittedPhone);
+        } else {
+          generateAndDownloadPdf(submittedName, submittedEmail, submittedPhone);
+        }
       }
     } catch (err: any) {
       setLeadFormError(err.message || 'An unexpected error occurred. Please try again.');
@@ -119,6 +136,7 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
   const [activeLeadOption, setActiveLeadOption] = useState<'consult' | 'pdf' | 'whatsapp'>('consult');
   const [pdfEmail, setPdfEmail] = useState<string>('');
   const [pdfSuccess, setPdfSuccess] = useState<boolean>(false);
+  const [pdfType, setPdfType] = useState<'retirement' | 'lumpsum'>('retirement');
   const [callbackRequested, setCallbackRequested] = useState<boolean>(false);
   const [callbackPhone, setCallbackPhone] = useState<string>('');
   const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
@@ -451,6 +469,315 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
         setGeneratingPdf(false);
       });
   };
+
+  const generateAndDownloadLumpsumPdf = (name: string, email: string, phone: string) => {
+    setGeneratingPdf(true);
+    const element = document.createElement('div');
+    element.style.width = '790px';
+    element.style.fontFamily = '"Inter", sans-serif';
+    element.style.color = '#1e293b';
+    element.style.backgroundColor = '#ffffff';
+
+    // Computations
+    const r_real = (1 + lumpsumReturnRate / 100) / (1 + lumpsumInflationRate / 100) - 1;
+    const r_m = r_real / 12;
+    const totalMonths = lumpsumHorizon === 'perpetual' ? 360 : parseInt(lumpsumHorizon) * 12;
+    
+    // Use Safe Withdrawal Rate (SWR) model for all horizons so capital does not reach zero
+    const monthlySalary = lumpsumCapital * (lumpsumSWR / 100) / 12;
+
+    const selectedBuckets = lumpsumExpenseBuckets.filter(b => selectedExpenseIds.includes(b.id));
+    const totalBasketCost = selectedBuckets.reduce((sum, b) => sum + b.monthlyCost, 0);
+    const coveragePercent = totalBasketCost > 0 ? Math.min(100, Math.round((monthlySalary / totalBasketCost) * 100)) : 0;
+    const fundingSurplus = monthlySalary - totalBasketCost;
+
+    // Simulation logic
+    const yearsLimit = lumpsumHorizon === 'perpetual' ? 30 : parseInt(lumpsumHorizon);
+    const simulationRows = [];
+    let corpus = lumpsumCapital;
+    const annualWithdrawal = lumpsumCapital * (lumpsumSWR / 100);
+    
+    let cumulativeWithdrawn = 0;
+
+    simulationRows.push({
+      year: 0,
+      startCorpus: corpus,
+      interestEarned: 0,
+      withdrawn: 0,
+      endCorpus: corpus
+    });
+
+    for (let y = 1; y <= yearsLimit; y++) {
+      const currentYearWithdrawal = annualWithdrawal * Math.pow(1 + lumpsumInflationRate / 100, y - 1);
+      const actualWithdrawal = Math.min(corpus, currentYearWithdrawal);
+      const interest = (corpus - actualWithdrawal) * (lumpsumReturnRate / 100);
+      const endC = Math.max(0, (corpus - actualWithdrawal) + interest);
+
+      // Only push select years to keep it fitting perfectly on 1 page (0,1,2,3,4,5,10,15,20,25,30, etc.)
+      if (y <= 5 || y === 10 || y === 15 || y === 20 || y === 25 || y === yearsLimit) {
+        simulationRows.push({
+          year: y,
+          startCorpus: corpus,
+          interestEarned: interest,
+          withdrawn: actualWithdrawal,
+          endCorpus: endC
+        });
+      }
+      corpus = endC;
+    }
+
+    element.innerHTML = `
+      <!-- PAGE 1: COVER PAGE -->
+      <div style="width: 790px; height: 1040px; padding: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; background: radial-gradient(circle at bottom right, #f0fdf4 0%, #ffffff 70%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #10b981; padding-bottom: 20px;">
+          <div style="font-size: 20px; font-weight: 900; color: #065f46; letter-spacing: -0.5px;">PURE WEALTH GLOBAL</div>
+          <div style="font-size: 11px; font-weight: 700; color: #10b981; letter-spacing: 1px; border: 1.5px solid #10b981; padding: 4px 10px; border-radius: 6px;">ARN 306022</div>
+        </div>
+
+        <div style="margin-top: 100px; text-align: left; max-width: 580px;">
+          <span style="font-size: 12px; font-weight: 800; color: #059669; letter-spacing: 2px; text-transform: uppercase; background-color: #ecfdf5; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 20px;">Private Wealth Blueprint</span>
+          <h1 style="font-size: 44px; font-weight: 800; color: #0f172a; line-height: 1.1; margin: 0; letter-spacing: -1.5px;">Lump Sum "Expense Replacement" Report</h1>
+          <p style="font-size: 15px; color: #475569; line-height: 1.6; margin-top: 20px; margin-bottom: 0;">
+            A bespoke, mathematical evaluation of your capital compounding potential. This blueprint determines exactly how many of your recurring bills can be funded permanently by your current capital reserves.
+          </p>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 25px; margin-top: 50px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <span style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; tracking: 0.5px;">Prepared Exclusively For</span>
+              <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 4px;">${name}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${email} | ${phone}</div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; tracking: 0.5px;">Advisory Agency Details</span>
+              <div style="font-size: 12px; font-weight: 800; color: #065f46; margin-top: 4px;">Pure Wealth Global (PWG)</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Mutual Fund Distributors Association Registered</div>
+              <div style="font-size: 10px; color: #059669; font-weight: bold; margin-top: 2px;">ARN 306022</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>Report generated on: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <div>Page 1 of 4</div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: PARAMETERS & CORE MATHS -->
+      <div style="width: 790px; height: 1040px; padding: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; background-color: #ffffff;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 30px;">
+            <div style="font-size: 11px; font-weight: 800; color: #065f46;">LUMP SUM "EXPENSE REPLACEMENT" BLUEPRINT</div>
+            <div style="font-size: 10px; color: #94a3b8;">CLIENT REGISTERED COPY</div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 15px; letter-spacing: -0.5px;">1. Blueprint Parameters & Income Potential</h2>
+          <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 25px;">
+            The model simulates the decumulation of your capital using an <strong>inflation-adjusted SWP (Systematic Withdrawal Plan)</strong>. This guarantees your lifestyle and purchasing power remain consistent year after year, protecting you against inflation.
+          </p>
+
+          <!-- Parameter summary grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+            <div style="border: 1px solid #f1f5f9; background-color: #fafbfc; border-radius: 12px; padding: 15px;">
+              <span style="font-size: 11px; color: #64748b; font-weight: bold;">Lumpsum Invested Capital</span>
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 4px;">${formatCurrencyForPdf(lumpsumCapital)}</div>
+            </div>
+            <div style="border: 1px solid #f1f5f9; background-color: #fafbfc; border-radius: 12px; padding: 15px;">
+              <span style="font-size: 11px; color: #64748b; font-weight: bold;">Withdrawal Horizon Runway</span>
+              <div style="font-size: 20px; font-weight: 800; color: #059669; margin-top: 4px;">
+                ${lumpsumHorizon === 'perpetual' ? 'Perpetual (Forever Loop)' : `${lumpsumHorizon} Years Runway`}
+              </div>
+            </div>
+            <div style="border: 1px solid #f1f5f9; background-color: #fafbfc; border-radius: 12px; padding: 15px;">
+              <span style="font-size: 11px; color: #64748b; font-weight: bold;">Assumed Investment CAGR</span>
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 4px;">${lumpsumReturnRate}% p.a.</div>
+            </div>
+            <div style="border: 1px solid #f1f5f9; background-color: #fafbfc; border-radius: 12px; padding: 15px;">
+              <span style="font-size: 11px; color: #64748b; font-weight: bold;">Expected Long-Term Inflation</span>
+              <div style="font-size: 20px; font-weight: 800; color: #e11d48; margin-top: 4px;">${lumpsumInflationRate}% p.a.</div>
+            </div>
+          </div>
+
+          <!-- Highlight results box -->
+          <div style="background-color: #ecfdf5; border: 1.5px dashed #059669; border-radius: 16px; padding: 25px; text-align: center; margin-bottom: 30px;">
+            <span style="font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 1px;">Sustainable Monthly Salary Generated</span>
+            <div style="font-size: 36px; font-weight: 900; color: #064e3b; margin-top: 5px; margin-bottom: 5px;">${formatCurrencyForPdf(monthlySalary)}<span style="font-size: 16px; font-weight: normal; color: #047857;">/mo</span></div>
+            <p style="font-size: 12px; color: #065f46; line-height: 1.5; margin: 0; max-width: 520px; margin-left: auto; margin-right: auto;">
+              This is your initial, day-one cashflow. Each year, your monthly withdrawal budget automatically steps up by <strong>${lumpsumInflationRate}%</strong>. For example, in Year 2 your monthly payout increases to <strong>${formatCurrencyForPdf(monthlySalary * (1 + lumpsumInflationRate/100))}</strong> to preserve 100% purchasing power!
+            </p>
+          </div>
+
+          <!-- Educational summary paragraph -->
+          <h3 style="font-size: 14px; font-weight: 800; color: #1e293b; margin-top: 25px; margin-bottom: 10px;">The Decumulation Mechanics</h3>
+          <p style="font-size: 12.5px; color: #475569; line-height: 1.6; margin-top: 0;">
+            Unlike standard calculators that ignore inflation, our <strong>Lump Sum "Expense Replacement" model</strong> is 100% inflation-adjusted. If you choose the <strong>Perpetual Loop</strong>, we enforce a strict <strong>Safe Withdrawal Rate (SWR) of ${lumpsumSWR}%</strong>. This ensures you never touch the principal capital in real-terms, allowing the wealth to last generations. If you choose a finite runway, we use an annuity amortization model so your capital is fully exhausted at the final year.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Pure Wealth Global. All rights reserved. Registered client copy.</div>
+          <div>Page 2 of 4</div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: EXPENSE BASKET & COVERAGE SUMMARY -->
+      <div style="width: 790px; height: 1040px; padding: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; background-color: #ffffff;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 30px;">
+            <div style="font-size: 11px; font-weight: 800; color: #065f46;">LUMP SUM "EXPENSE REPLACEMENT" BLUEPRINT</div>
+            <div style="font-size: 10px; color: #94a3b8;">CLIENT REGISTERED COPY</div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 15px; letter-spacing: -0.5px;">2. Your Customized Expense Replacement Basket</h2>
+          <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 25px;">
+            By mapping your actual monthly budget parameters, we can classify which specific bills and utilities are completely covered and wiped out forever from your active labor requirements.
+          </p>
+
+          <!-- Selected Expenses Table -->
+          <table style="width: 100%; border-collapse: collapse; text-align: left; margin-bottom: 30px;">
+            <thead>
+              <tr style="border-bottom: 2px solid #e2e8f0; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700;">
+                <th style="padding: 10px 5px;">Expense Basket Item</th>
+                <th style="padding: 10px 5px;">Description</th>
+                <th style="padding: 10px 5px; text-align: right;">Monthly Cost</th>
+                <th style="padding: 10px 5px; text-align: right;">Annual Cost</th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 12px; color: #334155;">
+              ${selectedBuckets.length === 0 ? `
+                <tr>
+                  <td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">No expenses selected. Customizing your basket in the planner generates this table dynamically.</td>
+                </tr>
+              ` : selectedBuckets.map(b => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 10px 5px; font-weight: bold; color: #0f172a;">${b.name}</td>
+                  <td style="padding: 10px 5px; color: #64748b; font-size: 11px;">${b.description}</td>
+                  <td style="padding: 10px 5px; text-align: right; font-weight: bold; font-family: monospace;">${formatCurrencyForPdf(b.monthlyCost)}</td>
+                  <td style="padding: 10px 5px; text-align: right; color: #475569; font-family: monospace;">${formatCurrencyForPdf(b.monthlyCost * 12)}</td>
+                </tr>
+              `).join('')}
+              
+              <!-- Total row -->
+              <tr style="border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc;">
+                <td colspan="2" style="padding: 12px 10px; font-size: 13px; color: #0f172a;">Total Customized Freedom Basket Cost</td>
+                <td style="padding: 12px 5px; text-align: right; font-size: 14px; color: #0f172a; font-family: monospace;">${formatCurrencyForPdf(totalBasketCost)}</td>
+                <td style="padding: 12px 5px; text-align: right; font-size: 14px; color: #0f172a; font-family: monospace;">${formatCurrencyForPdf(totalBasketCost * 12)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Progress and target analysis -->
+          <div style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: bold; color: #0f172a;">
+              <span>Basket Freedom Coverage Progress</span>
+              <span style="color: #059669;">${coveragePercent}% Covered</span>
+            </div>
+            
+            <!-- Progress Bar container -->
+            <div style="width: 100%; height: 12px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
+              <div style="width: ${coveragePercent}%; height: 100%; background-color: #059669; border-radius: 6px;"></div>
+            </div>
+
+            <!-- Descriptive status block -->
+            <div style="display: flex; gap: 15px; align-items: start;">
+              <div style="font-size: 20px;">
+                ${coveragePercent >= 100 ? '🎉' : '⏳'}
+              </div>
+              <div>
+                <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0;">
+                  ${coveragePercent >= 100 ? 'Custom Basket Fully Funded!' : 'Slight Funding Deficit Detected'}
+                </h4>
+                <p style="font-size: 11.5px; color: #475569; line-height: 1.5; margin-top: 5px; margin-bottom: 0;">
+                  ${coveragePercent >= 100 
+                    ? `Your lumpsum monthly payout of <strong>${formatCurrencyForPdf(monthlySalary)}</strong> completely satisfies this customized basket with a monthly surplus of <strong style="color: #059669;">${formatCurrencyForPdf(fundingSurplus)}/mo</strong>! You have reached 100% lifetime financial freedom for these items.`
+                    : `Your lumpsum monthly payout covers <strong>${formatCurrencyForPdf(monthlySalary)}</strong> out of your target of <strong>${formatCurrencyForPdf(totalBasketCost)}</strong>. To make this entire custom basket free forever with your current returns, you require an additional capital lumpsum of <strong style="color: #e11d48;">${formatCurrencyForPdf(Math.max(0, (totalBasketCost - monthlySalary) * 12 / (lumpsumSWR / 100)))}</strong>.`}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Pure Wealth Global. All rights reserved. Registered client copy.</div>
+          <div>Page 3 of 4</div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: DETAILED CASHFLOW SIMULATION -->
+      <div style="width: 790px; height: 1040px; padding: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background-color: #ffffff;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 30px;">
+            <div style="font-size: 11px; font-weight: 800; color: #065f46;">LUMP SUM "EXPENSE REPLACEMENT" BLUEPRINT</div>
+            <div style="font-size: 10px; color: #94a3b8;">CLIENT REGISTERED COPY</div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 15px; letter-spacing: -0.5px;">3. Year-by-Year Cashflow Schedule</h2>
+          <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 25px;">
+            A rigorous simulation showing start-of-year capital, investment gains generated, inflation-adjusted systematic withdrawals, and end-of-year net worth.
+          </p>
+
+          <!-- Cashflow Table -->
+          <table style="width: 100%; border-collapse: collapse; text-align: left; margin-bottom: 25px;">
+            <thead>
+              <tr style="border-bottom: 2px solid #e2e8f0; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; background-color: #f8fafc;">
+                <th style="padding: 10px; text-align: center; width: 60px;">Year</th>
+                <th style="padding: 10px; text-align: right;">Starting Portfolio</th>
+                <th style="padding: 10px; text-align: right; color: #059669;">CAGR Gains Earned</th>
+                <th style="padding: 10px; text-align: right; color: #e11d48;">Systematic SWP</th>
+                <th style="padding: 10px; text-align: right;">Ending Portfolio</th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 11.5px; color: #334155; font-family: monospace;">
+              ${simulationRows.map(row => `
+                <tr style="border-bottom: 1px solid #f1f5f9; ${row.year === 0 ? 'background-color: #f8fafc; font-weight: bold;' : ''}">
+                  <td style="padding: 10px; text-align: center; font-weight: bold; color: #0f172a;">${row.year === 0 ? 'Start' : `Year ${row.year}`}</td>
+                  <td style="padding: 10px; text-align: right;">${formatCurrencyForPdf(row.startCorpus)}</td>
+                  <td style="padding: 10px; text-align: right; color: #059669;">${row.year === 0 ? '-' : `+${formatCurrencyForPdf(row.interestEarned)}`}</td>
+                  <td style="padding: 10px; text-align: right; color: #e11d48;">${row.year === 0 ? '-' : `-${formatCurrencyForPdf(row.withdrawn)}`}</td>
+                  <td style="padding: 10px; text-align: right; font-weight: bold; color: #0f172a;">${formatCurrencyForPdf(row.endCorpus)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-size: 11px; color: #475569; line-height: 1.5;">
+            <strong>Advisory Insights:</strong> This forecast represents a high-probability model built on continuous True CAGR compounding assumptions. Real market cycles will introduce short-term volatility, but Indian structural mutual funds offer solid compounding pathways to fund this systematic decumulation securely over multidecadal horizons.
+          </div>
+
+          <!-- Compliance disclaimer footer -->
+          <div style="margin-top: 35px; border-top: 1px dashed #cbd5e1; padding-top: 15px; font-size: 9px; color: #94a3b8; line-height: 1.4;">
+            <strong>Regulatory & Compliance Notice:</strong> Registered Mutual Fund Distributor ARN 306022. Mutual fund investments are subject to market risks, read all scheme related documents carefully. This report is for educational simulations only and does not constitute guaranteed yields or binding financial contracts. Actual returns will vary depending on asset choice and market behavior.
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; font-weight: 500;">
+          <div>© Pure Wealth Global (PWG) | ARN 306022. All rights reserved.</div>
+          <div>Page 4 of 4</div>
+        </div>
+      </div>
+    `;
+
+    const opt: any = {
+      margin:       0,
+      filename:     `Lump_Sum_Expense_Replacement_Planner_${name.replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+        setGeneratingPdf(false);
+      })
+      .catch((err: any) => {
+        console.error("PDF download failed:", err);
+        setGeneratingPdf(false);
+      });
+  };
   const [sipAmount, setSipAmount] = useState<number>(25000); // 25,000 INR
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(0); // 0 INR
   const [expectedReturn, setExpectedReturn] = useState<number>(14); // 14%
@@ -494,6 +821,16 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
   const [emi3Years, setEmi3Years] = useState<number>(0);
 
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('baseline-no-lump');
+
+  // Calculator 4: Lumpsum Expense Freedom Planner States
+  const [lumpsumCapital, setLumpsumCapital] = useState<number>(5000000); // ₹50 Lakhs default
+  const [lumpsumReturnRate, setLumpsumReturnRate] = useState<number>(11); // 11% CAGR
+  const [lumpsumInflationRate, setLumpsumInflationRate] = useState<number>(6); // 6% inflation
+  const [lumpsumSWR, setLumpsumSWR] = useState<number>(4.5); // 4.5% safe withdrawal rate
+  const [lumpsumHorizon, setLumpsumHorizon] = useState<'perpetual' | '40' | '30' | '20'>('perpetual');
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([
+    'subscriptions', 'utilities', 'groceries'
+  ]);
 
   const applyScenario = (id: string) => {
     if (selectedStrategyId === id) return;
@@ -1033,39 +1370,50 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
         <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
         {/* Tab Selection (Pristine minimalism sliders look) */}
-        <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-xl mx-auto mb-10 shadow-sm" id="calc-tab-headers">
+        <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-2xl mx-auto mb-10 shadow-sm animate-fade-in" id="calc-tab-headers">
           <button
             onClick={() => setActiveTab('sip')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-1.5 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'sip' 
                 ? 'bg-[#0F172A] text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <TrendingUp className="w-4 h-4 text-blue-505" />
+            <TrendingUp className="w-3.5 h-3.5 text-blue-505" />
             SIP Compounding
           </button>
           <button
             onClick={() => setActiveTab('allocator')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-1.5 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'allocator' 
                 ? 'bg-[#0F172A] text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <ShieldPlus className="w-4 h-4" />
-            NRI Risk Profiler
+            <ShieldPlus className="w-3.5 h-3.5" />
+            NRI Profiler
           </button>
           <button
             onClick={() => setActiveTab('retirement')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-1.5 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
               activeTab === 'retirement' 
                 ? 'bg-[#0F172A] text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <Milestone className="w-4 h-4" />
+            <Milestone className="w-3.5 h-3.5" />
             Retirement & Freedom
+          </button>
+          <button
+            onClick={() => setActiveTab('lumpsum-freedom')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-1.5 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all cursor-pointer ${
+              activeTab === 'lumpsum-freedom' 
+                ? 'bg-[#0F172A] text-white shadow-sm' 
+                : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
+            }`}
+          >
+            <Coins className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+            Instant Bill Killer
           </button>
         </div>
 
@@ -3555,6 +3903,686 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
 
           </div>
         )}
+
+        {/* Tab 4: Lumpsum Expense Freedom Planner */}
+        {activeTab === 'lumpsum-freedom' && (() => {
+          // Inner calculations
+          const r_real = (1 + lumpsumReturnRate / 100) / (1 + lumpsumInflationRate / 100) - 1;
+          const r_m = r_real / 12;
+          const totalMonths = lumpsumHorizon === 'perpetual' ? 360 : parseInt(lumpsumHorizon) * 12;
+          
+          // Use Safe Withdrawal Rate (SWR) model for all horizons so capital does not reach zero
+          const monthlySalary = lumpsumCapital * (lumpsumSWR / 100) / 12;
+
+          const selectedBuckets = lumpsumExpenseBuckets.filter(b => selectedExpenseIds.includes(b.id));
+          const totalBasketCost = selectedBuckets.reduce((sum, b) => sum + b.monthlyCost, 0);
+          const coveragePercent = totalBasketCost > 0 ? Math.min(100, Math.round((monthlySalary / totalBasketCost) * 100)) : 0;
+          const fundingSurplus = monthlySalary - totalBasketCost;
+
+          // Chart data calculations
+          const chartYears = lumpsumHorizon === 'perpetual' ? 30 : parseInt(lumpsumHorizon);
+          const chartData = [];
+          let currentC = lumpsumCapital;
+          const annualW = lumpsumCapital * (lumpsumSWR / 100);
+          let cumulativeW = 0;
+
+          chartData.push({
+            year: 'Start',
+            'Portfolio Value': Math.round(currentC / 100000), // in Lakhs
+            'Cumulative Withdrawals': Math.round(cumulativeW / 100000)
+          });
+
+          for (let y = 1; y <= chartYears; y++) {
+            const currentYearW = annualW * Math.pow(1 + lumpsumInflationRate / 100, y - 1);
+            const actualW = Math.min(currentC, currentYearW);
+            const interest = (currentC - actualW) * (lumpsumReturnRate / 100);
+            currentC = Math.max(0, (currentC - actualW) + interest);
+            cumulativeW += actualW;
+
+            // Sample some years for a smoother chart if horizon is 30 or 40 years
+            if (chartYears <= 20 || y % 2 === 0 || y === chartYears) {
+              chartData.push({
+                year: `Yr ${y}`,
+                'Portfolio Value': Math.round(currentC / 100000), // in Lakhs
+                'Cumulative Withdrawals': Math.round(cumulativeW / 100000)
+              });
+            }
+          }
+
+          const handleToggleExpense = (id: string) => {
+            if (selectedExpenseIds.includes(id)) {
+              setSelectedExpenseIds(selectedExpenseIds.filter(x => x !== id));
+            } else {
+              setSelectedExpenseIds([...selectedExpenseIds, id]);
+            }
+          };
+
+          const finalRemainingCorpus = currentC;
+          const finalCumulativeWithdrawn = cumulativeW;
+          const displayHorizonYears = chartYears;
+
+          const formatInLakhsValue = (num: number) => {
+            const lakhs = num / 100000;
+            if (lakhs >= 100) {
+              const crores = lakhs / 100;
+              return `₹${crores.toFixed(2)} Crores (₹${Math.round(lakhs)} Lakhs)`;
+            }
+            return `₹${lakhs.toFixed(2)} Lakhs`;
+          };
+
+          return (
+            <div className="space-y-8 animate-fade-in" id="lumpsum-freedom-planner">
+              {/* Header card */}
+              <div className="text-left bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-6 relative overflow-hidden shadow-sm">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <Coins className="w-48 h-48 rotate-12" />
+                </div>
+                <div className="relative space-y-1">
+                  <span className="text-[9px] font-mono font-bold bg-emerald-400 text-slate-950 px-2.5 py-1 rounded uppercase tracking-wider">
+                    Factual Cashflow Simulator
+                  </span>
+                  <h3 className="font-display font-bold text-xl sm:text-2xl mt-2">Lump Sum "Expense Replacement" Planner</h3>
+                  <p className="text-[12.5px] text-slate-300 max-w-2xl leading-relaxed font-sans">
+                    Instead of guessing a vague retirement age, discover exactly what recurring bills your current lumpsum capital can pay off permanently. Build your custom monthly basket and let compound growth handle the funding.
+                  </p>
+                </div>
+              </div>
+
+              {/* Main 2-column layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Inputs column */}
+                <div className="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                  <h3 className="text-[17px] font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <Calculator className="w-5 h-5 text-emerald-600" />
+                    Capital Parameters
+                  </h3>
+
+                  {/* Lumpsum Capital Input */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[12.5px]">
+                      <label className="font-semibold text-slate-700">Lumpsum Capital Available</label>
+                      <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                        {formatCurrencyINR(lumpsumCapital)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={500000}
+                      max={100000000}
+                      step={100000}
+                      value={lumpsumCapital}
+                      onChange={(e) => setLumpsumCapital(parseInt(e.target.value))}
+                      className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                      <span>₹5 Lakhs</span>
+                      <span>₹5 Crores</span>
+                      <span>₹10 Crores</span>
+                    </div>
+                  </div>
+
+                  {/* Horizon Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-[12.5px] font-semibold text-slate-700">Withdrawal Runway / Horizon</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'perpetual', label: 'Perpetual Loop' },
+                        { id: '40', label: '40-Yr Horizon' },
+                        { id: '30', label: '30-Yr Horizon' },
+                        { id: '20', label: '20-Yr Horizon' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => setLumpsumHorizon(item.id as any)}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                            lumpsumHorizon === item.id
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10.5px] text-slate-400 leading-normal font-sans">
+                      {lumpsumHorizon === 'perpetual' 
+                        ? 'Withdrawals are capped at your Safe Withdrawal Rate (SWR). Principal remains intact or compounds over generations.'
+                        : `Withdrawals are capped at your Safe Withdrawal Rate (SWR) to preserve capital, simulating portfolio health specifically over a ${lumpsumHorizon}-year horizon.`}
+                    </p>
+                  </div>
+
+                  {/* Expected CAGR Return slider */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[12.5px]">
+                      <label className="font-semibold text-slate-700">Expected Portfolio Return (CAGR)</label>
+                      <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                        {lumpsumReturnRate}% p.a.
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={5}
+                      max={16}
+                      step={0.5}
+                      value={lumpsumReturnRate}
+                      onChange={(e) => setLumpsumReturnRate(parseFloat(e.target.value))}
+                      className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                      <span>5% (Conservative)</span>
+                      <span>11% (Balanced)</span>
+                      <span>16% (Aggressive)</span>
+                    </div>
+                  </div>
+
+                  {/* Inflation Rate Slider */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[12.5px]">
+                      <label className="font-semibold text-slate-700">Indian Average Inflation Rate</label>
+                      <span className="font-mono text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded">
+                        {lumpsumInflationRate}% p.a.
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={3}
+                      max={9}
+                      step={0.5}
+                      value={lumpsumInflationRate}
+                      onChange={(e) => setLumpsumInflationRate(parseFloat(e.target.value))}
+                      className="w-full accent-rose-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                      <span>3% Low</span>
+                      <span>6% Average</span>
+                      <span>9% High</span>
+                    </div>
+                  </div>
+
+                  {/* Safe Withdrawal Rate Slider */}
+                  <div className="space-y-2 p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl animate-fade-in">
+                    <div className="flex justify-between items-center text-[12.5px]">
+                      <label className="font-bold text-emerald-950 flex items-center gap-1">
+                        Safe Withdrawal Rate (SWR)
+                        <Info className="w-3.5 h-3.5 text-emerald-600" />
+                      </label>
+                      <span className="font-mono text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded">
+                        {lumpsumSWR}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={3.0}
+                      max={7.0}
+                      step={0.1}
+                      value={lumpsumSWR}
+                      onChange={(e) => setLumpsumSWR(parseFloat(e.target.value))}
+                      className="w-full accent-emerald-700 cursor-pointer h-1.5 bg-slate-150 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                      <span>3.0% (Ultra Safe)</span>
+                      <span>4.5% (Ideal)</span>
+                      <span>7.0% (Aggressive)</span>
+                    </div>
+                  </div>
+
+                  {/* Generate Custom PDF Action */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setPdfType('lumpsum');
+                        const modal = document.getElementById('advisor-lead-modal');
+                        if (modal) modal.style.display = 'block';
+                      }}
+                      className="w-full bg-[#0F172A] text-white hover:bg-slate-800 font-bold py-3.5 px-4 rounded-xl text-[13px] flex items-center justify-center gap-2 transition-all shadow-md hover:-translate-y-0.5 cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-400" />
+                      Download Lumpsum PDF Blueprint
+                    </button>
+                    <span className="text-[10px] text-slate-400 text-center block mt-2 font-sans">Includes structured cashflow projection schedules.</span>
+                  </div>
+
+                </div>
+
+                {/* Dashboard / Outputs column */}
+                <div className="lg:col-span-8 space-y-8">
+                  
+                  {/* Results summary stats widgets */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    
+                    {/* Primary Widget: Monthly Salary */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:col-span-2">
+                      <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Coins className="w-16 h-16 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-emerald-600 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">
+                            Sustainable Monthly Salary
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            (Inflation Adjusted)
+                          </span>
+                        </div>
+                        <h4 className="font-display font-black text-2xl sm:text-3xl text-slate-900 mt-2 tracking-tight">
+                          {formatCurrencyINR(monthlySalary)}<span className="text-xs font-normal text-slate-500"> /mo</span>
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-normal mt-2 font-sans">
+                        This payout steps up annually by <strong className="text-slate-700">{lumpsumInflationRate}%</strong> to protect your purchasing power permanently.
+                      </p>
+                    </div>
+
+                    {/* Secondary Widget: Real Return Index */}
+                    <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[140px]">
+                      <div>
+                        <span className="text-[11px] text-indigo-600 font-mono font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">
+                          Net Real Yield
+                        </span>
+                        <h4 className="font-display font-bold text-2xl text-slate-900 mt-3 tracking-tight">
+                          {(lumpsumReturnRate - lumpsumInflationRate).toFixed(1)}%<span className="text-xs font-normal text-slate-500"> /yr</span>
+                        </h4>
+                      </div>
+                      <p className="text-[11.5px] text-slate-500 leading-normal font-sans">
+                        Your real compounding rate after fully stripping out inflation.
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Future Value (Corpus) Estimator Card */}
+                  <div className="bg-gradient-to-br from-[#022c22] to-[#0f172a] text-white rounded-2xl p-6 sm:p-8 shadow-md border border-emerald-500/20 space-y-6">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
+                      <h4 className="font-display font-bold text-base sm:text-lg tracking-tight uppercase text-emerald-300">
+                        Future Value (Corpus) Estimator
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Immediate Benefit */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-2 relative overflow-hidden">
+                        <div className="absolute top-2 right-2 bg-emerald-500/20 text-emerald-300 text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold">
+                          Immediate Benefit
+                        </div>
+                        <p className="text-slate-400 text-[10px] font-mono tracking-wider uppercase">Steady Cashflow</p>
+                        <div className="text-[14px] sm:text-[15.5px] font-medium font-sans text-slate-100 leading-relaxed mt-2">
+                          "You get <span className="text-emerald-400 font-extrabold">{formatCurrencyINR(monthlySalary)}</span> every month for your bills."
+                        </div>
+                      </div>
+
+                      {/* Long-Term Benefit */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-2 relative overflow-hidden">
+                        <div className="absolute top-2 right-2 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold">
+                          Long-Term Benefit
+                        </div>
+                        <p className="text-slate-400 text-[10px] font-mono tracking-wider uppercase">Legacy Compounding</p>
+                        <div className="text-[13px] sm:text-[14.5px] font-medium font-sans text-slate-100 leading-relaxed mt-2">
+                          "In <span className="text-emerald-400 font-extrabold font-mono">{displayHorizonYears} Years</span>, you will have withdrawn <span className="text-emerald-400 font-extrabold font-mono">{formatInLakhsValue(finalCumulativeWithdrawn)}</span> to enjoy your life... <span className="text-indigo-300">AND</span> your remaining account balance will have grown to an estimated <span className="text-emerald-400 font-extrabold font-mono">{formatInLakhsValue(finalRemainingCorpus)}</span>!"
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Expense Basket Checklist Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-emerald-500" />
+                        Map Your Monthly Freedom Basket
+                      </h3>
+                      <p className="text-xs text-slate-500 font-sans">
+                        Toggle different recurring lifestyle expenses to see exactly what bills this lumpsum capital pays off forever.
+                      </p>
+                    </div>
+
+                    {/* Progress indicators card */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-150 p-5 space-y-4">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-800">
+                        <span className="flex items-center gap-1.5">
+                          Custom Basket Cost: <strong className="text-slate-900">{formatCurrencyINR(totalBasketCost)}/mo</strong>
+                        </span>
+                        <span className="text-emerald-700 font-mono">{coveragePercent}% Covered</span>
+                      </div>
+                      
+                      {/* Bar container */}
+                      <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                          style={{ width: `${coveragePercent}%` }}
+                        />
+                      </div>
+
+                      {/* Descriptive Alert box */}
+                      <div className="bg-white border border-slate-150 p-4 rounded-xl flex gap-3 items-start text-left">
+                        <span className="text-xl leading-none">
+                          {coveragePercent >= 100 ? '🎉' : '⏳'}
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-slate-900">
+                            {coveragePercent >= 100 
+                              ? 'CUSTOM EXPENSE BASKET IS 100% COVERED!' 
+                              : 'BASKET PROGRESS SUMMARY'}
+                          </h4>
+                          <p className="text-[11.5px] text-slate-500 leading-normal font-sans">
+                            {coveragePercent >= 100 ? (
+                              <>
+                                Congratulations! Your sustainable monthly salary of <strong>{formatCurrencyINR(monthlySalary)}</strong> completely covers these selected bills forever, leaving a monthly reinvestment surplus of <strong className="text-emerald-600 font-bold">{formatCurrencyINR(fundingSurplus)}/mo</strong>!
+                              </>
+                            ) : (
+                              <>
+                                Your lumpsum funds <strong>{formatCurrencyINR(monthlySalary)}/mo</strong> of your <strong>{formatCurrencyINR(totalBasketCost)}/mo</strong> custom basket. To close this gap and cover this basket completely forever, you need an additional lumpsum of <strong className="text-rose-600 font-bold">{formatCurrencyINR(Math.max(0, (totalBasketCost - monthlySalary) * 12 / (lumpsumSWR / 100)))}</strong>.
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Checklist grid list */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {lumpsumExpenseBuckets.map((bucket) => {
+                        const isSelected = selectedExpenseIds.includes(bucket.id);
+                        return (
+                          <div 
+                            key={bucket.id}
+                            onClick={() => handleToggleExpense(bucket.id)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3.5 items-start text-left select-none ${
+                              isSelected 
+                                ? 'bg-emerald-50/50 border-emerald-400 shadow-xs' 
+                                : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50/50'
+                            }`}
+                          >
+                            <div className="pt-0.5">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}} // Handled by parent div onClick
+                                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                              />
+                            </div>
+                            <div className="space-y-1 flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-xs text-slate-900">{bucket.name}</span>
+                                <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{bucket.category}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-normal font-sans">{bucket.description}</p>
+                              <div className="text-xs font-bold text-slate-900 pt-1 font-mono">
+                                {formatCurrencyINR(bucket.monthlyCost)}<span className="text-[10px] text-slate-400 font-normal"> /mo</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recharts Area Chart for Wealth Compounding Projection */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-emerald-500" />
+                        Lumpsum Decumulation Projection
+                      </h3>
+                      <p className="text-xs text-slate-500 font-sans">
+                        Shows the year-by-year trajectory of your portfolio value alongside cumulative cashflows withdrawn (values in ₹ Lakhs).
+                      </p>
+                    </div>
+
+                    <div className="h-72 w-full pt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorWithdrawn" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15}/>
+                              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis dataKey="year" tickLine={false} style={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <YAxis unit="L" tickLine={false} style={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <Tooltip formatter={(value) => [`₹${value} Lakhs`]} />
+                          <Legend wrapperStyle={{ fontSize: '11.5px', paddingTop: '10px' }} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="Portfolio Value" 
+                            stroke="#10b981" 
+                            strokeWidth={2}
+                            fillOpacity={1} 
+                            fill="url(#colorPortfolio)" 
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="Cumulative Withdrawals" 
+                            stroke="#6366f1" 
+                            strokeWidth={1.5}
+                            fillOpacity={1} 
+                            fill="url(#colorWithdrawn)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-normal text-center font-sans">
+                      Note: Values are calculated in today's real terms. Portfolio Value remains steady or compounds when inside the Safe Withdrawal Rate parameters.
+                    </p>
+                  </div>
+
+                  {/* Take Action Today Hub */}
+                  <div className="bg-white border-2 border-emerald-500/20 rounded-2xl shadow-md overflow-hidden text-left relative">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
+                    
+                    <div className="p-6 space-y-5">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-emerald-600 font-mono tracking-wider uppercase block">Take Action Today</span>
+                        <h3 className="text-[17px] font-bold font-display text-slate-900">Activate Your Expense Replacement Roadmap</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                          Your custom blueprint is ready. Choose an option below to secure your roadmap and begin compounding with complete confidence.
+                        </p>
+                      </div>
+
+                      {/* Lead Tab Headers */}
+                      <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveLeadOption('consult');
+                            setLeadFormSuccess(false);
+                            setLeadFormError('');
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'consult' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📅 1:1 VIP Call
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveLeadOption('pdf');
+                            setLeadFormSuccess(false);
+                            setLeadFormError('');
+                            setPdfType('lumpsum');
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'pdf' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📨 PDF Blueprint
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveLeadOption('whatsapp');
+                            setLeadFormSuccess(false);
+                            setLeadFormError('');
+                          }}
+                          className={`flex-1 py-1.5 text-center text-[10.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                            activeLeadOption === 'whatsapp' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          💬 Fast-Track
+                        </button>
+                      </div>
+
+                      {/* Lead Form Container */}
+                      {leadFormSuccess ? (
+                        <div className="text-center py-6 space-y-4 animate-fade-in font-sans">
+                          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl font-bold mx-auto">
+                            ✓
+                          </div>
+                          <h5 className="font-bold text-sm text-slate-900 font-display">Action Confirmed Successfully!</h5>
+                          <p className="text-[11.5px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+                            {activeLeadOption === 'pdf' 
+                              ? `Your custom Lump Sum Expense Replacement Planner Blueprint PDF has been compiled and downloaded to your device! A registration copy has been saved in the CRM portal.`
+                              : activeLeadOption === 'whatsapp'
+                                ? `Your fastback callback request has been received. Our senior wealth manager will call you back within 15 minutes!`
+                                : `Your VIP Advisory session has been booked successfully. Our Certified Advisor has been allocated your exact decumulation runway details & will connect at your chosen time slot.`
+                            }
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setLeadFormSuccess(false)}
+                            className="text-xs font-bold text-emerald-650 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                          >
+                            Book Another Action
+                          </button>
+                        </div>
+                      ) : (
+                        <form onSubmit={(e) => handleLeadSubmit(e, activeLeadOption)} className="space-y-3 text-left">
+                          
+                          {leadFormError && (
+                            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-2.5 rounded-xl text-xs font-semibold leading-relaxed flex items-center gap-1.5">
+                              <span className="text-base leading-none">⚠</span>
+                              <span>{leadFormError}</span>
+                            </div>
+                          )}
+
+                          {/* Description text per option */}
+                          {activeLeadOption === 'consult' && (
+                            <p className="text-[11px] text-slate-600 leading-relaxed bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 font-sans">
+                              🤝 Book a complimentary 1-on-1 private advisory call with our senior portfolio architects to structuralize your decumulation buckets tax-efficiently.
+                            </p>
+                          )}
+                          {activeLeadOption === 'pdf' && (
+                            <p className="text-[11px] text-slate-600 leading-relaxed bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 font-sans">
+                              📨 Enter your name, email and mobile number below to compile and immediately download your customized Expense Replacement Blueprint PDF containing structured allocations, fund analysis, and decumulation guides.
+                            </p>
+                          )}
+                          {activeLeadOption === 'whatsapp' && (
+                            <p className="text-[11px] text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-100 font-sans">
+                              ⚡ Need answers right now? Enter your details below and a senior mutual fund specialist will call you back in <strong>15 minutes</strong>.
+                            </p>
+                          )}
+
+                          {/* Standard Required Inputs */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Full Name <span className="text-rose-500">*</span></label>
+                              <input
+                                type="text"
+                                required
+                                value={leadName}
+                                onChange={(e) => setLeadName(e.target.value)}
+                                placeholder="e.g. Rajesh Kumar"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number <span className="text-rose-500">*</span></label>
+                              <input
+                                type="tel"
+                                required
+                                value={leadPhone}
+                                onChange={(e) => setLeadPhone(e.target.value)}
+                                placeholder="e.g. +91 98765 43210"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                              />
+                            </div>
+
+                            {(activeLeadOption === 'pdf' || activeLeadOption === 'consult') && (
+                              <div className="space-y-1 sm:col-span-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Email Address <span className="text-rose-500">*</span></label>
+                                <input
+                                  type="email"
+                                  required
+                                  value={activeLeadOption === 'pdf' ? pdfEmail : leadEmail}
+                                  onChange={(e) => activeLeadOption === 'pdf' ? setPdfEmail(e.target.value) : setLeadEmail(e.target.value)}
+                                  placeholder="e.g. rajesh@gmail.com"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Booking Fields for VIP Consult */}
+                          {activeLeadOption === 'consult' && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Preferred Advisory Date <span className="text-rose-500">*</span></label>
+                                <input
+                                  type="date"
+                                  required
+                                  value={leadDate}
+                                  onChange={(e) => setLeadDate(e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Preferred Time Slot <span className="text-rose-500">*</span></label>
+                                <select
+                                  required
+                                  value={leadTimeSlot}
+                                  onChange={(e) => setLeadTimeSlot(e.target.value)}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                >
+                                  <option value="">Select slot</option>
+                                  <option value="10 AM - 12 PM">Morning (10AM - 12PM)</option>
+                                  <option value="12 PM - 3 PM">Mid-day (12PM - 3PM)</option>
+                                  <option value="3 PM - 6 PM">Afternoon (3PM - 6PM)</option>
+                                  <option value="6 PM - 8 PM">Evening (6PM - 8PM)</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
+
+                          <button
+                            type="submit"
+                            className="w-full mt-3 flex items-center justify-center gap-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl transition-all cursor-pointer shadow-sm font-display"
+                          >
+                            {activeLeadOption === 'pdf' && (
+                              <><FileText className="w-4 h-4" /> Compile & Download My PDF Blueprint Now</>
+                            )}
+                            {activeLeadOption === 'whatsapp' && (
+                              <><Phone className="w-4 h-4" /> Request Instant Callback</>
+                            )}
+                            {activeLeadOption === 'consult' && (
+                              <><CheckCircle2 className="w-4 h-4" /> Schedule VIP Advisory Session</>
+                            )}
+                          </button>
+
+                          <div className="pt-2 text-center text-[10px] text-slate-400">
+                            🔒 Regulated secure wealth advisory. No spam. Unsubscribe at any time.
+                          </div>
+
+                        </form>
+                      )}
+
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
 
         <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={3} />
 

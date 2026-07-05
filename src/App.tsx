@@ -71,6 +71,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         setCurrentPage('calculators');
       } else if (hash === '#retirement-calculator' || hash === '#retirement') {
         setCurrentPage('retirement-calculator');
+      } else if (hash === '#lumpsum-freedom' || hash === '#lumpsum-planner') {
+        setCurrentPage('lumpsum-freedom');
       } else if (hash === '#connect') {
         setCurrentPage('connect');
       } else if (hash === '#privacy') {
@@ -101,6 +103,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
           setIsDbPasswordDialogOpen(true);
         } else if (pathname === '/retirement-calculator' || pathname === '/retirement') {
           setCurrentPage('retirement-calculator');
+        } else if (pathname === '/lumpsum-freedom' || pathname === '/lumpsum-planner') {
+          setCurrentPage('lumpsum-freedom');
         } else if (pathname === '' || pathname === '/') {
           setCurrentPage('home');
         }
@@ -376,6 +380,20 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
           "applicationCategory": "FinancialApplication",
           "description": "Calculate inflation-adjusted retirement savings goals."
         }
+      },
+      'lumpsum-freedom': {
+        title: "Lump Sum \"Expense Replacement\" Planner | Instant Bill Killer | Pure Wealth",
+        description: "Calculate which recurring life expenses you can fund forever with your current lumpsum investment. Factual and real-time updated cashflow simulations.",
+        keywords: "lumpsum calculator, expense replacement, bill killer, financial independence, fire calculator, swp planner, systematic withdrawal plan",
+        canonical: "https://www.purewealthglobal.com/lumpsum-freedom",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Lump Sum \"Expense Replacement\" Planner",
+          "operatingSystem": "All",
+          "applicationCategory": "FinancialApplication",
+          "description": "Determine which bills and expenses are covered forever with a lump sum investment."
+        }
       }
     };
 
@@ -475,6 +493,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         window.history.pushState(null, '', '/audit');
       } else if (newPage === 'retirement-calculator') {
         window.history.pushState(null, '', '/retirement-calculator');
+      } else if (newPage === 'lumpsum-freedom') {
+        window.history.pushState(null, '', '/lumpsum-freedom');
       } else if (newPage === 'knowledge') {
         if (!window.location.hash.startsWith('#knowledge/')) {
           window.history.pushState(null, '', '/#knowledge/journey');
@@ -534,6 +554,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         return <CalculatorsView setCurrentPage={changePage} />;
       case 'retirement-calculator':
         return <CalculatorsView setCurrentPage={changePage} initialTab="retirement" />;
+      case 'lumpsum-freedom':
+        return <CalculatorsView setCurrentPage={changePage} initialTab="lumpsum-freedom" />;
       case 'knowledge':
         return <KnowledgeHubView setCurrentPage={changePage} />;
       case 'connect':

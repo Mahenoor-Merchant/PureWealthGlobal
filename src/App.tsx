@@ -18,6 +18,7 @@ import FindFundTypeView from './components/FindFundTypeView';
 import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
 import PortfolioAuditor from './components/PortfolioAuditor';
 import DatabasePortalView from './components/DatabasePortalView';
+import PortfolioPitchView from './components/PortfolioPitchView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import PasswordDialog from './components/PasswordDialog';
 import { NavPage, SharedSurveyData } from './types';
@@ -394,6 +395,13 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
           "applicationCategory": "FinancialApplication",
           "description": "Determine which bills and expenses are covered forever with a lump sum investment."
         }
+      },
+      'portfolio-pitch': {
+        title: "Mutual Fund Portfolio Pitch & Factual Explainer | Pure Wealth Global",
+        description: "Create a bespoke portfolio pitch and factual, search-grounded explanation report for any combination of Indian Mutual Funds.",
+        keywords: "mutual fund pitch, fund explanation, financial advisor tool, bespoke mutual fund reports",
+        canonical: "https://www.purewealthglobal.com/pitch",
+        schema: null
       }
     };
 
@@ -604,6 +612,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         return <PortfolioOverlapFinder />;
       case 'portfolio-audit':
         return <PortfolioAuditor />;
+      case 'portfolio-pitch':
+        return <PortfolioPitchView />;
       case 'database-portal':
         return <DatabasePortalView />;
       default:

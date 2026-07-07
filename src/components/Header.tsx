@@ -40,6 +40,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
       case 'overlap-finder': return '/overlap';
       case 'portfolio-audit': return '/audit';
       case 'retirement-calculator': return '/retirement-calculator';
+      case 'portfolio-pitch': return '/pitch';
       case 'database-portal': return '/#database';
       case 'find-fund': return '/#find-fund';
       default: return '/';
@@ -62,7 +63,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal' || currentPage === 'retirement-calculator';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal' || currentPage === 'retirement-calculator' || currentPage === 'portfolio-pitch';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -257,6 +258,23 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 {currentPage === 'database-portal' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
               </a>
 
+              <a
+                href={getPageUrl('portfolio-pitch')}
+                onClick={(e) => handleLinkClick(e, 'portfolio-pitch')}
+                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
+                  currentPage === 'portfolio-pitch'
+                    ? 'text-blue-600 bg-blue-50/50 font-bold'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+                title="Create a Bespoke Mutual Fund Portfolio Pitch and Client Explanation Report"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-800 px-1.5 py-0.5 rounded-md">New</span>
+                  <span>Bespoke Portfolio Pitch & Explainer</span>
+                </div>
+                {currentPage === 'portfolio-pitch' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </a>
+
               <div className="my-1.5 border-t border-slate-100" />
 
               <a
@@ -426,7 +444,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all flex items-center justify-between ${
                       currentPage === 'database-portal'
                         ? 'text-blue-700 bg-blue-50/80 font-bold'
-                        : 'text-slate-650 hover:bg-slate-55'
+                        : 'text-slate-655 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
@@ -434,6 +452,21 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                       <span className="text-[9px] font-extrabold uppercase bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">Live</span>
                     </div>
                     {currentPage === 'database-portal' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+                  </button>
+
+                  <button
+                    onClick={() => handleNavClick('portfolio-pitch')}
+                    className={`w-full py-2.5 px-4 text-left text-[13.5px] font-semibold rounded-lg transition-all flex items-center justify-between ${
+                      currentPage === 'portfolio-pitch'
+                        ? 'text-blue-700 bg-blue-50/80 font-bold'
+                        : 'text-slate-655 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>📊 Portfolio Pitch & Explainer</span>
+                      <span className="text-[9px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-1.5 py-0.5 rounded">New</span>
+                    </div>
+                    {currentPage === 'portfolio-pitch' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
                   </button>
 
                   <div className="my-1 border-t border-slate-100" />

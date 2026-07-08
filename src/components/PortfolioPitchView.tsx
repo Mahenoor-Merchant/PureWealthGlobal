@@ -86,6 +86,31 @@ const ROTATING_TIPS = [
   "Assembling the downloadable client PDF blueprint dossier..."
 ];
 
+export function renderValSafely(val: any): React.ReactNode {
+  if (!val) return "";
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    if (val.impact || val.context) {
+      return (
+        <span className="block">
+          {val.context && <span className="font-semibold block mb-0.5 text-slate-700">{val.context}</span>}
+          {val.impact && <span className="text-slate-500 block text-[10px] mt-0.5 font-normal">{val.impact}</span>}
+        </span>
+      );
+    }
+    if (Array.isArray(val)) {
+      return val.join(", ");
+    }
+    const keys = Object.keys(val);
+    if (keys.length > 0) {
+      const firstStrValue = keys.map(k => typeof val[k] === 'string' ? val[k] : '').filter(Boolean).join(" ");
+      if (firstStrValue) return firstStrValue;
+    }
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
+
 export default function PortfolioPitchView() {
   // Client Details
   const [clientName, setClientName] = useState('');
@@ -274,7 +299,7 @@ export default function PortfolioPitchView() {
           console.error(err);
           setIsGeneratingPDF(false);
         });
-    }, 400); // 400ms delay to let React fully render all fund blocks before capturing
+    }, 1000); // 1000ms delay to let React fully render and paint all fund blocks before capturing
   };
 
   const handleScheduleConsult = (e: React.FormEvent) => {
@@ -291,6 +316,227 @@ export default function PortfolioPitchView() {
   };
 
   const totalInvestment = funds.reduce((acc, f) => acc + (f.amount || 0), 0);
+
+  const renderFormContent = () => (
+    <form onSubmit={triggerAnalysis} className="space-y-6">
+      
+      {/* Required Client Fields */}
+      <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-150">
+        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+          Required Client Metadata (For PDF Blueprint)
+        </span>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Full Name</label>
+            <input 
+              type="text" 
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. Rajesh Kumar"
+              className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Email Address</label>
+              <input 
+                type="email" 
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="rajesh@gmail.com"
+                className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Mobile Number</label>
+              <input 
+                type="tel" 
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
+                required
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Lumpsum Range Interval selector */}
+      <div className="space-y-3 border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-slate-700 block">Lumpsum Capital available</label>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-400 font-bold">Use Range Presets</span>
+            <input 
+              type="checkbox" 
+              checked={useLumpsumSelector}
+              onChange={(e) => setUseLumpsumSelector(e.target.checked)}
+              className="w-3.5 h-3.5 accent-indigo-600 rounded cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {useLumpsumSelector && (
+          <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-slate-500 font-bold">Selected Lumpsum Allocation:</span>
+              <strong className="text-sm font-black font-mono text-indigo-700">{formatINR(selectedLumpsum)}</strong>
+            </div>
+            <input 
+              type="range" 
+              min={500000} 
+              max={100000000} 
+              step={100000} // 1 Lakh intervals
+              value={selectedLumpsum}
+              onChange={(e) => handleLumpsumChange(Number(e.target.value))}
+              className="w-full h-1.5 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            />
+            <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+              <span>5 Lakhs</span>
+              <span>1 Crore</span>
+              <span>10 Crores</span>
+            </div>
+            <p className="text-[10px] text-indigo-600 leading-relaxed font-semibold">
+              💡 Changing this preset slider automatically distributes capital proportionally across all specified portfolio schemes.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Funds Builder Area */}
+      <div className="space-y-4 border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">
+            Invested Portfolio Schemes ({funds.length})
+          </span>
+          <button
+            type="button"
+            onClick={handleAddFund}
+            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Fund</span>
+          </button>
+        </div>
+
+        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+          {funds.map((fund, idx) => (
+            <div key={idx} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-3 relative group">
+              <button
+                type="button"
+                onClick={() => handleRemoveFund(idx)}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-rose-600 transition-colors p-1"
+                title="Remove scheme from portfolio"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+
+              <span className="text-[9px] font-mono text-slate-400 font-bold block">
+                SCHEME #{idx + 1}
+              </span>
+
+              <div className="space-y-2">
+                {/* Fund Name and preseeded dropdown */}
+                <div className="relative">
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Fund Name</label>
+                  <input 
+                    type="text"
+                    value={fund.name}
+                    onChange={(e) => handleFundChange(idx, 'name', e.target.value)}
+                    placeholder="e.g. Parag Parikh Flexi Cap Regular"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-xs font-bold outline-none focus:border-indigo-500"
+                  />
+
+                  {/* Seeded suggestions filter */}
+                  {fund.name.length > 2 && !PRE_SEEDED_FUNDS.some(f => f.name === fund.name) && (
+                    <div className="bg-white border border-slate-150 rounded-lg mt-1 max-h-[160px] overflow-y-auto shadow-lg text-left divide-y divide-slate-100 absolute z-50 left-0 right-0">
+                      {PRE_SEEDED_FUNDS.filter(f => f.name.toLowerCase().includes(fund.name.toLowerCase())).slice(0, 10).map((seeded, sidx) => (
+                        <button
+                          key={sidx}
+                          type="button"
+                          onClick={() => handleSelectPreseededFund(idx, seeded)}
+                          className="w-full text-left text-[11px] font-semibold text-slate-700 py-1.5 px-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors"
+                        >
+                          <span className="truncate pr-2" title={seeded.name}>{seeded.name}</span>
+                          <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 py-0.5 rounded whitespace-nowrap">{seeded.category}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Category and Amount */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Asset Category</label>
+                    <select
+                      value={fund.category}
+                      onChange={(e) => handleFundChange(idx, 'category', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500"
+                    >
+                      {PRE_SEEDED_CATEGORIES.map((cat, cidx) => (
+                        <option key={cidx} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Invested Amount (INR)</label>
+                    <input 
+                      type="number"
+                      value={fund.amount || ''}
+                      onChange={(e) => handleFundChange(idx, 'amount', e.target.value)}
+                      placeholder="Amount in ₹"
+                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-xs font-bold outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Total Summary tag */}
+        <div className="bg-slate-100 p-3 rounded-2xl flex items-center justify-between text-xs">
+          <span className="text-slate-500 font-bold">Total Ported Amount:</span>
+          <strong className="text-slate-900 text-sm font-black font-mono">₹{totalInvestment.toLocaleString('en-IN')}</strong>
+        </div>
+      </div>
+
+      {/* Error messaging */}
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-[11px] font-bold flex items-start gap-1.5">
+          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Analyze Trigger button */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 py-3.5 px-4 text-white rounded-2xl text-xs font-black tracking-wide flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shadow-indigo-100"
+      >
+        {loading ? (
+          <>
+            <RefreshCw className="w-4 h-4 animate-spin text-white" />
+            <span>Grounding Client Factual Dossier...</span>
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4" />
+            <span>Analyze & Generate Factual Pitch</span>
+          </>
+        )}
+      </button>
+
+    </form>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-fade-in text-slate-800 font-sans" id="portfolio-pitch-explainer-view">
@@ -322,317 +568,102 @@ export default function PortfolioPitchView() {
         </div>
       </div>
 
-      {/* Main Form container */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Hand Form Controls */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 space-y-6 shadow-xs text-left">
-          
-          <h2 className="text-lg font-black font-display text-slate-900 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-indigo-600" />
-            <span>Assemble Client & Portfolio</span>
-          </h2>
+      {/* Main Layout Area */}
+      <div className="space-y-8">
+        {/* State 1: Form Centered when no result and not loading */}
+        {!result && !loading && (
+          <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-xs text-left">
+            <h2 className="text-lg font-black font-display text-slate-900 flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-indigo-600" />
+              <span>Assemble Client & Portfolio</span>
+            </h2>
+            {renderFormContent()}
+          </div>
+        )}
 
-          <form onSubmit={triggerAnalysis} className="space-y-6">
-            
-            {/* Required Client Fields */}
-            <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-150">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
-                Required Client Metadata (For PDF Blueprint)
-              </span>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Full Name</label>
-                  <input 
-                    type="text" 
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="e.g. Rajesh Kumar"
-                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Email Address</label>
-                    <input 
-                      type="email" 
-                      value={clientEmail}
-                      onChange={(e) => setClientEmail(e.target.value)}
-                      placeholder="rajesh@gmail.com"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">Client Mobile Number</label>
-                    <input 
-                      type="tel" 
-                      value={clientPhone}
-                      onChange={(e) => setClientPhone(e.target.value)}
-                      placeholder="+91 98765 43210"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold outline-none focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Lumpsum Range Interval selector */}
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black text-slate-700 block">Lumpsum Capital available</label>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-400 font-bold">Use Range Presets</span>
-                  <input 
-                    type="checkbox" 
-                    checked={useLumpsumSelector}
-                    onChange={(e) => setUseLumpsumSelector(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-indigo-600 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {useLumpsumSelector && (
-                <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500 font-bold">Selected Lumpsum Allocation:</span>
-                    <strong className="text-sm font-black font-mono text-indigo-700">{formatINR(selectedLumpsum)}</strong>
-                  </div>
-                  <input 
-                    type="range" 
-                    min={500000} 
-                    max={100000000} 
-                    step={100000} // 1 Lakh intervals
-                    value={selectedLumpsum}
-                    onChange={(e) => handleLumpsumChange(Number(e.target.value))}
-                    className="w-full h-1.5 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                    <span>5 Lakhs</span>
-                    <span>1 Crore</span>
-                    <span>10 Crores</span>
-                  </div>
-                  <p className="text-[10px] text-indigo-600 leading-relaxed font-semibold">
-                    💡 Changing this preset slider automatically distributes capital proportionally across all specified portfolio schemes.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Funds Builder Area */}
-            <div className="space-y-4 border-t border-slate-100 pt-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">
-                  Invested Portfolio Schemes ({funds.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAddFund}
-                  className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Fund</span>
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                {funds.map((fund, idx) => (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-3 relative group">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFund(idx)}
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-rose-600 transition-colors p-1"
-                      title="Remove scheme from portfolio"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    <span className="text-[9px] font-mono text-slate-400 font-bold block">
-                      SCHEME #{idx + 1}
-                    </span>
-
-                    <div className="space-y-2">
-                      {/* Fund Name and preseeded dropdown */}
-                      <div className="relative">
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Fund Name</label>
-                        <input 
-                          type="text"
-                          value={fund.name}
-                          onChange={(e) => handleFundChange(idx, 'name', e.target.value)}
-                          placeholder="e.g. Parag Parikh Flexi Cap Regular"
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-xs font-bold outline-none focus:border-indigo-500"
-                        />
-
-                        {/* Seeded suggestions filter */}
-                        {fund.name.length > 2 && !PRE_SEEDED_FUNDS.some(f => f.name === fund.name) && (
-                          <div className="bg-white border border-slate-150 rounded-lg mt-1 max-h-[160px] overflow-y-auto shadow-lg text-left divide-y divide-slate-100 absolute z-50 left-0 right-0">
-                            {PRE_SEEDED_FUNDS.filter(f => f.name.toLowerCase().includes(fund.name.toLowerCase())).slice(0, 10).map((seeded, sidx) => (
-                              <button
-                                key={sidx}
-                                type="button"
-                                onClick={() => handleSelectPreseededFund(idx, seeded)}
-                                className="w-full text-left text-[11px] font-semibold text-slate-700 py-1.5 px-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors"
-                              >
-                                <span className="truncate mr-2" title={seeded.name}>{seeded.name}</span>
-                                <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 py-0.5 rounded whitespace-nowrap">{seeded.category}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Category and Amount */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Asset Category</label>
-                          <select
-                            value={fund.category}
-                            onChange={(e) => handleFundChange(idx, 'category', e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500"
-                          >
-                            {PRE_SEEDED_CATEGORIES.map((cat, cidx) => (
-                              <option key={cidx} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Invested Amount (INR)</label>
-                          <input 
-                            type="number"
-                            value={fund.amount || ''}
-                            onChange={(e) => handleFundChange(idx, 'amount', e.target.value)}
-                            placeholder="Amount in ₹"
-                            className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-xs font-bold outline-none focus:border-indigo-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total Summary tag */}
-              <div className="bg-slate-100 p-3 rounded-2xl flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-bold">Total Ported Amount:</span>
-                <strong className="text-slate-900 text-sm font-black font-mono">₹{totalInvestment.toLocaleString('en-IN')}</strong>
-              </div>
-            </div>
-
-            {/* Error messaging */}
-            {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-[11px] font-bold flex items-start gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Analyze Trigger button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 py-3.5 px-4 text-white rounded-2xl text-xs font-black tracking-wide flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shadow-indigo-100"
+        {/* State 2: Immersive Loading Screen Centered */}
+        {loading && (
+          <div className="max-w-3xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-6 shadow-xs flex flex-col items-center justify-center min-h-[500px]"
             >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Grounding Client Factual Dossier...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Analyze & Generate Factual Pitch</span>
-                </>
-              )}
-            </button>
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                <Sparkles className="w-8 h-8 text-indigo-500 absolute top-6 left-6 animate-pulse" />
+              </div>
 
-          </form>
+              <div className="space-y-2 max-w-md">
+                <h3 className="font-extrabold font-display text-slate-900 text-lg">
+                  Generating Real-time Factual Report
+                </h3>
+                <p className="text-xs text-slate-400 font-mono h-12 leading-relaxed flex items-center justify-center">
+                  {ROTATING_TIPS[rotatingTipIdx]}
+                </p>
+              </div>
 
-        </div>
+              <div className="w-48 bg-slate-100 h-1 rounded-full overflow-hidden">
+                <div 
+                  className="bg-indigo-600 h-full transition-all duration-1000"
+                  style={{ width: `${((rotatingTipIdx + 1) / ROTATING_TIPS.length) * 100}%` }}
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
 
-        {/* Right Hand Output Panel */}
-        <div className="lg:col-span-7">
-          
-          <AnimatePresence mode="wait">
+        {/* State 3: Result Loaded with Collapsible Input Panel on top & full-width Centered Dossier */}
+        {!loading && result && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8 max-w-7xl mx-auto w-full text-left"
+          >
             
-            {/* 1. Loading Immersive State */}
-            {loading && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-6 shadow-xs flex flex-col items-center justify-center min-h-[500px]"
-              >
-                <div className="relative">
-                  <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                  <Sparkles className="w-8 h-8 text-indigo-500 absolute top-6 left-6 animate-pulse" />
-                </div>
-
-                <div className="space-y-2 max-w-md">
-                  <h3 className="font-extrabold font-display text-slate-900 text-lg">
-                    Generating Real-time Factual Report
-                  </h3>
-                  <p className="text-xs text-slate-400 font-mono h-12 leading-relaxed flex items-center justify-center">
-                    {ROTATING_TIPS[rotatingTipIdx]}
-                  </p>
-                </div>
-
-                <div className="w-48 bg-slate-100 h-1 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-indigo-600 h-full transition-all duration-1000"
-                    style={{ width: `${((rotatingTipIdx + 1) / ROTATING_TIPS.length) * 100}%` }}
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {/* 2. Welcome Empty State */}
-            {!loading && !result && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center space-y-4 min-h-[500px] flex flex-col items-center justify-center"
-              >
-                <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl">
-                  <Compass className="w-10 h-10" />
-                </div>
-                <div className="space-y-1.5 max-w-sm">
-                  <h3 className="font-black font-display text-slate-900 text-base">
-                    Draft Report Awaiting Assembly
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Provide client details, select the mutual funds they are interested in, and trigger the factual analyst pitch to unlock deep-dive scenarios, pros/cons, and past real-life crisis comparisons.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* 3. Result Loaded State */}
-            {!loading && result && (
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6 text-left"
-              >
-                {/* Actions Toolbar */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-indigo-900 text-white p-4 rounded-2xl shadow-md">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1.5 bg-indigo-800 text-indigo-200 rounded-lg text-[10px] font-mono font-bold">PDF Ready</span>
-                    <span className="text-xs font-bold truncate">Blueprint compiled successfully for {clientName}</span>
+            {/* Collapsible Edit Parameters Card */}
+            <details className={`bg-white border border-slate-200 rounded-3xl shadow-xs group overflow-hidden ${isGeneratingPDF ? 'hidden' : ''} print:hidden`}>
+              <summary className="p-6 flex items-center justify-between cursor-pointer list-none select-none">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Briefcase className="w-5 h-5 text-indigo-600" />
+                  </span>
+                  <div className="text-left">
+                    <h3 className="font-extrabold font-display text-slate-900 text-sm">
+                      Edit Client & Portfolio Parameters
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      Current: {clientName} • {funds.length} Schemes • ₹{totalInvestment.toLocaleString('en-IN')}
+                    </p>
                   </div>
-
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download PDF Blueprint</span>
-                  </button>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-indigo-600 group-open:hidden">Modify Inputs</span>
+                  <span className="text-xs font-bold text-slate-400 hidden group-open:inline">Collapse</span>
+                  <ChevronDown className="w-4 h-4 text-slate-400 transition-transform duration-300 group-open:rotate-180" />
+                </div>
+              </summary>
+              
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 text-left">
+                {renderFormContent()}
+              </div>
+            </details>
+
+            {/* Actions Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-indigo-900 text-white p-4 rounded-2xl shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-indigo-800 text-indigo-200 rounded-lg text-[10px] font-mono font-bold">PDF Ready</span>
+                <span className="text-xs font-bold truncate">Blueprint compiled successfully for {clientName}</span>
+              </div>
+
+              <button
+                onClick={handleDownloadPDF}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download PDF Blueprint</span>
+              </button>
+            </div>
 
                 {/* VISUAL PITCH DOSSIER (Target for html2pdf generation) */}
                 <div 
@@ -662,16 +693,16 @@ export default function PortfolioPitchView() {
                   </div>
 
                   {/* Client dossier banner */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-wrap md:flex-nowrap justify-between gap-4 text-xs">
-                    <div className="text-left space-y-0.5 min-w-[120px]">
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div className="text-left space-y-0.5">
                       <span className="text-slate-400 block font-bold">Client Name</span>
                       <strong className="text-slate-800 text-sm font-black">{clientName}</strong>
                     </div>
-                    <div className="text-left space-y-0.5 flex-1 min-w-[200px]">
+                    <div className="text-left space-y-0.5">
                       <span className="text-slate-400 block font-bold">Email Address</span>
-                      <strong className="text-slate-700 block break-all text-xs sm:text-sm font-black">{clientEmail}</strong>
+                      <strong className="text-slate-700 block text-xs sm:text-sm font-black truncate" title={clientEmail}>{clientEmail}</strong>
                     </div>
-                    <div className="text-left space-y-0.5 min-w-[150px] md:text-right">
+                    <div className="text-left space-y-0.5 md:text-right">
                       <span className="text-slate-400 block font-bold">Portfolio Target Value</span>
                       <strong className="text-indigo-700 block text-sm font-black font-mono">₹{totalInvestment.toLocaleString('en-IN')}</strong>
                     </div>
@@ -1053,7 +1084,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario A */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Sustained GDP Acceleration (&gt;7.2%):</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.gdpGrows}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.gdpGrows)}</p>
                                        {/* Micro Visual Indicator */}
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
@@ -1071,7 +1102,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario B */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Strong Bull Market Expansion:</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.economicGetsBetter}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.economicGetsBetter)}</p>
                                        {/* Micro Visual Indicator */}
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
@@ -1100,7 +1131,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario A */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Global/India Stays As Is (Base Case):</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.economicStaysSame}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.economicStaysSame)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Baseline Compounding</span>
@@ -1117,7 +1148,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario B */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Policy Continuity (Government Stays):</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.governmentRemains}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.governmentRemains)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Capex Directionality</span>
@@ -1134,7 +1165,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario C */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">GDP Stagnation / Neutral Growth:</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.gdpRemainsSame}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.gdpRemainsSame)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Capital Preservation</span>
@@ -1162,7 +1193,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario A */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Inflation / Economic Slowdown:</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.economicGetsBad || f.scenarios?.economicGetsBetter}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.economicGetsBad || f.scenarios?.economicGetsBetter)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Defensive Cushion</span>
@@ -1179,7 +1210,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario B */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Geopolitical / Conflict Escalation:</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.warInternalConflicts}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.warInternalConflicts)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Crisis Shock Absorption</span>
@@ -1196,7 +1227,7 @@ export default function PortfolioPitchView() {
                                      {/* Scenario C */}
                                      <div className="space-y-1.5">
                                        <strong className="text-[11px] text-slate-800 block font-bold">Political Uncertainty (Govt Changes):</strong>
-                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{f.scenarios?.governmentChanges}</p>
+                                       <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">{renderValSafely(f.scenarios?.governmentChanges)}</p>
                                        <div className="space-y-1">
                                          <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                            <span>Policy Transition Protection</span>
@@ -1219,7 +1250,7 @@ export default function PortfolioPitchView() {
                                   <TrendingUp className="w-4 h-4 text-emerald-600" />
                                   <span>When scheme EXCEL / Protect portfolio:</span>
                                 </span>
-                                <p className="text-slate-600 font-medium leading-relaxed">{f.playbook?.whenPerformsWell}</p>
+                                <p className="text-slate-600 font-medium leading-relaxed">{renderValSafely(f.playbook?.whenPerformsWell)}</p>
                               </div>
 
                               <div className="space-y-1.5 text-left">
@@ -1227,7 +1258,7 @@ export default function PortfolioPitchView() {
                                   <AlertTriangle className="w-4 h-4 text-rose-500" />
                                   <span>When scheme might UNDERPERFORM:</span>
                                 </span>
-                                <p className="text-slate-600 font-medium leading-relaxed">{f.playbook?.whenUnderperforms}</p>
+                                <p className="text-slate-600 font-medium leading-relaxed">{renderValSafely(f.playbook?.whenUnderperforms)}</p>
                               </div>
                             </div>
 
@@ -1239,12 +1270,12 @@ export default function PortfolioPitchView() {
                               </span>
 
                               <div className="space-y-3 text-[11px] font-semibold text-slate-600 leading-relaxed">
-                                {f.playbook?.pastRealLifeExamples?.map((ex: string, eidx: number) => (
+                                {f.playbook?.pastRealLifeExamples?.map((ex: any, eidx: number) => (
                                   <div key={eidx} className="flex gap-2 items-start">
                                     <span className="p-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-bold font-mono shrink-0 mt-0.5">
                                       Crisis Match #{eidx + 1}
                                     </span>
-                                    <p className="font-medium text-slate-600 leading-relaxed">{ex}</p>
+                                    <div className="font-medium text-slate-600 leading-relaxed">{renderValSafely(ex)}</div>
                                   </div>
                                 ))}
                               </div>
@@ -1396,12 +1427,8 @@ export default function PortfolioPitchView() {
               </motion.div>
             )}
 
-          </AnimatePresence>
-
         </div>
 
       </div>
-
-    </div>
   );
 }

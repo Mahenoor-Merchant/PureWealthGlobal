@@ -3195,7 +3195,7 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         }
 
         // 1. Determine the portfolio basket based on category and name keywords
-        let basket = fund.basketClassification || "Core Alpha Gen";
+        let basket = "Core Alpha Gen";
         if (
           cat.includes("small") || nameLower.includes("small") || nameLower.includes("small-cap") || nameLower.includes("smallcap") ||
           cat.includes("sectoral") || cat.includes("thematic") ||
@@ -3224,6 +3224,8 @@ CRITICAL DIRECTIVE: If you CANNOT read the PDF contents or find the user's inves
         } else {
           basket = "Core Alpha Gen";
         }
+
+        fund.basketClassification = basket;
 
         // 2. Fetch the deterministic metrics based on the name, category, and basket
         const metrics = getDeterministicFundMetrics(fundName, fund.category || "Equity", basket, isDirect);

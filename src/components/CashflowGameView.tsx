@@ -94,6 +94,33 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
   const [showAdvisorModal, setShowAdvisorModal] = useState(false);
   const [totalAdvisorFees, setTotalAdvisorFees] = useState(0);
 
+  // Bank Loan / 18% Overdraft State
+  const [loanBalance, setLoanBalance] = useState(0);
+  const [activeEmi, setActiveEmi] = useState(0);
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [customPayAmount, setCustomPayAmount] = useState('');
+  const [customEmiAmount, setCustomEmiAmount] = useState('');
+
+  // Helper: Advisor Optimal Freedom SIP Calculator
+  const calculateOptimalFreedomSip = (
+    income: number,
+    expense: number,
+    corpus: number,
+    roundsLeft: number
+  ) => {
+    const targetCorpus = Math.round((expense * 12) / 0.08); // 8% SWR
+    const years = Math.max(1, roundsLeft);
+    const months = years * 12;
+    const i = 0.15 / 12; // 15% CAGR expected
+    const fvCorpus = corpus * Math.pow(1 + 0.15, years);
+    const gap = Math.max(0, targetCorpus - fvCorpus);
+    if (gap <= 0) return 2000;
+
+    const fvFactor = (((Math.pow(1 + i, months) - 1) / i) * (1 + i));
+    const requiredSip = Math.max(2000, Math.round(gap / fvFactor));
+    return requiredSip;
+  };
+
   // Milestone Toasts State (§4)
   const [reachedMilestones, setReachedMilestones] = useState<number[]>([]);
   const [activeToast, setActiveToast] = useState<{ threshold: number; text: string } | null>(null);
@@ -182,13 +209,17 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     setSimAge(currentAge);
     setSimRound(1);
     
-    const initialCash = Math.round(monthlyIncome * 1.5);
+    // Starting Savings of ₹5,000,000 (5 Lakhs) + income buffer
+    const startingSavings = 500000;
+    const initialCash = startingSavings + Math.round(monthlyIncome * 1.5);
     setCashOnHand(initialCash);
     setInvestedCorpus(0);
+    setLoanBalance(0);
+    setActiveEmi(0);
     setSimIncome(monthlyIncome);
     setSimExpense(monthlyExpense);
 
-    // Initial SIP default: 40% of disposable cashflow
+    // Initial SIP default: 50% of disposable cashflow
     const disposable = Math.max(5000, monthlyIncome - monthlyExpense);
     setMonthlySip(Math.round(disposable * 0.5));
 
@@ -200,7 +231,11 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     setTotalAdvisorFees(0);
     setCoursesTaken(0);
     setPendingCourseRaise(null);
-    setLedgerLogs([]);
+    setLedgerLogs([{
+      round: 1,
+      text: `💼 STARTING CAPITAL: Granted ₹500,000 (5 Lakhs) starting savings + ₹${Math.round(monthlyIncome * 1.5).toLocaleString('en-IN')} cashflow buffer.`,
+      isGain: true
+    }]);
     setScamsAttempted(0);
     setScamsBlockedByAdvisor(0);
     setRiskyWins(0);
@@ -524,13 +559,26 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     setHasAdvisorPrompted(true);
     setHasAdvisor(appoint);
     setShowAdvisorModal(false);
+
+    if (appoint) {
+      const roundsLeft = Math.max(1, totalRounds - simRound + 1);
+      const optimalSip = calculateOptimalFreedomSip(simIncome, simExpense, investedCorpus, roundsLeft);
+      setMonthlySip(optimalSip);
+
+      setLedgerLogs((prev) => [{
+        round: simRound,
+        text: `🛡️ ADVISOR APPOINTED: Advisor auto-configured your monthly SIP to ₹${optimalSip.toLocaleString('en-IN')}/mo to target 100% Financial Freedom by age ${retirementAge}.`,
+        isGain: true
+      }, ...prev]);
+    } else {
+      setLedgerLogs((prev) => [{
+        round: simRound,
+        text: '👤 Chose DIY Self-Directed Investing. No advisor fee, but operating with 40/60 win ratio and full exposure to disguised scams.',
+        isGain: false
+      }, ...prev]);
+    }
+
     setShowSipModal(true);
-
-    const logText = appoint 
-      ? '🛡️ Appointed AMFI-Registered Financial Advisor (0.75% p.a. fee). Enabled 80/20 win ratio filter and scam shield.'
-      : '👤 Chose DIY Self-Directed Investing. No advisor fee, but operating with 40/60 win ratio and full exposure to disguised scams.';
-
-    setLedgerLogs((prev) => [{ round: simRound, text: logText, isGain: appoint }, ...prev]);
   };
 
   // Process Event Resolution (Accept vs Skip)
@@ -545,7 +593,15 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
       cashChange = -currentEvent.amount;
       isGain = false;
       logMsg = currentEvent.outcomeMessage;
-      setCashOnHand((prev) => prev - currentEvent.amount);
+      setCashOnHand((prev) => {
+        const nextCash = prev - currentEvent.amount;
+        if (nextCash < 0) {
+          const deficit = Math.abs(nextCash);
+          setLoanBalance((l) => l + deficit);
+          return 0;
+        }
+        return nextCash;
+      });
     } else if (currentEvent.category === 'windfall') {
       // Windfall Cash Gain
       cashChange = currentEvent.amount;
@@ -557,7 +613,15 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
         cashChange = -currentEvent.amount;
         isGain = false;
         logMsg = `Spent ₹${currentEvent.amount.toLocaleString('en-IN')} on ${currentEvent.title}.`;
-        setCashOnHand((prev) => prev - currentEvent.amount);
+        setCashOnHand((prev) => {
+          const nextCash = prev - currentEvent.amount;
+          if (nextCash < 0) {
+            const deficit = Math.abs(nextCash);
+            setLoanBalance((l) => l + deficit);
+            return 0;
+          }
+          return nextCash;
+        });
       } else {
         cashChange = 0;
         isGain = true;
@@ -685,46 +749,96 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     }, ...prev]);
   };
 
+  // Loan Management Actions (18% Overdraft)
+  const handlePayLoanFull = () => {
+    if (cashOnHand < loanBalance) {
+      alert(`Insufficient cash on hand (₹${cashOnHand.toLocaleString('en-IN')}) to pay full loan balance (₹${loanBalance.toLocaleString('en-IN')}).`);
+      return;
+    }
+    const paidAmount = loanBalance;
+    setCashOnHand((prev) => prev - paidAmount);
+    setLedgerLogs((prev) => [{
+      round: simRound,
+      text: `✅ LOAN CLEARED IN FULL: Paid off ₹${paidAmount.toLocaleString('en-IN')} outstanding debt from cash on hand. Stopped 18% p.a. interest bleed!`,
+      isGain: true
+    }, ...prev]);
+    setLoanBalance(0);
+    setActiveEmi(0);
+    setShowLoanModal(false);
+  };
+
+  const handlePayLoanPartial = () => {
+    const amount = parseInt(customPayAmount) || 0;
+    if (amount <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+    if (amount > cashOnHand) {
+      alert(`Payment amount (₹${amount.toLocaleString('en-IN')}) exceeds available cash on hand (₹${cashOnHand.toLocaleString('en-IN')}).`);
+      return;
+    }
+    if (amount > loanBalance) {
+      alert(`Payment amount (₹${amount.toLocaleString('en-IN')}) exceeds active loan balance (₹${loanBalance.toLocaleString('en-IN')}).`);
+      return;
+    }
+
+    setCashOnHand((prev) => prev - amount);
+    setLoanBalance((prev) => Math.max(0, prev - amount));
+    setLedgerLogs((prev) => [{
+      round: simRound,
+      text: `💳 PARTIAL LOAN REPAYMENT: Paid ₹${amount.toLocaleString('en-IN')} towards 18% loan principal. Remaining loan balance: ₹${(loanBalance - amount).toLocaleString('en-IN')}.`,
+      isGain: true
+    }, ...prev]);
+    setCustomPayAmount('');
+    setShowLoanModal(false);
+  };
+
+  const handleSetEmi = () => {
+    const emi = parseInt(customEmiAmount) || 0;
+    if (emi < 0) {
+      alert('Please enter a valid EMI amount.');
+      return;
+    }
+    setActiveEmi(emi);
+    setLedgerLogs((prev) => [{
+      round: simRound,
+      text: `💳 EMI CONFIGURED: Set monthly EMI repayment to ₹${emi.toLocaleString('en-IN')}/mo (₹${(emi * 12).toLocaleString('en-IN')}/yr) to pay down loan principal each round.`,
+      isGain: true
+    }, ...prev]);
+    setCustomEmiAmount('');
+    setShowLoanModal(false);
+  };
+
   // End of Round Loop Calculation
   const handleEndYear = () => {
     let currentCash = cashOnHand;
     let currentCorpus = investedCorpus;
+    let currentLoan = loanBalance;
 
-    // 1. Fund Mutual Fund SIP
-    const annualSip = monthlySip * 12;
-    let actualSipFunded = annualSip;
-
-    if (currentCash < annualSip) {
-      // Check if cash would drop below -2x monthly income
-      const maxNegativeLimit = -2 * simIncome;
-      const maxAvailableToFund = currentCash - maxNegativeLimit;
-
-      if (maxAvailableToFund > 0) {
-        actualSipFunded = maxAvailableToFund;
-        currentCash -= actualSipFunded;
-        currentCorpus += actualSipFunded;
+    // 0. Active Loan EMI Deduction
+    if (activeEmi > 0 && currentLoan > 0) {
+      const annualEmi = activeEmi * 12;
+      const emiPayment = Math.min(currentCash, Math.min(currentLoan, annualEmi));
+      if (emiPayment > 0) {
+        currentCash -= emiPayment;
+        currentLoan -= emiPayment;
         setLedgerLogs((prev) => [{
           round: simRound,
-          text: `⚠️ CASH SHORTFALL: Could only fund ₹${Math.round(actualSipFunded / 12).toLocaleString('en-IN')}/mo SIP this year due to cash constraints.`,
-          isGain: false
-        }, ...prev]);
-      } else {
-        actualSipFunded = 0;
-        setLedgerLogs((prev) => [{
-          round: simRound,
-          text: `🚨 SIP HALTED: Zero cash available for Mutual Fund SIP this year!`,
-          isGain: false
+          text: `💳 EMI REPAYMENT: Paid ₹${emiPayment.toLocaleString('en-IN')} towards 18% loan principal via monthly EMI (₹${activeEmi.toLocaleString('en-IN')}/mo). Remaining loan balance: ₹${currentLoan.toLocaleString('en-IN')}.`,
+          isGain: true
         }, ...prev]);
       }
-    } else {
-      currentCash -= annualSip;
-      currentCorpus += annualSip;
-      setSipFundedRoundsCount((prev) => prev + 1);
     }
-    setTotalSipInvested((prev) => prev + actualSipFunded);
 
-    // 2. Compound Corpus (Random 14% to 17% CAGR)
-    const annualCagr = 0.14 + Math.random() * 0.03; // 14% - 17%
+    // 1. Continuous Mutual Fund SIP Investment (Auto-deducted every year)
+    const annualSip = monthlySip * 12;
+    currentCash -= annualSip;
+    currentCorpus += annualSip;
+    setSipFundedRoundsCount((prev) => prev + 1);
+    setTotalSipInvested((prev) => prev + annualSip);
+
+    // 2. Compound Corpus (14% to 17% CAGR)
+    const annualCagr = 0.14 + Math.random() * 0.03;
     currentCorpus = Math.round(currentCorpus * (1 + annualCagr));
 
     // 3. Deduct Financial Advisor Fee (0.75% per year if appointed)
@@ -748,17 +862,52 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     const organicGrowth = 0.02 + Math.random() * 0.025;
     newIncome = Math.round(newIncome * (1 + organicGrowth));
 
-    // Add remaining annual salary cash surplus to cash on hand (net disposable income)
+    // Add net salary surplus to cash buffer
     const annualLivingExpense = simExpense * 12;
     const annualSalaryNet = (newIncome * 12) - annualLivingExpense;
     if (annualSalaryNet > 0) {
-      currentCash += Math.round(annualSalaryNet * 0.30); // 30% of net surplus builds cash buffer
+      currentCash += Math.round(annualSalaryNet * 0.30);
     }
 
     // 6. Inflate Monthly Expense by 6%
     const newExpense = Math.round(simExpense * 1.06);
 
-    // 7. Check Financial Freedom Threshold: Passive Monthly Return (Corpus * 8% / 12) >= Monthly Expense
+    // 7. Check Negative Cash -> Convert to 18% Bank Overdraft Loan
+    if (currentCash < 0) {
+      const deficit = Math.abs(currentCash);
+      currentLoan += deficit;
+      currentCash = 0;
+      setLedgerLogs((prev) => [{
+        round: simRound,
+        text: `🚨 BANK OVERDRAFT TRIGGERED: Cash flow outlays exceeded liquidity by ₹${deficit.toLocaleString('en-IN')}. Deficit converted to bank loan at 18% p.a. interest.`,
+        isGain: false
+      }, ...prev]);
+    }
+
+    // 8. Charge 18% p.a. Annual Interest on Active Loan
+    if (currentLoan > 0) {
+      const interest = Math.round(currentLoan * 0.18);
+      currentLoan += interest;
+      setLedgerLogs((prev) => [{
+        round: simRound,
+        text: `⚠️ 18% LOAN INTEREST CHARGED: ₹${interest.toLocaleString('en-IN')} interest accrued on your bank loan. Total debt: ₹${currentLoan.toLocaleString('en-IN')}.`,
+        isGain: false
+      }, ...prev]);
+    }
+
+    // 9. Advisor Annual Re-balancing & Optimal SIP Adjustment
+    if (hasAdvisor) {
+      const remainingRounds = Math.max(1, totalRounds - simRound);
+      const optimalSip = calculateOptimalFreedomSip(newIncome, newExpense, currentCorpus, remainingRounds);
+      setMonthlySip(optimalSip);
+      setLedgerLogs((prev) => [{
+        round: simRound,
+        text: `🛡️ ADVISOR ANNUAL REVIEW: Auto-adjusted monthly SIP to ₹${optimalSip.toLocaleString('en-IN')}/mo to keep freedom target on track.`,
+        isGain: true
+      }, ...prev]);
+    }
+
+    // 10. Check Financial Freedom Threshold
     const passiveMonthlyReturn = Math.round((currentCorpus * 0.08) / 12);
     const isFree = passiveMonthlyReturn >= newExpense;
 
@@ -794,6 +943,7 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
     // Update States
     setCashOnHand(currentCash);
     setInvestedCorpus(currentCorpus);
+    setLoanBalance(currentLoan);
     setSimIncome(newIncome);
     setSimExpense(newExpense);
 
@@ -1383,7 +1533,7 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
 
               </div>
 
-              {/* Action Buttons: Invest via Mutual Fund SIP & Upskill Course */}
+              {/* Action Buttons: Invest via Mutual Fund SIP, Upskill Course, & Manage Loan */}
               <div className="flex flex-wrap gap-3 pt-2 border-t border-[#2E3A43]">
                 <button
                   onClick={handleOpenSipModal}
@@ -1401,6 +1551,16 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
                   <span>Upskill / Course ({coursesTaken}/2 Taken)</span>
                 </button>
 
+                {loanBalance > 0 && (
+                  <button
+                    onClick={() => setShowLoanModal(true)}
+                    className="px-5 py-2.5 bg-[#C24E3E] hover:bg-[#a33e30] text-white font-mono font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-md animate-pulse"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Manage Loan (₹{loanBalance.toLocaleString('en-IN')} @ 18%)</span>
+                  </button>
+                )}
+
                 {hasAdvisor && (
                   <div className="ml-auto px-3 py-1.5 bg-[#5B8AA6]/10 border border-[#5B8AA6]/30 text-[#5B8AA6] font-mono text-xs rounded-xl flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5" />
@@ -1408,6 +1568,28 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
                   </div>
                 )}
               </div>
+
+              {/* Active Loan Alert Banner if user has debt */}
+              {loanBalance > 0 && (
+                <div className="p-4 bg-[#C24E3E]/10 border-2 border-[#C24E3E]/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-[#C24E3E] shrink-0" />
+                      <span className="font-mono font-bold text-xs text-[#C24E3E] uppercase tracking-wider">ACTIVE BANK OVERDRAFT / LOAN AT 18% P.A. INTEREST</span>
+                    </div>
+                    <p className="text-xs text-[#E9E4D6]/90 font-mono">
+                      Outstanding Debt: <strong className="text-white text-sm font-bold">₹{loanBalance.toLocaleString('en-IN')}</strong> | Interest Charge: <strong className="text-[#C24E3E]">18% p.a.</strong> {activeEmi > 0 ? `| Active EMI: ₹${activeEmi.toLocaleString('en-IN')}/mo (₹${(activeEmi * 12).toLocaleString('en-IN')}/yr)` : '| No active EMI'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowLoanModal(true)}
+                    className="px-4 py-2 bg-[#C24E3E] hover:bg-[#a33e30] text-white font-mono font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-2"
+                  >
+                    <span>Clear / Manage Loan</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
+              )}
 
             </div>
 
@@ -1849,15 +2031,25 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
             </div>
 
             {hasAdvisor && (
-              <div className="p-4 bg-[#5B8AA6]/10 border border-[#5B8AA6]/30 rounded-2xl space-y-1.5 font-mono text-xs">
-                <span className="text-[#5B8AA6] font-bold block">🛡️ Advisor Target Freedom Calculator</span>
+              <div className="p-4 bg-[#5B8AA6]/10 border border-[#5B8AA6]/30 rounded-2xl space-y-2 font-mono text-xs text-left">
+                <span className="text-[#5B8AA6] font-bold block">🛡️ Advisor Target Freedom Guidance</span>
                 {(() => {
-                  const targetCorpus = Math.round((simExpense * 12) / 0.08); // 8% SWR rule
+                  const roundsLeft = Math.max(1, totalRounds - simRound + 1);
+                  const optimalSip = calculateOptimalFreedomSip(simIncome, simExpense, investedCorpus, roundsLeft);
+                  const targetCorpus = Math.round((simExpense * 12) / 0.08);
                   const gap = Math.max(0, targetCorpus - investedCorpus);
                   return (
-                    <div className="space-y-1 text-[#8B97A0]">
+                    <div className="space-y-1.5 text-[#8B97A0]">
                       <p>• Target Corpus Needed at Current Expense: <strong className="text-white">₹{targetCorpus.toLocaleString('en-IN')}</strong></p>
                       <p>• Remaining Corpus Gap: <strong className="text-[#C9A227]">₹{gap.toLocaleString('en-IN')}</strong></p>
+                      <p>• Recommended Monthly SIP to Bridge Gap: <strong className="text-[#4C9A6A]">₹{optimalSip.toLocaleString('en-IN')}/mo</strong></p>
+                      <button
+                        type="button"
+                        onClick={() => setMonthlySip(optimalSip)}
+                        className="mt-1 w-full py-2 bg-[#5B8AA6] hover:bg-[#486f87] text-[#10161B] font-bold text-xs rounded-lg transition-all cursor-pointer shadow"
+                      >
+                        ⚡ Apply Advisor's Target SIP (₹{optimalSip.toLocaleString('en-IN')}/mo)
+                      </button>
                     </div>
                   );
                 })()}
@@ -1883,6 +2075,109 @@ export default function CashflowGameView({ setCurrentPage }: CashflowGameViewPro
             >
               Save SIP Configuration
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: BANK LOAN & OVERDRAFT MANAGEMENT MODAL */}
+      {showLoanModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 text-left animate-fade-in">
+          <div className="bg-[#1A2229] border border-[#C24E3E] rounded-3xl p-6 max-w-lg w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#2E3A43] pb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-[#C24E3E]" />
+                <h3 className="text-base font-bold font-serif text-white">Bank Loan & Overdraft Facility (18% p.a.)</h3>
+              </div>
+              <button
+                onClick={() => setShowLoanModal(false)}
+                className="text-[#8B97A0] hover:text-white font-mono text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 bg-[#212B33] rounded-2xl border border-[#2E3A43] space-y-2 font-mono text-xs">
+              <div className="flex justify-between items-center text-[#E9E4D6]">
+                <span>Outstanding Loan Principal:</span>
+                <strong className="text-[#C24E3E] text-sm">₹{loanBalance.toLocaleString('en-IN')}</strong>
+              </div>
+              <div className="flex justify-between items-center text-[#8B97A0]">
+                <span>Annual Interest Charge:</span>
+                <strong className="text-[#C24E3E]">18% p.a. (₹{Math.round(loanBalance * 0.18).toLocaleString('en-IN')}/yr)</strong>
+              </div>
+              <div className="flex justify-between items-center text-[#8B97A0]">
+                <span>Available Cash on Hand:</span>
+                <strong className="text-[#4C9A6A]">₹{cashOnHand.toLocaleString('en-IN')}</strong>
+              </div>
+              <div className="flex justify-between items-center text-[#8B97A0]">
+                <span>Active Monthly EMI:</span>
+                <strong className="text-white">{activeEmi > 0 ? `₹${activeEmi.toLocaleString('en-IN')}/mo` : 'None'}</strong>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#8B97A0] font-mono leading-relaxed">
+              ⚠️ Any cash deficit in this simulation converts into an 18% p.a. bank overdraft. High-interest debt destroys compounding power. Clear your loan using cash on hand or set an EMI to pay it down over time.
+            </p>
+
+            <div className="space-y-4">
+              {/* Option A: Clear Full Loan */}
+              <div className="p-4 bg-[#212B33] rounded-2xl border border-[#2E3A43] space-y-2">
+                <span className="text-xs font-mono font-bold text-white block">Option 1: Clear Loan in Full</span>
+                <p className="text-[11px] font-mono text-[#8B97A0]">Pay total outstanding debt (₹{loanBalance.toLocaleString('en-IN')}) instantly from available cash on hand.</p>
+                <button
+                  onClick={handlePayLoanFull}
+                  disabled={cashOnHand < loanBalance}
+                  className={`w-full py-2.5 font-mono font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer ${
+                    cashOnHand >= loanBalance
+                      ? 'bg-[#4C9A6A] hover:bg-[#3d7e56] text-[#10161B]'
+                      : 'bg-[#2E3A43] text-[#8B97A0] cursor-not-allowed'
+                  }`}
+                >
+                  {cashOnHand >= loanBalance ? `Pay Full Debt (₹${loanBalance.toLocaleString('en-IN')})` : 'Insufficient Cash for Full Payoff'}
+                </button>
+              </div>
+
+              {/* Option B: Clear Partial Loan */}
+              <div className="p-4 bg-[#212B33] rounded-2xl border border-[#2E3A43] space-y-2">
+                <span className="text-xs font-mono font-bold text-white block">Option 2: Partial Repayment</span>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="e.g. 50000"
+                    value={customPayAmount}
+                    onChange={(e) => setCustomPayAmount(e.target.value)}
+                    className="flex-1 bg-[#10161B] border border-[#2E3A43] focus:border-[#C9A227] rounded-xl px-3 py-2 text-xs text-[#E9E4D6] font-mono outline-none"
+                  />
+                  <button
+                    onClick={handlePayLoanPartial}
+                    className="px-4 py-2 bg-[#C9A227] hover:bg-[#b08d1f] text-[#10161B] font-mono font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+                  >
+                    Pay Partial
+                  </button>
+                </div>
+              </div>
+
+              {/* Option C: Set Monthly EMI */}
+              <div className="p-4 bg-[#212B33] rounded-2xl border border-[#2E3A43] space-y-2">
+                <span className="text-xs font-mono font-bold text-white block">Option 3: Set Automatic Monthly EMI</span>
+                <p className="text-[11px] font-mono text-[#8B97A0]">Deduct EMI automatically from cash each round to pay down principal systematically.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="e.g. 10000"
+                    value={customEmiAmount}
+                    onChange={(e) => setCustomEmiAmount(e.target.value)}
+                    className="flex-1 bg-[#10161B] border border-[#2E3A43] focus:border-[#5B8AA6] rounded-xl px-3 py-2 text-xs text-[#E9E4D6] font-mono outline-none"
+                  />
+                  <button
+                    onClick={handleSetEmi}
+                    className="px-4 py-2 bg-[#5B8AA6] hover:bg-[#486f87] text-[#10161B] font-mono font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+                  >
+                    Set EMI
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

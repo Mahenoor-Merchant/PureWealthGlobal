@@ -125,6 +125,8 @@ export default function DatabasePortalView() {
         matchesTool = tool.toLowerCase().includes('fund type') || tool.toLowerCase().includes('diagnostic');
       } else if (filterTool === 'ai-auditor') {
         matchesTool = tool.toLowerCase().includes('auditor') || tool.toLowerCase().includes('audit');
+      } else if (filterTool === 'cashflow-game') {
+        matchesTool = l.type === 'cashflow_simulation' || tool.toLowerCase().includes('cashflow') || tool.toLowerCase().includes('freedom');
       } else if (filterTool === 'exact-fund') {
         matchesTool = tool.toLowerCase().includes('exact fund');
       }
@@ -341,6 +343,7 @@ export default function DatabasePortalView() {
                 <option value="retirement">Retirement Buckets</option>
                 <option value="fund-type">Fund Type Diagnostic</option>
                 <option value="ai-auditor">AI Portfolio Auditor</option>
+                <option value="cashflow-game">🎮 Cashflow Game Simulation</option>
                 <option value="exact-fund">Find Exact Fund</option>
               </select>
             </div>
@@ -507,7 +510,20 @@ export default function DatabasePortalView() {
                             </>
                           )}
 
-                          {/* Find Exact Fund metadata */}
+                          {/* Cashflow Game Simulation metadata */}
+                          {lead.type === 'cashflow_simulation' && (
+                            <>
+                              <div className="flex justify-between"><span>Freedom Status:</span> <strong className={lead.calculatorData.isWinner ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>{lead.calculatorData.isWinner ? "FINANCIALLY FREE 🎉" : "SHORTFALL ⚠️"}</strong></div>
+                              <div className="flex justify-between"><span>Final Corpus:</span> <strong className="text-slate-800 font-bold">₹{Math.round(lead.calculatorData.finalCorpus || 0).toLocaleString('en-IN')}</strong></div>
+                              <div className="flex justify-between"><span>Passive Yield:</span> <strong className="text-emerald-600">₹{Math.round(lead.calculatorData.passiveMonthlyYield || 0).toLocaleString('en-IN')}/mo</strong></div>
+                              <div className="flex justify-between"><span>Freedom Ratio:</span> <strong className="text-slate-800">{lead.calculatorData.freedomRatioPercent}%</strong></div>
+                              <div className="flex justify-between"><span>Advisor Appointed:</span> <strong className="text-slate-700">{lead.calculatorData.hasAdvisor ? "Yes (0.75% Fee)" : "No (DIY)"}</strong></div>
+                              <div className="flex justify-between"><span>Scam Losses:</span> <strong className="text-rose-600">₹{Math.round(lead.calculatorData.moneyLostToTraps || 0).toLocaleString('en-IN')}</strong></div>
+                              {lead.calculatorData.mindsetArchetype && (
+                                <div className="flex justify-between"><span>Archetype:</span> <strong className="text-slate-700 truncate max-w-[140px]" title={lead.calculatorData.mindsetArchetype}>{lead.calculatorData.mindsetArchetype}</strong></div>
+                              )}
+                            </>
+                          )}
                           {lead.calculatorData.matchedPortfolio && (
                             <>
                               <div className="flex justify-between"><span>Matched Blueprint:</span> <strong className="text-slate-700 truncate max-w-[150px]" title={lead.calculatorData.matchedPortfolio}>{lead.calculatorData.matchedPortfolio}</strong></div>

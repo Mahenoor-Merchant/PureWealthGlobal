@@ -19,6 +19,7 @@ import PortfolioOverlapFinder from './components/PortfolioOverlapFinder';
 import PortfolioAuditor from './components/PortfolioAuditor';
 import DatabasePortalView from './components/DatabasePortalView';
 import PortfolioPitchView from './components/PortfolioPitchView';
+import CashflowGameView from './components/CashflowGameView';
 import InvestmentStartupPopup from './components/InvestmentStartupPopup';
 import PasswordDialog from './components/PasswordDialog';
 import { NavPage, SharedSurveyData } from './types';
@@ -86,6 +87,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         setCurrentPage('overlap-finder');
       } else if (hash === '#portfolio-audit' || hash === '#audit') {
         setCurrentPage('portfolio-audit');
+      } else if (hash === '#cashflow-game' || hash === '#cashflow' || hash === '#game') {
+        setCurrentPage('cashflow-game');
       } else if (hash === '#database-portal' || hash === '#database') {
         setCurrentPage('home');
         setIsDbPasswordDialogOpen(true);
@@ -99,6 +102,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
           setCurrentPage('find-fund-type');
         } else if (pathname === '/audit' || pathname === '/portfolio-audit') {
           setCurrentPage('portfolio-audit');
+        } else if (pathname === '/cashflow' || pathname === '/cashflow-game' || pathname === '/game') {
+          setCurrentPage('cashflow-game');
         } else if (pathname === '/database' || pathname === '/database-portal') {
           setCurrentPage('home');
           setIsDbPasswordDialogOpen(true);
@@ -402,6 +407,20 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         keywords: "mutual fund pitch, fund explanation, financial advisor tool, bespoke mutual fund reports",
         canonical: "https://www.purewealthglobal.com/pitch",
         schema: null
+      },
+      'cashflow-game': {
+        title: "Financial Freedom Cashflow Simulator | Rich Dad Poor Dad Stock & Mutual Fund Game",
+        description: "Interactive Financial Freedom Cashflow Simulation Game. Stress-test your life goals, hire a 0.75% financial advisor, beat inflation, and achieve passive investment income before retirement.",
+        keywords: "cashflow game, rich dad poor dad game, financial freedom simulator, mutual fund game, retirement simulator, stock market simulation india",
+        canonical: "https://www.purewealthglobal.com/cashflow",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Financial Freedom Cashflow Simulator",
+          "operatingSystem": "All",
+          "applicationCategory": "GameApplication",
+          "description": "Interactive Cashflow simulation focused on mutual fund investing, beating inflation, and escaping the rat race."
+        }
       }
     };
 
@@ -499,6 +518,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         window.history.pushState(null, '', '/findfund');
       } else if (newPage === 'portfolio-audit') {
         window.history.pushState(null, '', '/audit');
+      } else if (newPage === 'cashflow-game') {
+        window.history.pushState(null, '', '/cashflow');
       } else if (newPage === 'retirement-calculator') {
         window.history.pushState(null, '', '/retirement-calculator');
       } else if (newPage === 'lumpsum-freedom') {
@@ -614,6 +635,8 @@ export default function App({ initialPage }: { initialPage?: NavPage['id'] } = {
         return <PortfolioAuditor />;
       case 'portfolio-pitch':
         return <PortfolioPitchView />;
+      case 'cashflow-game':
+        return <CashflowGameView setCurrentPage={changePage} />;
       case 'database-portal':
         return <DatabasePortalView />;
       default:

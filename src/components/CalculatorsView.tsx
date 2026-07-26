@@ -1369,6 +1369,32 @@ export default function CalculatorsView({ setCurrentPage, initialTab }: Calculat
 
         <FundFinderPromoBanner onActionClick={() => setCurrentPage('find-fund-type')} boxIndex={1} />
 
+        {/* Cashflow Financial Freedom Game Featured Banner */}
+        <div className="max-w-4xl mx-auto mb-8 p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold uppercase rounded-md">
+                🎮 Rich Dad Inspired Game
+              </span>
+              <span className="text-[11px] font-bold text-amber-400">100% Interactive Stress Test</span>
+            </div>
+            <h3 className="text-lg font-black text-white font-display">
+              Play Cashflow Financial Freedom Game
+            </h3>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Stress-test your real life parameters, beat 6% inflation, hire a 0.75% financial advisor, avoid Ponzi scams, and achieve passive investment income before retirement!
+            </p>
+          </div>
+
+          <button
+            onClick={() => setCurrentPage('cashflow-game')}
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 shrink-0"
+          >
+            <span>Play Cashflow Game</span>
+            <ArrowRight className="w-4 h-4 text-slate-950" />
+          </button>
+        </div>
+
         {/* Tab Selection (Pristine minimalism sliders look) */}
         <div className="flex bg-white border border-slate-200/80 p-1.5 rounded-2xl max-w-2xl mx-auto mb-10 shadow-sm animate-fade-in" id="calc-tab-headers">
           <button

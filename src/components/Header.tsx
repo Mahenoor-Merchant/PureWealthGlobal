@@ -40,6 +40,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
       case 'overlap-finder': return '/overlap';
       case 'portfolio-audit': return '/audit';
       case 'retirement-calculator': return '/retirement-calculator';
+      case 'cashflow-game': return '/cashflow';
       case 'portfolio-pitch': return '/pitch';
       case 'database-portal': return '/#database';
       case 'find-fund': return '/#find-fund';
@@ -63,7 +64,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal' || currentPage === 'retirement-calculator' || currentPage === 'portfolio-pitch';
+  const isMoreActive = currentPage === 'calculators' || currentPage === 'knowledge' || currentPage === 'connect' || currentPage === 'find-fund' || currentPage === 'overlap-finder' || currentPage === 'database-portal' || currentPage === 'retirement-calculator' || currentPage === 'cashflow-game' || currentPage === 'portfolio-pitch';
 
   return (
     <header className="sticky top-0 z-50 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -192,6 +193,23 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               >
                 <span>Retirement & Financial Freedom Planner</span>
                 {currentPage === 'retirement-calculator' && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+              </a>
+
+              <a
+                href={getPageUrl('cashflow-game')}
+                onClick={(e) => handleLinkClick(e, 'cashflow-game')}
+                className={`w-full text-left px-4 py-2 text-[13.5px] font-medium transition-colors flex items-center justify-between ${
+                  currentPage === 'cashflow-game'
+                    ? 'text-emerald-600 bg-emerald-50/50 font-bold'
+                    : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
+                }`}
+                title="Financial Freedom Cashflow Simulation Game"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md">Game</span>
+                  <span>Cashflow Freedom Simulator</span>
+                </div>
+                {currentPage === 'cashflow-game' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
               </a>
               
               <a

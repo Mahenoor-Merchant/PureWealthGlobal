@@ -27,6 +27,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
       case 'overlap-finder': return '/overlap';
       case 'portfolio-audit': return '/audit';
       case 'retirement-calculator': return '/retirement-calculator';
+      case 'cashflow-game': return '/cashflow';
       case 'database-portal': return '/#database';
       case 'find-fund': return '/#find-fund';
       default: return '/';
@@ -80,6 +81,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                 { id: 'about', label: 'About Our Firm' },
                 { id: 'services', label: 'Financial Services' },
                 { id: 'calculators', label: 'Wealth Calculators' },
+                { id: 'cashflow-game', label: 'Cashflow Freedom Game 🎮' },
                 { id: 'knowledge', label: 'Knowledge Hub' },
                 { id: 'connect', label: 'Start SIP Now👍🏻✅' },
               ].map((link) => (
